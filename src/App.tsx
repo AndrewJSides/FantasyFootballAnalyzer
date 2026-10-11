@@ -34,6 +34,7 @@ const RankingsPage = lazyPage(() => import('@/pages/RankingsPage'), 'RankingsPag
 const ValuesPage = lazyPage(() => import('@/pages/ValuesPage'), 'ValuesPage');
 const TrendsPage = lazyPage(() => import('@/pages/TrendsPage'), 'TrendsPage');
 const TradesPage = lazyPage(() => import('@/pages/TradesPage'), 'TradesPage');
+const TradeAnalyzerPage = lazyPage(() => import('@/pages/TradeAnalyzerPage'), 'TradeAnalyzerPage');
 const WaiversPage = lazyPage(() => import('@/pages/WaiversPage'), 'WaiversPage');
 const TeamsPage = lazyPage(() => import('@/pages/TeamsPage'), 'TeamsPage');
 const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage');
@@ -850,8 +851,19 @@ function App() {
 
           {/* Public tool landing pages (prerendered) for high-intent queries
               the gated features serve but had no front door. */}
-          <Route path="/trade-analyzer" element={<ToolLanding content={TOOL_LANDINGS['trade-analyzer']} />} />
           <Route path="/draft-grades" element={<ToolLanding content={TOOL_LANDINGS['draft-grades']} />} />
+
+          {/* Prospective trade analyzer: works with a connected league
+              (team pickers + roster-aware takes) or in manual mode for
+              guests (search any player). */}
+          <Route
+            path="/trade-analyzer"
+            element={
+              <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><div className="spinner" /></div>}>
+                <TradeAnalyzerPage league={league && !league.isGuest ? league : null} />
+              </Suspense>
+            }
+          />
 
           {/* Data pages need a real connection; guests get bounced to Rankings. */}
           <Route path="/draft" element={dataRoute(l => <DraftPage league={l} />)} />

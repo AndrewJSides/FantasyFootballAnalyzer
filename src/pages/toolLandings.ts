@@ -29,17 +29,20 @@ export const TOOL_LANDINGS: Record<'trade-analyzer' | 'draft-grades', ToolLandin
     title: 'Fantasy Football Trade Analyzer (Free): Sleeper, ESPN, Yahoo',
     desc:
       'Free fantasy football trade analyzer for Sleeper, ESPN, and Yahoo. ' +
-      'Grade every trade by the points each side actually scored after the deal, and name the winner. No login.',
-    kicker: '▌ TRADE VERDICTS',
+      'Grade a trade before you make it with value-over-replacement for your ' +
+      'league\'s exact shape, plus roster-aware takes on positional need. No login required.',
+    kicker: '▌ PROSPECTIVE TRADE ANALYZER',
     heading: 'Fantasy Football Trade Analyzer',
     intro:
-      'This grades each trade by the points scored after the deal. ' +
-      'Connect your Sleeper, ESPN, or Yahoo league and it grades each side on what their ' +
-      'players produced once they changed teams, then names the winner.',
+      'Grade a trade before you make it. Pick the players changing hands and ' +
+      'get a value-over-replacement verdict computed for your league\'s size, ' +
+      'scoring, and roster shape. Connect your Sleeper, ESPN, or Yahoo league ' +
+      'for team rosters and roster-aware takes on how the deal hits each ' +
+      'team\'s positional depth.',
     points: [
-      { h: 'Judged on real production', p: 'Each side is scored on the fantasy points its acquired players put up after the trade.' },
-      { h: 'Both sides graded', p: 'Each side gets a grade, and the side that came out ahead is named the winner.' },
-      { h: 'Every league, every season', p: 'Works across Sleeper, ESPN, and Yahoo, for the current season and your league history.' },
+      { h: 'Valued for your league shape', p: 'VOR is computed against replacement level for your teams, scoring, and slots — not a generic chart.' },
+      { h: 'Roster-aware takes', p: 'See how each team\'s positional depth and starter quality change, so a paper overpay that fills your hole still grades fairly.' },
+      { h: 'Every league, every season', p: 'Works across Sleeper, ESPN, and Yahoo, backed by the consensus board refreshed twice daily.' },
     ],
     ctas: [
       { to: '', label: 'Connect your league', primary: true },
