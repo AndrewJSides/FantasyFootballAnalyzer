@@ -6,8 +6,12 @@ import { seasonOverByCalendar } from '@/utils/leaguePhase';
 import { safeLocalStorage, safeSessionStorage } from '@/utils/safeStorage';
 import { pacedYahooFetch } from './yahooPacing';
 
-// Backend API URL - Vercel deployment
-const API_BASE = import.meta.env.VITE_YAHOO_API_URL || 'https://fantasy-football-analyzer-mu.vercel.app';
+// Backend API URL: same origin in production (frontend and API share the
+// traderape.me domain), so no CORS hop. VITE_YAHOO_API_URL overrides for
+// local dev; legacy Vercel host kept as the dev fallback.
+const API_BASE =
+  import.meta.env.VITE_YAHOO_API_URL ||
+  (import.meta.env.DEV ? 'https://fantasy-football-analyzer-mu.vercel.app' : '');
 
 // Storage keys
 const STORAGE_KEYS = {

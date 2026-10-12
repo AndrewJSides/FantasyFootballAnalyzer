@@ -7,8 +7,11 @@ import { seasonOverByCalendar } from '@/utils/leaguePhase';
 
 // Direct ESPN API for public leagues
 const ESPN_DIRECT_URL = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons';
-// Proxy URL for private leagues (to handle cookies server-side)
-const ESPN_PROXY_URL = import.meta.env.VITE_ESPN_PROXY_URL || 'https://fantasy-football-analyzer-mu.vercel.app/api/espn-proxy';
+// Proxy URL for private leagues (to handle cookies server-side): same origin
+// in production, VITE_ESPN_PROXY_URL override for local dev.
+const ESPN_PROXY_URL =
+  import.meta.env.VITE_ESPN_PROXY_URL ||
+  (import.meta.env.DEV ? 'https://fantasy-football-analyzer-mu.vercel.app/api/espn-proxy' : '/api/espn-proxy');
 
 // ESPN position ID mapping
 const POSITION_MAP: Record<number, string> = {
