@@ -1,13 +1,22 @@
 {
-  "buildCommand": "echo 'Vercel hosts api/ only; frontend ships to gh-pages via CI'",
-  "outputDirectory": ".",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
       ]
     }
   ]
