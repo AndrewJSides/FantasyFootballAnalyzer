@@ -142,7 +142,9 @@ export default defineConfig({
       // but ship real logic (season cutoff, OAuth redirect allowlist), so their
       // tests run too.
       'scripts/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      // API tests live in tests/api (not api/) so Vercel doesn't deploy each
+      // test file as a serverless function (Hobby plan: 12 max).
+      'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
   },
 })
