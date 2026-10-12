@@ -176,12 +176,12 @@ export function Header({
                 </svg>
               </button>
             )}
-            <Link to="/" className={styles.logo} aria-label="Fantasy Football Analyzer">
+            <Link to="/" className={styles.logo} aria-label="TraderApe">
               <span className={styles.logoFull}>
-                FANTASY <span className={styles.logoAccent}>FOOTBALL</span> ANALYZER
+                TRADER<span className={styles.logoAccent}>APE</span>
               </span>
               <span className={styles.logoShort} aria-hidden="true">
-                F<span className={styles.logoAccent}>F</span>A
+                T<span className={styles.logoAccent}>A</span>
               </span>
             </Link>
           </div>

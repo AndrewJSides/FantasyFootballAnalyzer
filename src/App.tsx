@@ -216,8 +216,8 @@ function App() {
       : undefined;
     const page = rankPos ? `${labelForPos(rankPos)} Rankings` : PAGE_TITLES[location.pathname];
     document.title = page
-      ? `${page} · Fantasy Football Analyzer`
-      : 'Fantasy Football Analyzer';
+      ? `${page} · TraderApe`
+      : 'TraderApe';
     // Sanitized, path-only page_view (gtag's automatic one is disabled so the
     // token-bearing /yahoo-success URL never reaches GA). Fires per SPA route.
     Analytics.pageView(location.pathname);

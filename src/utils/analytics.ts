@@ -1,4 +1,4 @@
-// Google Analytics event tracking utilities for Fantasy Football Analyzer
+// Google Analytics event tracking utilities for TraderApe
 
 declare global {
   interface Window {
@@ -16,7 +16,7 @@ export function trackEvent(eventName: string, params?: Record<string, unknown>) 
   }
 }
 
-// Fantasy Football Analyzer specific events
+// TraderApe specific events
 export const Analytics = {
   // Track league connected. Only the platform, never the league id: the raw id
   // re-identifies which specific league a visitor analyzed, which the
