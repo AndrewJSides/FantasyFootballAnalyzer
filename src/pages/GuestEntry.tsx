@@ -6,7 +6,6 @@ import {
   type GuestSettings,
 } from '@/utils/guestLeague';
 import type { DraftType } from '@/types';
-import { useSounds } from '@/hooks/useSounds';
 import styles from './GuestEntry.module.css';
 
 export type GuestDest = 'rankings' | 'draft-room';
@@ -31,16 +30,13 @@ const DRAFT_OPTIONS: Array<{ value: DraftType; label: string }> = [
 // settings; the parent owns entering guest mode and navigating.
 export function GuestEntry({ onStart }: GuestEntryProps) {
   const [settings, setSettings] = useState<GuestSettings>(DEFAULT_GUEST_SETTINGS);
-  const { playFilter, playClick } = useSounds();
 
   // Changing a setting reuses the same chirp the Rankings filter chips play.
   const patch = (p: Partial<GuestSettings>) => {
-    playFilter();
     setSettings(s => ({ ...s, ...p }));
   };
 
   const start = (dest: GuestDest) => {
-    playClick();
     onStart(settings, dest);
   };
 

@@ -33,6 +33,7 @@ const h = vi.hoisted(() => {
   return {
     store,
     loadMock: vi.fn(),
+    loadPinLeagueMock: vi.fn(),
     enterGuestMock: vi.fn(),
     noop: () => {},
     saveTokens: vi.fn(),
@@ -57,6 +58,7 @@ vi.mock('@/hooks/useLeague', async () => {
         error: null,
         progress: null,
         load: h.loadMock,
+        loadPinLeague: h.loadPinLeagueMock,
         refresh: h.noop,
         clear: h.noop,
         enterGuest: h.enterGuestMock,
@@ -79,10 +81,6 @@ vi.mock('react-router-dom', async importOriginal => {
       h.blockRedirect ? null : <actual.Navigate {...props} />,
   };
 });
-
-vi.mock('@/hooks/useSounds', () => ({
-  useSounds: () => ({ playLoadComplete: h.noop, playError: h.noop }),
-}));
 
 vi.mock('@/api/yahoo', async importOriginal => ({
   ...(await importOriginal<object>()),
@@ -119,13 +117,13 @@ vi.mock('@/components/GuestBanner', () => ({ GuestBanner: () => null }));
 vi.mock('@/components/SeasonFallbackNotice', () => ({
   SeasonFallbackNotice: ({ message }: { message: string }) => <div data-testid="notice">{message}</div>,
 }));
-// The connect form stands in for the real one: a button that hands App the
-// credentials, so handleLoadLeague (load -> navigate) runs for real.
+// The PIN form stands in for the real one: a button that hands App the
+// PIN, so handleLoadPin (load -> navigate) runs for real.
 vi.mock('@/pages/HomePage', () => ({
-  HomePage: ({ onLoadLeague }: { onLoadLeague: (c: unknown) => void }) => (
+  HomePage: ({ onLoadPin }: { onLoadPin: (pin: string) => void }) => (
     <div data-testid="home-page">
-      <button type="button" onClick={() => onLoadLeague({ platform: 'sleeper', leagueId: '77' })}>
-        Load League
+      <button type="button" onClick={() => onLoadPin('TESTPIN')}>
+        Load PIN League
       </button>
     </div>
   ),
@@ -186,6 +184,11 @@ beforeEach(() => {
   // Default load: succeed and swap the store's league in, like the real hook.
   h.loadMock.mockImplementation(async ({ leagueId }: { leagueId: string }) => {
     const league = sleeperLeague(leagueId);
+    h.store.set({ league });
+    return league;
+  });
+  h.loadPinLeagueMock.mockImplementation(async () => {
+    const league = sleeperLeague('pin');
     h.store.set({ league });
     return league;
   });
@@ -410,29 +413,29 @@ describe('Yahoo OAuth return (/yahoo-success)', () => {
 describe('connect flow lands on a page', () => {
   it('reaches the draft analysis after connecting, share param and all', async () => {
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load League' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Load PIN League' }));
 
     expect(await screen.findByTestId('draft-page')).toBeTruthy();
     await waitFor(() =>
       expect(decodeURIComponent(screen.getByTestId('loc').textContent ?? '')).toBe(
-        '/draft?league=sleeper:77',
+        '/draft?league=sleeper:pin',
       ),
     );
   });
 
   it('reaches the draft room when the connected league has not drafted yet', async () => {
-    h.loadMock.mockImplementation(async ({ leagueId }: { leagueId: string }) => {
-      const league = sleeperLeague(leagueId, { status: 'preseason' } as Partial<League>);
+    h.loadPinLeagueMock.mockImplementation(async () => {
+      const league = sleeperLeague('pin', { status: 'preseason' } as Partial<League>);
       h.store.set({ league });
       return league;
     });
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load League' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Load PIN League' }));
 
     expect(await screen.findByTestId('draft-room-page')).toBeTruthy();
     await waitFor(() =>
       expect(decodeURIComponent(screen.getByTestId('loc').textContent ?? '')).toBe(
-        '/draft-room?league=sleeper:77',
+        '/draft-room?league=sleeper:pin',
       ),
     );
   });
@@ -485,7 +488,7 @@ describe('stranded-on-home detector', () => {
 
   it('stays quiet on a healthy connect that reaches a page', async () => {
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load League' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Load PIN League' }));
     expect(await screen.findByTestId('draft-page')).toBeTruthy();
     await vi.advanceTimersByTimeAsync(2500);
     expect(

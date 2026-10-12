@@ -6,7 +6,6 @@ import { useDraftQueue } from '@/hooks/useDraftQueue';
 import { useDraftRoom } from '@/hooks/useDraftRoom';
 import { useDraftSim } from '@/hooks/useDraftSim';
 import { useLiveDraftSync } from '@/hooks/useLiveDraftSync';
-import { useSounds } from '@/hooks/useSounds';
 import { useSuggestedPicks } from '@/hooks/useSuggestedPicks';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useYahooValues } from '@/hooks/useYahooValues';
@@ -208,7 +207,6 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const { playClick, playSuccess, playError, playOnTheClock, isMuted, toggleMute } = useSounds();
 
   const isSnake = config.draftType === 'snake';
   const isAuction = config.draftType === 'auction';
@@ -231,11 +229,10 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
   const wasMyTurnRef = useRef(false);
   useEffect(() => {
     if (myTurn && !wasMyTurnRef.current) {
-      playOnTheClock();
       vibrate([60, 30, 60]);
     }
     wasMyTurnRef.current = myTurn;
-  }, [myTurn, playOnTheClock]);
+  }, [myTurn]);
 
   // Phone mock auction: the bidding panel lives in the Log tab and the sim
   // waits on the user's bid, so a nomination going up while another tab is
@@ -408,9 +405,7 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
       playerId: player.id,
       teamId: derived.onTheClockId,
     });
-    if (error) playError();
-    else {
-      playSuccess();
+    if (!error) {
       vibrate(40);
       setSelected(null);
     }
@@ -427,12 +422,10 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
   const quickNominate = (player: PoolPlayer) => {
     if (isMock) {
       if (!sim.awaitingMyNomination) return;
-      playSuccess();
       vibrate(40);
       sim.nominate(player);
       setSelected(null);
     } else {
-      playClick();
       setSelected(player);
     }
     if (isPhone) {
@@ -467,7 +460,6 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
       return;
     }
     setResetArmed(false);
-    playClick();
     reset();
   };
 
@@ -558,18 +550,8 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
     <>
       <button
         type="button"
-        className={styles.soundBtn}
-        onClick={toggleMute}
-        aria-pressed={isMuted}
-        title={isMuted ? 'Sounds are off. Click to unmute.' : 'Mute all app sounds'}
-      >
-        {isMuted ? '🔇' : '🔊'}
-      </button>
-      <button
-        type="button"
         className={styles.statusUndoBtn}
         onClick={() => {
-          playClick();
           undo();
         }}
         disabled={room.events.length === 0}

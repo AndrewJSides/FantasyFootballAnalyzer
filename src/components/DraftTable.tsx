@@ -29,7 +29,6 @@ import { KeeperValuePanel } from './KeeperValuePanel';
 import { POOL } from '@/data/draftPool';
 import { WEEKLY_SHAPE } from '@/data/weeklyShape';
 import { leagueOutlooks } from '@/utils/seasonOutlook';
-import { useSounds } from '@/hooks/useSounds';
 import { NflTeamLabel } from './NflTeamLabel';
 import { PosBadge } from './PosBadge';
 import { TeamLink } from './TeamLink';
@@ -125,7 +124,6 @@ export function DraftTable({
   gamesPlayed,
   platform,
 }: DraftTableProps) {
-  const { playFilter, playSort } = useSounds();
 
   // Detect if auction draft
   const isAuction = draftType === 'auction' || teams.some(t =>
@@ -367,7 +365,6 @@ export function DraftTable({
   }, [gradedPicks, selectedTeam, selectedPosition, sortField, sortDirection, projected]);
 
   const handleSort = (field: SortField) => {
-    playSort();
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -377,12 +374,10 @@ export function DraftTable({
   };
 
   const handleTeamFilter = (value: string) => {
-    playFilter();
     setSelectedTeam(value);
   };
 
   const handlePositionFilter = (value: string) => {
-    playFilter();
     setSelectedPosition(value);
   };
 
@@ -743,7 +738,6 @@ export function DraftTable({
               aria-label={state === null ? aria : undefined}
               onClick={async () => {
                 if (shareState?.state === 'busy') return;
-                playSort();
                 setShareState({ which, state: 'busy' });
                 let result: Awaited<ReturnType<typeof run>> = false;
                 try {

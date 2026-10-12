@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { NflTeamLabel, PosBadge } from '@/components';
 import styles from './PickLog.module.css';
 
@@ -38,7 +37,6 @@ function toCsv(rows: LogRow[], isAuction: boolean): string {
 export function PickLog({ room }: PickLogProps) {
   const { config, events, derived, scaledValues, undo } = room;
   const isAuction = config.draftType === 'auction';
-  const { playClick, playExport } = useSounds();
   const teamName = useMemo(
     () => new Map(config.teams.map(t => [t.id, t.name])),
     [config.teams],
@@ -73,7 +71,6 @@ export function PickLog({ room }: PickLogProps) {
   );
 
   const exportCsv = () => {
-    playExport();
     const blob = new Blob([toCsv(rows, isAuction)], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -97,7 +94,6 @@ export function PickLog({ room }: PickLogProps) {
             type="button"
             className={styles.btn}
             onClick={() => {
-              playClick();
               undo();
             }}
             disabled={events.length === 0}

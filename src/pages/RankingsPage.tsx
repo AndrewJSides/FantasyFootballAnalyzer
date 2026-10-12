@@ -7,7 +7,6 @@ import type { League, Platform } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { GUEST_TEAM_OPTIONS, type GuestScoring, type GuestSettings } from '@/utils/guestLeague';
 import { DEFAULT_BUDGET, DEFAULT_ROSTER_SLOTS } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { useTargets } from '@/hooks/useTargets';
 import { useYahooValues } from '@/hooks/useYahooValues';
 import { consensusAvg, platformRankSource, sleeperAdpFor } from '@/utils/consensus';
@@ -68,7 +67,6 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   const [posFilter, setPosFilter] = useState(landingPos ?? 'ALL');
   const [sortBy, setSortBy] = useState<SortKey>('avg');
   const [sortRev, setSortRev] = useState(false);
-  const { playFilter, playSort } = useSounds();
   const { starred, avoided, cycle } = useTargets(POOL.season);
 
   const isAuction = league.draftType === 'auction';
@@ -142,7 +140,6 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   }, [scoring, superflex]);
 
   const setSort = (key: SortKey) => {
-    playSort();
     if (key === sortBy) {
       setSortRev(r => !r);
     } else {
@@ -154,7 +151,6 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   // Switching views hides the columns the other view sorts by; a sort on a
   // hidden column would look like a frozen random order, so reset it.
   const setView = (tab: ViewTab) => {
-    playFilter();
     setViewTab(tab);
     const hidden = tab === 'auction' ? SNAKE_ONLY_SORTS : AUCTION_ONLY_SORTS;
     if (hidden.includes(sortBy)) {
@@ -270,7 +266,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 <select
                   className={styles.settingsSelect}
                   value={league.totalTeams}
-                  onChange={e => { playFilter(); onUpdateGuest!({ totalTeams: Number(e.target.value) }); }}
+                  onChange={e => { onUpdateGuest!({ totalTeams: Number(e.target.value) }); }}
                   title="League size. Scales auction dollar values."
                 >
                   {GUEST_TEAM_OPTIONS.map(n => (
@@ -283,7 +279,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 <select
                   className={styles.settingsSelect}
                   value={league.scoringType}
-                  onChange={e => { playFilter(); onUpdateGuest!({ scoringType: e.target.value as GuestScoring }); }}
+                  onChange={e => { onUpdateGuest!({ scoringType: e.target.value as GuestScoring }); }}
                   title="Scoring format. Changes ADP, consensus, and values."
                 >
                   <option value="standard">Standard</option>
@@ -296,7 +292,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 <select
                   className={styles.settingsSelect}
                   value={league.platform}
-                  onChange={e => { playFilter(); onUpdateGuest!({ platform: e.target.value as Platform }); }}
+                  onChange={e => { onUpdateGuest!({ platform: e.target.value as Platform }); }}
                   title="Which platform the delta column compares against"
                 >
                   <option value="sleeper">Sleeper</option>
@@ -371,7 +367,6 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 className={posFilter === pos ? styles.chipOn : styles.chip}
                 aria-pressed={posFilter === pos}
                 onClick={() => {
-                  playFilter();
                   setPosFilter(pos);
                 }}
                 title={

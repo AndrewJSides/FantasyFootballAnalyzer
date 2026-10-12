@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { gradeDraftSession, rosterAsText } from '@/utils/draftRecap';
 import { findStacks } from '@/utils/stacks';
@@ -18,7 +17,6 @@ interface DraftRecapProps {
 // the-room report cards, not season predictions.
 export function DraftRecap({ room }: DraftRecapProps) {
   const { config, derived, scaledValues } = room;
-  const { playClick, playGrade } = useSounds();
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const recaps = useMemo(
@@ -34,7 +32,6 @@ export function DraftRecap({ room }: DraftRecapProps) {
 
   const copyRoster = () => {
     if (!mine) return;
-    playClick();
     // A silent failure reads as success, so say so (same as RecapShare).
     const show = (state: 'copied' | 'failed') => {
       setCopyState(state);
@@ -49,21 +46,12 @@ export function DraftRecap({ room }: DraftRecapProps) {
       });
   };
 
-  const gradeSound = (grade: string) => {
-    if (grade.startsWith('A')) playGrade('great');
-    else if (grade.startsWith('B')) playGrade('good');
-    else if (grade.startsWith('C')) playGrade('bad');
-    else playGrade('terrible');
-  };
-
-  // The recap's own reveal: fanfare for your grade the moment the card
-  // mounts (the same sound a click on any card plays), plus a light buzz.
+  // The recap's own reveal: a light buzz the moment the card mounts.
   // One-shot, keyed off the grade so undo -> redraft can replay it.
   const revealedGradeRef = useRef<string | null>(null);
   useEffect(() => {
     if (!mine || revealedGradeRef.current === mine.grade) return;
     revealedGradeRef.current = mine.grade;
-    gradeSound(mine.grade);
     vibrate(50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mine?.grade]);
@@ -137,17 +125,14 @@ export function DraftRecap({ room }: DraftRecapProps) {
         <div className={styles.sectionHead}>
           <h3 className={styles.sectionTitle}>The Room</h3>
           <span className={styles.sectionNote}>
-            Every team, ranked by value acquired. Tap a card for the fanfare.
+            Every team, ranked by value acquired.
           </span>
         </div>
         <div className={styles.grid}>
           {recaps.map(recap => (
-            <button
+            <div
               key={recap.teamId}
-              type="button"
               className={`${styles.card} ${recap.teamId === config.myTeamId ? styles.cardMine : ''}`}
-              onClick={() => gradeSound(recap.grade)}
-              title="Tap for the grade fanfare"
             >
               <div className={styles.cardHead}>
                 <span className={styles.cardGrade}>{recap.grade}</span>
@@ -188,7 +173,7 @@ export function DraftRecap({ room }: DraftRecapProps) {
                   />
                 ))}
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </section>

@@ -1,4 +1,3 @@
-import { useSounds } from '@/hooks/useSounds';
 import styles from './GuestBanner.module.css';
 
 interface GuestBannerProps {
@@ -9,7 +8,6 @@ interface GuestBannerProps {
 // Shown on guest pages (Rankings, Draft Room) to set expectations: the data
 // pages, real team names, and season switching all need a real connection.
 export function GuestBanner({ onConnect }: GuestBannerProps) {
-  const { playClick } = useSounds();
   return (
     // guest-banner is a global hook so the phone draft room can hide this
     // while a draft is live (see .draft-focus in index.css). The module class
@@ -25,7 +23,7 @@ export function GuestBanner({ onConnect }: GuestBannerProps) {
         <button
           type="button"
           className={styles.connect}
-          onClick={() => { playClick(); onConnect(); }}
+          onClick={() => { onConnect(); }}
         >
           Connect your league
         </button>

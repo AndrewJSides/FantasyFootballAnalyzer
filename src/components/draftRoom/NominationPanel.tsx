@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { suggestNominations } from '@/utils/nominations';
 import { inflateValue } from '@/utils/inflation';
 import styles from './Panels.module.css';
@@ -16,7 +15,6 @@ interface NominationPanelProps {
 // positions you're done with), grab your guys for $1 in the endgame.
 export function NominationPanel({ room, onSelect }: NominationPanelProps) {
   const { config, derived, scaledValues, inflation } = room;
-  const { playClick } = useSounds();
   const myTurn = derived.onTheClockId === config.myTeamId;
 
   const suggestions = useMemo(() => {
@@ -46,7 +44,6 @@ export function NominationPanel({ room, onSelect }: NominationPanelProps) {
               type="button"
               className={styles.suggestRow}
               onClick={() => {
-                playClick();
                 onSelect(player);
               }}
               title={`Select ${player.name} for the logger`}

@@ -4,7 +4,6 @@ import { formatBuildDate } from '@/utils/formatBuildDate';
 import { ADP_HISTORY } from '@/data/adpHistory';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { playerHeadshotUrl } from '@/data/nflTeams';
-import { useSounds } from '@/hooks/useSounds';
 import { TREND_NOISE_FLOOR, TREND_RELEVANCE_CAP, computeTrends, sameWindow, type TrendMover } from '@/utils/trends';
 import type { League } from '@/types';
 import type { TrendFormat } from '@/types/adpHistory';
@@ -114,7 +113,6 @@ function MoverRow({
 // risers and fallers from the same blended rank the Rankings board sorts by.
 export function TrendsPage({ league }: TrendsPageProps) {
   const byId = useMemo(() => new Map(POOL.players.map(p => [p.id, p])), []);
-  const { playFilter } = useSounds();
   const [format, setFormat] = useState<TrendFormat>(() => defaultFormat(league));
   const windows = useMemo(() => {
     // A short history (first week of a season) gives both windows the same
@@ -178,7 +176,7 @@ export function TrendsPage({ league }: TrendsPageProps) {
               type="button"
               className={format === f ? styles.chipOn : styles.chip}
               aria-pressed={format === f}
-              onClick={() => { playFilter(); setFormat(f); }}
+              onClick={() => { setFormat(f); }}
               title={
                 f === 'superflex'
                   ? 'Movement on the superflex (2QB) consensus board'

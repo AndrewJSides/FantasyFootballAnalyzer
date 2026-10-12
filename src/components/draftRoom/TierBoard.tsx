@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { NflTeamLabel } from '@/components';
 import { marketAdp } from '@/utils/consensus';
 import { inflateValue } from '@/utils/inflation';
@@ -28,7 +27,6 @@ const PER_POSITION = 30;
 export function TierBoard({ room, selectedId, onSelect }: TierBoardProps) {
   const { config, derived, scaledValues, inflation, scoring } = room;
   const isAuction = config.draftType === 'auction';
-  const { playClick } = useSounds();
 
   // A just-drafted player briefly stays rendered (in his own ghost row) so
   // the row can fade out instead of vanishing the instant the pick logs.
@@ -121,7 +119,6 @@ export function TierBoard({ room, selectedId, onSelect }: TierBoardProps) {
                   type="button"
                   className={p.id === selectedId ? styles.playerOn : styles.player}
                   onClick={() => {
-                    playClick();
                     onSelect(p);
                   }}
                   title={`Select ${p.name} for the pick logger`}

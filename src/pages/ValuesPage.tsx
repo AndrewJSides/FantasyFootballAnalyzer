@@ -7,7 +7,6 @@ import type { League, Platform } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import type { GuestScoring, GuestSettings } from '@/utils/guestLeague';
 import { DEFAULT_ROSTER_SLOTS } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { useTargets } from '@/hooks/useTargets';
 import { consensusAvg, platformDelta, platformRankSource } from '@/utils/consensus';
 import { FLEX_POSITIONS, labelForPos } from '@/data/rankingsVariants';
@@ -85,7 +84,6 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
   const [posFilter, setPosFilter] = useState('ALL');
   const [direction, setDirection] = useState<Direction>('values');
   const [sortBy, setSortBy] = useState<SortKey>('consensus');
-  const { playFilter, playSort } = useSounds();
   const { starred, avoided, cycle } = useTargets(POOL.season);
 
   const scoring = league.scoringType;
@@ -190,8 +188,8 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
     return sorted.slice(0, MAX_ROWS);
   }, [rows, posFilter, deferredQuery, sortBy, direction]);
 
-  const setSort = (key: SortKey) => { playSort(); setSortBy(key); };
-  const setDir = (d: Direction) => { playFilter(); setDirection(d); };
+  const setSort = (key: SortKey) => { setSortBy(key); };
+  const setDir = (d: Direction) => { setDirection(d); };
 
   const sortableTh = (key: SortKey, label: string, title: string) => (
     <th
@@ -231,7 +229,7 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
               <select
                 className={styles.settingsSelect}
                 value={league.scoringType}
-                onChange={e => { playFilter(); onUpdateGuest!({ scoringType: e.target.value as GuestScoring }); }}
+                onChange={e => { onUpdateGuest!({ scoringType: e.target.value as GuestScoring }); }}
                 title="Scoring format. Changes each site's ADP and the consensus."
               >
                 <option value="standard">Standard</option>
@@ -287,7 +285,7 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
               type="button"
               className={posFilter === pos ? styles.chipOn : styles.chip}
               aria-pressed={posFilter === pos}
-              onClick={() => { playFilter(); setPosFilter(pos); }}
+              onClick={() => { setPosFilter(pos); }}
             >
               {pos === 'ALL' ? 'All' : labelForPos(pos)}
             </button>

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { comfortBid } from '@/utils/auctionMath';
 import { inflateValue } from '@/utils/inflation';
 import { SelectedPlayerCard } from './SelectedPlayerCard';
@@ -26,7 +25,6 @@ export function AuctionLogger({ room, selected, onLogged }: AuctionLoggerProps) 
   const [winnerId, setWinnerId] = useState('');
   const [price, setPrice] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { playSuccess, playError } = useSounds();
   const winnerRef = useRef<HTMLSelectElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
   // Two-digit team picks ("1" then "2" = team 12) buffer briefly.
@@ -97,10 +95,7 @@ export function AuctionLogger({ room, selected, onLogged }: AuctionLoggerProps) 
       expectedValue: expected ?? undefined,
     });
     setError(result);
-    if (result) {
-      playError();
-    } else {
-      playSuccess();
+    if (!result) {
       setNominatorId('');
       setWinnerId('');
       setPrice('');

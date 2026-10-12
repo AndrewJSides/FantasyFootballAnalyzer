@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useSounds } from '@/hooks/useSounds';
 import styles from './DraftPrepBanner.module.css';
 
 interface DraftPrepBannerProps {
@@ -17,7 +16,6 @@ interface DraftPrepBannerProps {
 // bundled: the "your 2025 league is on screen but the 2026 draft is what you
 // came to prep" bridge, one click instead of finding the year dropdown.
 export function DraftPrepBanner({ draftSeason, leagueSeason, onOpen }: DraftPrepBannerProps) {
-  const { playClick } = useSounds();
   const [busy, setBusy] = useState(false);
 
   return (
@@ -33,7 +31,6 @@ export function DraftPrepBanner({ draftSeason, leagueSeason, onOpen }: DraftPrep
           className={styles.open}
           disabled={busy}
           onClick={async () => {
-            playClick();
             setBusy(true);
             try {
               await onOpen();

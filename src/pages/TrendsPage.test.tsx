@@ -68,9 +68,6 @@ const h = vi.hoisted(() => ({
 
 vi.mock('@/data/draftPool', () => ({ POOL: h.pool }));
 vi.mock('@/data/adpHistory', () => ({ ADP_HISTORY: h.history }));
-vi.mock('@/hooks/useSounds', () => ({
-  useSounds: () => ({ playFilter: () => {} }),
-}));
 
 import { TrendsPage } from './TrendsPage';
 

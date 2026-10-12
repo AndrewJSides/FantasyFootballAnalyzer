@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import type { DraftRoomConfig } from '@/types/draft';
-import { useSounds } from '@/hooks/useSounds';
 import { PosBadge } from '@/components';
 import type { TeamRecap } from '@/utils/draftRecap';
 import {
@@ -134,7 +133,6 @@ function ListCard({
 // The "start arguments in the group chat" section of the recap: the four
 // lists rendered as cards, each copyable as plain text.
 export function RecapShare({ config, recaps }: RecapShareProps) {
-  const { playClick } = useSounds();
   const [copiedKey, setCopiedKey] = useState<ShareListKey | 'all' | null>(null);
   const [failedKey, setFailedKey] = useState<ShareListKey | 'all' | null>(null);
 
@@ -152,7 +150,6 @@ export function RecapShare({ config, recaps }: RecapShareProps) {
   const copy = (key: ShareListKey | 'all') => {
     const text = key === 'all' ? shareAllText(lists) : shareListText(lists, key);
     if (!text) return;
-    playClick();
     navigator.clipboard
       .writeText(text)
       .then(() => {

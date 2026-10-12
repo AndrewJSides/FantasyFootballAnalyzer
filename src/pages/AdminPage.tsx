@@ -7,7 +7,7 @@
 // PIN holders get read-only access via ?pin=… — they never touch this page.
 
 import { useCallback, useEffect, useState } from 'react';
-import { getAuthUrl, getUserLeagues, isAuthenticated, loadLeague } from '@/api/yahoo';
+import { getAuthUrl, getUserLeagues, isAuthenticated, loadLeague, saveOAuthReturn } from '@/api/yahoo';
 import type { League } from '@/types';
 
 const ADMIN_KEY_STORAGE = 'traderape_admin_key';
@@ -65,7 +65,15 @@ export function AdminPage() {
     setUnlocked(true);
   }, [adminKey]);
 
+  // Re-validate a stored key on mount: the OAuth round trip reloads this
+  // page, and without this the owner would have to click Unlock again.
+  useEffect(() => {
+    if (!unlocked && getAdminKey()) unlock();
+  }, [unlocked, unlock]);
+
   const connectYahoo = useCallback(async () => {
+    // Stash the return so the OAuth round trip lands back here, not on '/'.
+    saveOAuthReturn({ path: '/admin' });
     const url = await getAuthUrl();
     window.location.href = url;
   }, []);

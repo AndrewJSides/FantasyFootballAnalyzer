@@ -2,7 +2,6 @@ import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, us
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useSounds } from '@/hooks/useSounds';
 import { useTargets } from '@/hooks/useTargets';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { marketAdp } from '@/utils/consensus';
@@ -100,7 +99,6 @@ export function AvailablePlayers({
   >('rank');
   // Arrow-key cursor through the visible rows; Enter selects it.
   const [cursor, setCursor] = useState(0);
-  const { playClick, playFilter, playSort } = useSounds();
   const { starred, avoided, cycle } = useTargets(config.season);
   // Phones get a vertical-only list instead of the stats table: one scroll
   // axis, Draft beside the name, pos/team/bye folded into a sub-line.
@@ -154,7 +152,6 @@ export function AvailablePlayers({
   );
 
   const setSort = (key: typeof sortBy) => {
-    playSort();
     setSortBy(key);
   };
 
@@ -346,7 +343,6 @@ export function AvailablePlayers({
                 className={posFilter === pos ? styles.chipOn : styles.chip}
                 aria-pressed={posFilter === pos}
                 onClick={() => {
-                  playFilter();
                   setPosFilter(pos);
                 }}
                 title={
@@ -387,7 +383,6 @@ export function AvailablePlayers({
                     avoided.has(p.id) ? styles.mRowAvoided : ''
                   }`}
                   onClick={() => {
-                    playClick();
                     onSelect(p);
                   }}
                 >
@@ -609,7 +604,6 @@ export function AvailablePlayers({
                   suggested?.has(p.id) ? styles.rowSuggested : ''
                 }`}
                 onClick={() => {
-                  playClick();
                   onSelect(p);
                 }}
                 tabIndex={0}
@@ -617,7 +611,6 @@ export function AvailablePlayers({
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    playClick();
                     onSelect(p);
                   }
                 }}

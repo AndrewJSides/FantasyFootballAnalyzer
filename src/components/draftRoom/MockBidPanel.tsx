@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
 import type { UseDraftSimReturn } from '@/hooks/useDraftSim';
-import { useSounds } from '@/hooks/useSounds';
 import { comfortBid } from '@/utils/auctionMath';
 import { inflateValue } from '@/utils/inflation';
 import { SelectedPlayerCard } from './SelectedPlayerCard';
@@ -21,7 +20,6 @@ interface MockBidPanelProps {
 export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProps) {
   const { config, derived, scaledValues, inflation } = room;
   const [maxBid, setMaxBid] = useState('');
-  const { playSuccess } = useSounds();
 
   const me = derived.teams.get(config.myTeamId);
   const nominatorName = sim.pending
@@ -81,7 +79,6 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
   const myComfort =
     me && myCap > 0 ? comfortBid(player, me, derived.available, scaledValues, inflation.rate) : null;
   const submit = (amount: number) => {
-    playSuccess();
     sim.resolve(amount);
     setMaxBid('');
   };
@@ -139,7 +136,6 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
             className={styles.submit}
             disabled={iAmHigh || myCap < nextBid}
             onClick={() => {
-              playSuccess();
               sim.placeBid(nextBid);
             }}
           >
@@ -150,7 +146,6 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
             className={styles.submit}
             disabled={iAmHigh || myCap < highBid + 5}
             onClick={() => {
-              playSuccess();
               sim.placeBid(highBid + 5);
             }}
           >

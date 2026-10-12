@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftQueueReturn } from '@/hooks/useDraftQueue';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import panels from './Panels.module.css';
 import styles from './QueuePanel.module.css';
 
@@ -18,7 +17,6 @@ interface QueuePanelProps {
 // first. Players are queued from the board's + button.
 export function QueuePanel({ room, queue, onSelect }: QueuePanelProps) {
   const { pool, derived } = room;
-  const { playClick } = useSounds();
 
   // Drafted players fall out; keeper-reserved players too (nobody but their
   // team can take them, so queuing them is a dead row).
@@ -43,7 +41,6 @@ export function QueuePanel({ room, queue, onSelect }: QueuePanelProps) {
             type="button"
             className={styles.clearBtn}
             onClick={() => {
-              playClick();
               queue.clear();
             }}
             title="Empty the queue"
@@ -65,7 +62,6 @@ export function QueuePanel({ room, queue, onSelect }: QueuePanelProps) {
                 type="button"
                 className={styles.pickBtn}
                 onClick={() => {
-                  playClick();
                   onSelect(p);
                 }}
                 title={`Select ${p.name} for the pick logger`}

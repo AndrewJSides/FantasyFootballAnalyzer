@@ -42,7 +42,6 @@ const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
 const LuckPage = lazyPage(() => import('@/pages/LuckPage'), 'LuckPage');
 const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'PlayerJourneyPage');
 import { useLeague } from '@/hooks/useLeague';
-import { useSounds } from '@/hooks/useSounds';
 import {
   clearTokens,
   getAuthUrl,
@@ -141,8 +140,6 @@ function App() {
     league, credentials, isLoading, error, progress, load, refresh, clear, enterGuest, updateGuest, loadPinLeague,
     seasonFallbackNotice, dismissSeasonFallbackNotice,
   } = useLeague();
-  const { playLoadComplete, playError } = useSounds();
-  const prevLeagueRef = useRef<typeof league>(null);
   // The URL year that's currently being satisfied. Prevents the URL-watch
   // effect from re-firing on the same value (e.g. after a manual load completes
   // and updates league.season, which would otherwise look like a "change").
@@ -226,17 +223,6 @@ function App() {
     Analytics.pageView(location.pathname);
   }, [location.pathname]);
 
-  // Play sounds on league load success/error
-  useEffect(() => {
-    if (league && !prevLeagueRef.current) {
-      playLoadComplete();
-    }
-    if (error && !prevLeagueRef.current) {
-      playError();
-    }
-    prevLeagueRef.current = league;
-  }, [league, error, playLoadComplete, playError]);
-
   // Clear an abandoned Yahoo OAuth stash on a fresh app load. The stash can
   // carry ESPN cookies (so the league reloads after the round trip); if the user
   // abandoned the flow it would otherwise linger in localStorage. A legitimate
@@ -277,7 +263,6 @@ function App() {
         logger.error('Yahoo OAuth CSRF validation failed');
         clearOAuthState();
         takeOAuthReturn(); // discard the stash so a later login can't replay it
-        playError();
         window.alert(
           'Yahoo sent you back to a different tab than the one that started the login, so it could not be verified. Try connecting again from this tab.',
         );
@@ -295,7 +280,6 @@ function App() {
           // the login did not actually complete. Say so instead of dropping
           // the user back on the form looking connected when they aren't.
           logger.error('Failed to parse Yahoo tokens:', e);
-          playError();
           window.alert('Yahoo login did not complete. Please try connecting again.');
         }
       }
@@ -323,8 +307,10 @@ function App() {
       }
       // Use react-router navigate so the router's basename is preserved.
       // A raw window.history.replaceState('/') would strip the GitHub Pages
-      // basename and leave the user on a 404.
-      navigate('/', { replace: true });
+      // basename and leave the user on a 404. Honor a stashed path with no
+      // league (e.g. the owner console) so the OAuth round trip returns the
+      // user where they started.
+      navigate(ret?.path || '/', { replace: true });
     } else if (path === '/yahoo-error') {
       const errorMsg = search.get('error');
       logger.error('Yahoo OAuth error:', errorMsg);
@@ -332,17 +318,22 @@ function App() {
       takeOAuthReturn(); // discard the stash; the login never completed
       // Tell the user the login failed; otherwise they just bounce back to the
       // form with no idea Yahoo rejected the attempt.
-      playError();
       window.alert('Yahoo login failed. Please try connecting again.');
       navigate('/', { replace: true });
     }
-  }, [location, navigate, load, playError]);
+  }, [location, navigate, load]);
 
   // PIN entry: load a shared league snapshot from the TraderApe DB.
   const handleLoadPin = useCallback(async (pin: string) => {
     const loaded = await loadPinLeague(pin).catch(() => null);
     if (!loaded) return; // error renders on the form via useLeague
-    navigate('/draft', { replace: true });
+    // A league that hasn't drafted yet belongs in the draft room, not on an
+    // empty draft-analysis page (same routing the old connect flow used).
+    if (isEmptyPreseason(loaded)) {
+      navigate('/draft-room', { replace: true });
+    } else {
+      navigate('/draft', { replace: true });
+    }
   }, [loadPinLeague, navigate]);
 
   // Header Yahoo control: connect from anywhere in the app (the login powers
@@ -366,10 +357,9 @@ function App() {
       window.location.href = authUrl;
     } catch (err) {
       logger.error('Failed to start Yahoo login:', err);
-      playError();
       window.alert('Could not start Yahoo login. Please try again.');
     }
-  }, [credentials, location.pathname, location.search, playError]);
+  }, [credentials, location.pathname, location.search]);
 
   const handleYahooDisconnect = useCallback(() => {
     if (!window.confirm('Disconnect Yahoo? You will need to log in again to load your Yahoo leagues.')) return;
@@ -875,20 +865,7 @@ function App() {
       <footer className="site-footer">
         <div className="container">
           <p>
-            Part of{' '}
-            <a
-              href="https://krool.github.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
-              Krool World
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </a>
+            TraderApe — grade the trade before you make it.
           </p>
           {/* Yahoo's API agreement requires this wherever its data shows:
               a Yahoo league, and the draft-prep boards, which carry Yahoo's

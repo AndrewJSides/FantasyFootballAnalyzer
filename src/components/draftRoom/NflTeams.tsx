@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { PoolPlayer } from '@/types/draft';
 import type { UseDraftRoomReturn } from '@/hooks/useDraftRoom';
-import { useSounds } from '@/hooks/useSounds';
 import { nflLogoUrl, nflTeamInfo } from '@/data/nflTeams';
 import { normalizeName } from '@/utils/playerNames';
 import { isHandcuff } from '@/utils/stacks';
@@ -21,7 +20,6 @@ interface NflTeamsProps {
 export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
   const { config, derived, pool } = room;
   const [query, setQuery] = useState('');
-  const { playClick } = useSounds();
 
   // Who owns each drafted player, by pool player id.
   const ownerById = useMemo(() => {
@@ -107,7 +105,6 @@ export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
                         }
                         disabled={gone}
                         onClick={() => {
-                          playClick();
                           onSelect(p);
                         }}
                         title={gone ? undefined : `Select ${p.name} for the pick logger`}

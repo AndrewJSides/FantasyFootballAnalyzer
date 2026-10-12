@@ -198,24 +198,6 @@
 }
 
 .exportButton,
-.soundButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.85rem;
-  background: transparent;
-  border: 2px solid var(--bone);
-  color: var(--bone);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  cursor: pointer;
-  transition: all .15s ease;
-  box-shadow: 3px 3px 0 var(--bone);
-}
 .exportButton:hover {
   background: var(--lime);
   color: var(--ink);
@@ -223,21 +205,8 @@
   transform: translate(-1px,-1px);
   box-shadow: 4px 4px 0 var(--lime);
 }
-.soundButton {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  flex-shrink: 0;
-}
-.soundButton:hover {
-  background: var(--lime);
-  color: var(--ink);
-  border-color: var(--lime);
-  transform: translate(-1px,-1px);
-  box-shadow: 4px 4px 0 var(--lime);
-}
 
-.exportIcon, .soundIcon { width: 16px; height: 16px; }
+.exportIcon { width: 16px; height: 16px; }
 
 .yahooButton,
 .yahooButtonOn {
@@ -395,7 +364,6 @@
   .logo { font-size: 1.3rem; }
   .topRow { gap: 0.45rem; }
   .backButton,
-  .soundButton { width: 34px; height: 34px; }
   .leagueGroup { gap: 0.35rem; }
   /* The platform badge folds into the card's left border color. */
   .leagueInfo {
@@ -422,7 +390,6 @@
      otherwise (refresh is 28px). */
   .backButton,
   .refreshButton,
-  .soundButton,
   .yahooButton,
   .yahooButtonOn {
     min-width: 44px;
@@ -437,10 +404,6 @@
    league name no room at all; 40/36px keeps them comfortably tappable. */
 @media (pointer: coarse) and (max-width: 480px) {
   .backButton,
-  .soundButton {
-    min-width: 40px;
-    min-height: 40px;
-  }
   .refreshButton {
     min-width: 36px;
     min-height: 36px;

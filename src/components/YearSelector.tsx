@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { League, LeagueCredentials, LeagueStatus, SeasonOption } from '@/types';
-import { useSounds } from '@/hooks/useSounds';
 import { getCachedSeasons, loadSeasons } from '@/utils/seasonsCache';
 import { isEmptyPreseason } from '@/utils/leaguePhase';
 import { logger } from '@/utils/logger';
@@ -28,7 +27,6 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
   const rootRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { playClick, playPageTransition } = useSounds();
 
   // The upcoming draft year (NFL seasons match the calendar year). Platforms
   // don't create next season's league until they renew it, so until then the
@@ -90,7 +88,6 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
 
   const handleToggle = () => {
     if (disabled) return;
-    playClick();
     const next = !open;
     setOpen(next);
     if (next && !seasons) {
@@ -105,12 +102,10 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
       // is how you get back to the season view. An empty preseason league
       // has no season view to go back to, so stay put.
       if (inDraftRoom && !isEmptyPreseason(league)) {
-        playPageTransition();
         navigate('/draft');
       }
       return;
     }
-    playPageTransition();
     // App's onPick owns the navigation, including leaving the Draft Room.
     // Navigating here too would race its same-tick URL update and lose.
     onPick(option);
@@ -142,7 +137,6 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
                 onClick={() => {
                   setOpen(false);
                   if (!inDraftRoom) {
-                    playPageTransition();
                     navigate('/draft-room');
                   }
                 }}

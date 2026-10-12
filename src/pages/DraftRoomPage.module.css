@@ -108,16 +108,6 @@
    height by whole rows now, and the min-widths above keep the row count
    steady. Phone (<=640px) keeps its own fixed-height primary row, and the
    inline-flex here would break the phone clock's text ellipsis. */
-@media (min-width: 641px) {
-  .statusItem,
-  .statusAlert,
-  .soundBtn {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2rem;
-  }
-}
-
 .statusBlood {
   color: var(--blood-text);
   font-weight: 700;
@@ -486,20 +476,6 @@
   background: var(--ink-2);
 }
 
-/* The sound toggle rides in the status bar, Sleeper-style. */
-.soundBtn {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.85rem;
-  line-height: 1;
-  border: 2px solid var(--bone-dim);
-  background: transparent;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-
-.soundBtn:hover {
-  border-color: var(--bone);
-}
 
 /* The keyboard cheat sheet is dead weight where there is no keyboard, and on
    a phone it costs two lines right above the board. The alert variants of
