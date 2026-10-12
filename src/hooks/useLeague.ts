@@ -69,6 +69,9 @@ interface UseLeagueReturn {
   // rebuilds (no-op unless the current league is a guest).
   enterGuest: (settings: GuestSettings) => League;
   updateGuest: (patch: Partial<GuestSettings>) => void;
+  // PIN mode: fetch a league snapshot from the TraderApe DB and drop it into
+  // state. Throws on a bad PIN so the caller can show the error on the form.
+  loadPinLeague: (pin: string) => Promise<League>;
   // Set when the ESPN current-year 404 fallback silently loaded last season
   // instead. Null once a fresh load starts or the caller dismisses it.
   seasonFallbackNotice: string | null;
@@ -334,6 +337,31 @@ export function useLeague(): UseLeagueReturn {
     return guest;
   }, []);
 
+  // Guest mode: drop a PIN-loaded league into state with no platform fetch.
+  // Mirrors enterGuest: cancels in-flight loads, clears credentials (there
+  // are none — the PIN is the auth), and clears errors. Throws on a bad PIN
+  // so callers can show the message on the form.
+  const loadPinLeague = useCallback(async (pin: string): Promise<League> => {
+    ++currentRequestRef.current;
+    setIsLoading(true);
+    setError(null);
+    setProgress(null);
+    try {
+      const { loadLeagueFromPin } = await import('@/api/pinLeague');
+      const league = await loadLeagueFromPin(pin);
+      setLeague(league);
+      setCredentials(null);
+      lastCredentialsRef.current = null;
+      setIsLoading(false);
+      return league;
+    } catch (err) {
+      setIsLoading(false);
+      const message = err instanceof Error ? err.message : 'Could not load the league.';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   // Merge a settings change into the current guest league and rebuild. A no-op
   // for a real league, so callers can wire controls unconditionally.
   const updateGuest = useCallback((patch: Partial<GuestSettings>) => {
@@ -347,7 +375,7 @@ export function useLeague(): UseLeagueReturn {
 
   return {
     league, credentials, isLoading, error, progress,
-    load, refresh, clear, enterGuest, updateGuest,
+    load, refresh, clear, enterGuest, updateGuest, loadPinLeague,
     seasonFallbackNotice, dismissSeasonFallbackNotice,
   };
 }

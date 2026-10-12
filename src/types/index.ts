@@ -307,6 +307,12 @@ export interface League {
   // header, and the guest banner branch on this. `platform` on a guest is
   // just the chosen delta-comparison lens, not a real account.
   isGuest?: boolean;
+  // Loaded from the TraderApe database via a share PIN instead of a live
+  // platform connection: no OAuth, no refresh. Holds the PIN so share links
+  // round-trip as ?pin=… rather than a platform link the recipient can't open.
+  viaPin?: string;
+  // ISO timestamp of the owner's last sync, surfaced as "data as of …".
+  pinSyncedAt?: string;
 }
 
 export interface HeadToHeadRecord {

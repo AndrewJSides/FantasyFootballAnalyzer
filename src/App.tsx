@@ -15,6 +15,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 // all reach the full draft pool), so importing HomePage through it would drag
 // them — and the pool — back into the eager entry chunk.
 import { HomePage } from '@/pages/HomePage';
+import { AdminPage } from '@/pages/AdminPage';
 import { ToolLanding } from '@/pages/ToolLanding';
 import { TOOL_LANDINGS } from '@/pages/toolLandings';
 import { posForSlug, labelForPos } from '@/data/rankingsVariants';
@@ -139,7 +140,7 @@ function App() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const {
-    league, credentials, isLoading, error, progress, load, refresh, clear, enterGuest, updateGuest,
+    league, credentials, isLoading, error, progress, load, refresh, clear, enterGuest, updateGuest, loadPinLeague,
     seasonFallbackNotice, dismissSeasonFallbackNotice,
   } = useLeague();
   const { playLoadComplete, playError } = useSounds();
@@ -169,6 +170,15 @@ function App() {
     if (!(platform === 'yahoo' ? /^\d+\.l\.\d+$/ : /^\d+$/).test(match[2])) return null;
     return { platform, id: match[2], key: match[0] };
   }, [searchParams]);
+  // ?pin=XXXXXX loads a league snapshot from the TraderApe database — no
+  // account, no OAuth. The PIN is the auth. Mirrors the share-link flow.
+  const pinTarget = useMemo(() => {
+    const param = searchParams.get('pin');
+    const pin = param ? param.trim().toUpperCase() : '';
+    if (!/^[A-Z0-9]{4,10}$/.test(pin)) return null;
+    return { pin, key: `pin:${pin}` };
+  }, [searchParams]);
+  const attemptedPinRef = useRef<string | null>(null);
   const attemptedShareRef = useRef<string | null>(null);
   // OAuth callback runs once per browser navigation. StrictMode would otherwise
   // double-invoke the effect and the second pass would see no stored state
@@ -376,6 +386,13 @@ function App() {
     }
   };
 
+  // PIN entry: load a shared league snapshot from the TraderApe DB.
+  const handleLoadPin = useCallback(async (pin: string) => {
+    const loaded = await loadPinLeague(pin).catch(() => null);
+    if (!loaded) return; // error renders on the form via useLeague
+    navigate('/draft', { replace: true });
+  }, [loadPinLeague, navigate]);
+
   // Guest mode: synthesize a league from picked settings (no fetch) and jump
   // straight to the chosen surface. The route guards treat a guest league like
   // any loaded league for /rankings and /draft-room.
@@ -572,6 +589,22 @@ function App() {
     });
   }, [shareTarget, league, isLoading, load, navigate]);
 
+  // Load the PIN-link league (?pin=XXXXXX): snapshot from the TraderApe DB,
+  // no OAuth. Already showing it (or a failed attempt this session) → skip.
+  useEffect(() => {
+    if (!pinTarget) return;
+    if (attemptedPinRef.current === pinTarget.key) return;
+    if (league && !league.isGuest && league.viaPin === pinTarget.pin) {
+      attemptedPinRef.current = pinTarget.key;
+      return;
+    }
+    if (isLoading) return;
+    attemptedPinRef.current = pinTarget.key;
+    loadPinLeague(pinTarget.pin)
+      .then(() => navigate('/draft', { replace: true }))
+      .catch(() => navigate('/', { replace: true }));
+  }, [pinTarget, league, isLoading, loadPinLeague, navigate]);
+
   // A share-link load that hasn't resolved yet. While true, route guards show
   // a spinner instead of redirecting, so /awards?league=… lands on /awards
   // once the league arrives rather than bouncing home first.
@@ -602,6 +635,19 @@ function App() {
     // restore needs this browser's login); it is not a share link.
     // The param NEVER carries credentials, only the public league id.
     if (!league || league.isGuest) return;
+    // PIN leagues share as ?pin=… (a platform link would demand OAuth the
+    // recipient doesn't have). Clear any stale ?league= while we're at it.
+    if (league.viaPin) {
+      const path = location.pathname;
+      if (path === '/') return;
+      if (window.location.pathname !== routerPathToUrl(path)) return;
+      const pinParams = new URLSearchParams(location.search);
+      if (pinParams.get('pin') === league.viaPin && !pinParams.get('league')) return;
+      pinParams.set('pin', league.viaPin);
+      pinParams.delete('league');
+      navigate(`${path}?${pinParams.toString()}`, { replace: true });
+      return;
+    }
     const wanted = `${league.platform}:${league.id}`;
     const path = location.pathname;
     if (path === '/yahoo-success' || path === '/yahoo-error') return;
@@ -785,6 +831,7 @@ function App() {
                 <HomePage
                   onLoadLeague={handleLoadLeague}
                   onGuest={handleEnterGuest}
+                  onLoadPin={handleLoadPin}
                   isLoading={isLoading}
                   error={error}
                   progress={progress}
@@ -867,6 +914,8 @@ function App() {
 
           {/* Data pages need a real connection; guests get bounced to Rankings. */}
           <Route path="/draft" element={dataRoute(l => <DraftPage league={l} />)} />
+          {/* Owner console: league syncing + share PINs. Admin-key gated. */}
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/trades" element={dataRoute(l => <TradesPage league={l} />)} />
           <Route path="/waivers" element={dataRoute(l => <WaiversPage league={l} />)} />
           <Route path="/teams" element={dataRoute(l => <TeamsPage league={l} />)} />

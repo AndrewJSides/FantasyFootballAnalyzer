@@ -12,6 +12,7 @@ import styles from './HomePage.module.css';
 interface HomePageProps {
   onLoadLeague: (credentials: LeagueCredentials) => void;
   onGuest: (settings: GuestSettings, dest: GuestDest) => void;
+  onLoadPin: (pin: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   progress: LoadingProgress | null;
@@ -39,8 +40,10 @@ const SECRET_ESPN: LeagueCredentials | null =
       }
     : null;
 
-export function HomePage({ onLoadLeague, onGuest, isLoading, error, progress }: HomePageProps) {
+export function HomePage({ onLoadLeague, onGuest, onLoadPin, isLoading, error, progress }: HomePageProps) {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>('sleeper');
+  const [pin, setPin] = useState('');
+  const [pinOpen, setPinOpen] = useState(false);
 
   const handleSecretClick = () => {
     // Load the secret league based on which platform is currently selected
@@ -92,6 +95,38 @@ export function HomePage({ onLoadLeague, onGuest, isLoading, error, progress }: 
               {error}
             </div>
           )}
+
+          {/* League PIN entry: view a shared league with no account. */}
+          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setPinOpen(v => !v)}
+              style={{ background: 'none', border: 'none', color: '#1a73e8', cursor: 'pointer', fontSize: '0.95rem' }}
+            >
+              {pinOpen ? 'Hide' : 'Have a league PIN?'}
+            </button>
+            {pinOpen && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                <input
+                  value={pin}
+                  onChange={e => setPin(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && pin.trim() && onLoadPin(pin)}
+                  placeholder="Enter PIN"
+                  autoComplete="off"
+                  maxLength={10}
+                  style={{ padding: '0.5rem', fontSize: '1rem', textTransform: 'uppercase', width: '10rem', textAlign: 'center', letterSpacing: '0.15em' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => pin.trim() && onLoadPin(pin)}
+                  disabled={isLoading || !pin.trim()}
+                  style={{ padding: '0.5rem 1rem' }}
+                >
+                  Load
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
