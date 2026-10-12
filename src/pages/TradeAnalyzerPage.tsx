@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
@@ -177,6 +177,19 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const [queryB, setQueryB] = useState('');
   const [result, setResult] = useState<FullTradeAnalysis | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // When a synced league (PIN or directly connected) loads, preselect
+  // Andrew's own team as Side A so the common "what should I give?" flow
+  // starts one tap ahead. Never overrides a team the user already picked.
+  const myTeamId = useMemo(
+    () => (leagueLoaded && league ? league.teams.find(t => t.isMyTeam)?.id ?? '' : ''),
+    [leagueLoaded, league],
+  );
+  useEffect(() => {
+    if (myTeamId && !teamAId) {
+      setTeamAId(myTeamId);
+    }
+  }, [myTeamId, teamAId]);
 
   const addTo = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
     (p: PoolPlayer) => setter(prev => [...prev, p as Entry]);
