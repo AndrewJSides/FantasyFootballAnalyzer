@@ -28,16 +28,15 @@ export function HomeHero() {
     <header className={styles.hero}>
       <div className={styles.heroGrid}>
         <div>
-          <h1 className={styles.title}>Fantasy Football Analyzer</h1>
+          <h1 className={styles.title}>🦍 TraderApe</h1>
           <p className={styles.subtitle}>
-            I built this to prep for my own drafts and review them after.
-            Daily consensus rankings, mock drafts, a live draft room, trade
-            verdicts, and league history for Sleeper, ESPN, and Yahoo leagues.
-            Free, open source, no account. Enjoy.
+            Grade the trade before you make it. Value over replacement,
+            computed for our league's exact shape, with roster-aware takes
+            on positional need. Enter your league PIN — no account needed.
           </p>
           <nav className={styles.heroLinks} aria-label="Start here">
-            <a href={`${base}rankings`}>Draft Rankings</a>
-            <a href={`${base}draft-room`}>Mock Draft</a>
+            <a href={`${base}trade-analyzer`}>Trade Analyzer</a>
+            <a href={`${base}rankings`}>Rankings</a>
             <span className={styles.heroLinksNote}>No login required</span>
           </nav>
         </div>

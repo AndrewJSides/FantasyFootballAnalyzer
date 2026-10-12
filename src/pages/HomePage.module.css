@@ -463,3 +463,87 @@ a.feature:hover .featureIcon {
   .subtitle { font-size: 1rem; }
   .formTitle { font-size: 1.4rem; }
 }
+
+/* ── TRADERAPE · PIN front door ── */
+.kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--lime);
+  margin-bottom: 0.9rem;
+}
+
+.pinBox {
+  margin-top: 1.75rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-left: 6px solid var(--lime);
+  max-width: 560px;
+  cursor: help;
+}
+
+.pinLabel {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  margin-bottom: 0.6rem;
+}
+
+.pinRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.pinInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--ink-3);
+  border: 1px solid var(--rule);
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0.7rem 0.5rem;
+}
+
+.pinInput:focus {
+  outline: none;
+  border-color: var(--lime);
+}
+
+.pinInput::placeholder {
+  color: var(--bone-dim);
+  letter-spacing: 0.1em;
+}
+
+.pinButton {
+  background: var(--lime);
+  color: var(--ink);
+  border: none;
+  font-family: var(--font-headline);
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  padding: 0.7rem 1.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pinButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pinButton:not(:disabled):hover {
+  filter: brightness(1.08);
+}

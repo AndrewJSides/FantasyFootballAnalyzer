@@ -241,11 +241,11 @@ export function Header({
                 <button
                   onClick={handleChangeLeague}
                   className={styles.connectCta}
-                  title="Connect your real league for team names, grades, and history"
-                  aria-label="Connect your league"
+                  title="Enter the league PIN to load our league — no account needed."
+                  aria-label="Enter league PIN"
                 >
-                  <span className={styles.connectCtaFull}>Connect your league</span>
-                  <span className={styles.connectCtaShort} aria-hidden="true">Connect</span>
+                  <span className={styles.connectCtaFull}>Enter league PIN</span>
+                  <span className={styles.connectCtaShort} aria-hidden="true">PIN</span>
                 </button>
               )}
             </div>

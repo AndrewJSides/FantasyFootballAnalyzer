@@ -20,7 +20,6 @@ import { ToolLanding } from '@/pages/ToolLanding';
 import { TOOL_LANDINGS } from '@/pages/toolLandings';
 import { posForSlug, labelForPos } from '@/data/rankingsVariants';
 import { Analytics } from '@/utils/analytics';
-import type { GuestDest } from '@/pages/GuestEntry';
 import { DEFAULT_GUEST_SETTINGS, loadGuestSettings, type GuestSettings } from '@/utils/guestLeague';
 import { loadESPNCredentials } from '@/utils/espnCredentials';
 import { lazyPage } from '@/utils/staleChunk';
@@ -55,8 +54,7 @@ import {
   clearOAuthState,
 } from '@/api/yahoo';
 import { credentialsForSeason } from '@/api';
-import { findSuccessorLeague } from '@/api/sleeper';
-import type { League, LeagueCredentials, SeasonOption } from '@/types';
+import type { League, SeasonOption } from '@/types';
 import { logger } from '@/utils/logger';
 import { rememberConnection } from '@/utils/lastConnection';
 import { loadSeasons } from '@/utils/seasonsCache';
@@ -340,66 +338,12 @@ function App() {
     }
   }, [location, navigate, load, playError]);
 
-  const handleLoadLeague = async (credentials: LeagueCredentials) => {
-    let loaded = await load(credentials);
-    // Stay on the form when the load failed; the error renders there.
-    if (!loaded) return;
-    // A Sleeper league id is pinned to one season, so a saved id keeps
-    // landing on last year even after the league renews. Follow the renewal
-    // so connecting lands on the newest season that exists. Only from last
-    // season: pasting a genuinely old id is a deliberate history visit, and
-    // the year dropdown still reaches every season either way. "Last season"
-    // is relative to the draft season (POOL_SEASON), not the calendar year:
-    // in January the calendar has rolled but the season has not, and the
-    // calendar-year check would probe for a renewal that can't exist yet.
-    if (loaded.platform === 'sleeper' && loaded.season === POOL_SEASON - 1) {
-      const successor = await findSuccessorLeague(loaded.id, loaded.season);
-      if (successor) {
-        logger.debug('[App] Sleeper league renewed; following to', successor.season);
-        const next = await load({ platform: 'sleeper', leagueId: successor.leagueId });
-        if (next) {
-          loaded = next;
-        } else {
-          // The failed follow clobbered the hook's state (league null, error
-          // set, refresh() aimed at the successor). Reload the original (a
-          // cache hit, so instant) so the user lands on the league that did
-          // load instead of bouncing back to the form.
-          const restored = await load(credentials);
-          if (!restored) return;
-          loaded = restored;
-        }
-      }
-    }
-    // Remember the connection (public identifiers only) so the form comes
-    // prefilled next visit. The loaded league's values, not the form's, so a
-    // mistyped id is never saved and a followed renewal saves the newest id.
-    rememberConnection(loaded.platform, loaded.id, loaded.season);
-    if (isEmptyPreseason(loaded)) {
-      // A fresh connect landing on the Draft Room's setup form otherwise
-      // gives no sign the connect worked (off-season: no draft data to show
-      // yet). The flag rides in navigation state, not the URL, so it
-      // doesn't survive a manual refresh or reappear on later visits to
-      // /draft-room.
-      navigate('/draft-room', { state: { justConnected: true } });
-    } else {
-      navigate('/draft');
-    }
-  };
-
   // PIN entry: load a shared league snapshot from the TraderApe DB.
   const handleLoadPin = useCallback(async (pin: string) => {
     const loaded = await loadPinLeague(pin).catch(() => null);
     if (!loaded) return; // error renders on the form via useLeague
     navigate('/draft', { replace: true });
   }, [loadPinLeague, navigate]);
-
-  // Guest mode: synthesize a league from picked settings (no fetch) and jump
-  // straight to the chosen surface. The route guards treat a guest league like
-  // any loaded league for /rankings and /draft-room.
-  const handleEnterGuest = useCallback((settings: GuestSettings, dest: GuestDest) => {
-    enterGuest(settings);
-    navigate(`/${dest}`);
-  }, [enterGuest, navigate]);
 
   // Header Yahoo control: connect from anywhere in the app (the login powers
   // the draft board's live Yahoo prices even for Sleeper/ESPN leagues).
@@ -825,12 +769,9 @@ function App() {
                 // league loaded, the nav hidden, and the page blank for good.
                 <Navigate key={location.key} to={isEmptyPreseason(league) ? '/draft-room' : '/draft'} replace />
               ) : (
-                // No league, or a guest visiting home: show the connect form
-                // and guest entry. This is also where the header's "Connect
-                // your league" CTA lands a guest.
+                // No league: show the TraderApe front door (league PIN entry).
+                // This is also where the header's "Connect" CTA lands.
                 <HomePage
-                  onLoadLeague={handleLoadLeague}
-                  onGuest={handleEnterGuest}
                   onLoadPin={handleLoadPin}
                   isLoading={isLoading}
                   error={error}
