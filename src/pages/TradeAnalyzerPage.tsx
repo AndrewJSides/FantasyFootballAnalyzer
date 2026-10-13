@@ -94,12 +94,38 @@ function decodeTradeHash(hash: string): TradeHashSides | null {
   return null;
 }
 
+function normName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function tokens(s: string): string[] {
+  return s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+// Shared-link names resolve against the pool with several fallbacks, since
+// roster names, abbreviations, and punctuation vary ("X. Worthy",
+// "A.J. Brown" vs "AJ Brown"). Exact matches come first; fuzzier passes only
+// run when nothing exact hit, and the pool is consensus-ranked so the first
+// fuzzy hit is the best guess.
 function matchPoolByName(name: string): PoolPlayer | null {
   const q = name.trim().toLowerCase();
   if (!q) return null;
   const exact = POOL.players.find(p => p.name.toLowerCase() === q);
   if (exact) return exact;
-  return POOL.players.find(p => p.name.toLowerCase().includes(q)) ?? null;
+  const nq = normName(q);
+  const normExact = POOL.players.find(p => normName(p.name) === nq);
+  if (normExact) return normExact;
+  const partial = POOL.players.find(p => normName(p.name).includes(nq));
+  if (partial) return partial;
+  const qTokens = tokens(q);
+  if (qTokens.length === 0) return null;
+  return (
+    POOL.players.find(p => {
+      const pTokens = tokens(p.name);
+      if (pTokens.length !== qTokens.length) return false;
+      return qTokens.every((qt, i) => pTokens[i].startsWith(qt));
+    }) ?? null
+  );
 }
 
 // ---------------------------------------------------------------------------
