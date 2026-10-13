@@ -51,18 +51,16 @@ $g.DrawString('* FREE / OPEN SOURCE / NO ACCOUNTS', $kickerFont, $limeBrush, 80,
 # Headline
 $titleFont = New-Object System.Drawing.Font('Arial Black', 78, [System.Drawing.FontStyle]::Bold)
 $boneBrush = New-Object System.Drawing.SolidBrush($bone)
-$g.DrawString('FANTASY', $titleFont, $boneBrush, 70, 150)
-$g.DrawString('FOOTBALL', $titleFont, $boneBrush, 70, 260)
-$g.DrawString('ANALYZER', $titleFont, $limeBrush, 70, 370)
+$g.DrawString('TRADERAPE', $titleFont, $boneBrush, 70, 220)
 
 # Sub line
 $subFont = New-Object System.Drawing.Font('Consolas', 24)
 $dimBrush = New-Object System.Drawing.SolidBrush($boneDim)
-$g.DrawString('Draft room - grades - trades - waivers - luck - awards', $subFont, $dimBrush, 80, 510)
+$g.DrawString('Draft room - grades - trades - waivers - luck - awards', $subFont, $dimBrush, 80, 498)
 
 # Bone rule above sub line
 $boneSolid = New-Object System.Drawing.SolidBrush($bone)
-$g.FillRectangle($boneSolid, 80, 495, 1040, 4)
+$g.FillRectangle($boneSolid, 80, 470, 1040, 4)
 
 $bmp.Save((Join-Path $publicDir 'og.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 $g.Dispose(); $bmp.Dispose()
