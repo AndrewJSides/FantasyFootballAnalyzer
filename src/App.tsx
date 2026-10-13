@@ -584,17 +584,16 @@ function App() {
     // restore needs this browser's login); it is not a share link.
     // The param NEVER carries credentials, only the public league id.
     if (!league || league.isGuest) return;
-    // PIN leagues share as ?pin=… (a platform link would demand OAuth the
-    // recipient doesn't have). Clear any stale ?league= while we're at it.
+    // Single-league mode: the PIN auto-loads, so it never belongs in the
+    // URL. Strip it if a stale link put it there (it 404s on reload —
+    // Vercel serves deep links statically).
     if (league.viaPin) {
-      const path = location.pathname;
-      if (path === '/') return;
-      if (window.location.pathname !== routerPathToUrl(path)) return;
       const pinParams = new URLSearchParams(location.search);
-      if (pinParams.get('pin') === league.viaPin && !pinParams.get('league')) return;
-      pinParams.set('pin', league.viaPin);
-      pinParams.delete('league');
-      navigate(`${path}?${pinParams.toString()}`, { replace: true });
+      if (pinParams.has('pin')) {
+        pinParams.delete('pin');
+        const qs = pinParams.toString();
+        navigate(`${location.pathname}${qs ? `?${qs}` : ''}`, { replace: true });
+      }
       return;
     }
     const wanted = `${league.platform}:${league.id}`;
