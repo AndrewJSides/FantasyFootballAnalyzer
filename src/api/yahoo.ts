@@ -8,10 +8,10 @@ import { pacedYahooFetch } from './yahooPacing';
 
 // Backend API URL: same origin in production (frontend and API share the
 // traderape.me domain), so no CORS hop. VITE_YAHOO_API_URL overrides for
-// local dev; legacy Vercel host kept as the dev fallback.
+// local dev; the canonical domain (not a legacy preview host) is the dev fallback.
 const API_BASE =
   import.meta.env.VITE_YAHOO_API_URL ||
-  (import.meta.env.DEV ? 'https://fantasy-football-analyzer-mu.vercel.app' : '');
+  (import.meta.env.DEV ? 'https://www.traderape.me' : '');
 
 // Storage keys
 const STORAGE_KEYS = {
