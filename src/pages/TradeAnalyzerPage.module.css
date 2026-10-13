@@ -252,6 +252,23 @@
   border-color: var(--bone);
 }
 
+.copy {
+  background: transparent;
+  color: var(--lime);
+  border: 1px solid var(--lime);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+}
+
+.copy:hover {
+  background: var(--lime);
+  color: var(--ink);
+}
+
 .warning {
   font-family: var(--font-mono);
   font-size: 0.8rem;

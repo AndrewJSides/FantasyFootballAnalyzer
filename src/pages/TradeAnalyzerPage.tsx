@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
@@ -40,6 +40,58 @@ function entryLabel(e: Entry): string {
 
 function entryPos(e: Entry): string {
   return 'position' in e ? (e as Player).position : (e as PoolPlayer).pos;
+}
+
+// ---------------------------------------------------------------------------
+// Shareable trade links: sides are encoded as player names in the URL hash,
+// e.g. /trade-analyzer#trade=%7B%22a%22%3A%5B%22Saquon+Barkley%22%5D...%7D
+// Names resolve against the bundled consensus pool, so links work in manual
+// mode with no league connected. Unknown names are skipped on load.
+// ---------------------------------------------------------------------------
+
+const TRADE_HASH_PREFIX = '#trade=';
+
+interface TradeHashSides {
+  a: string[];
+  b: string[];
+}
+
+function encodeTradeHash(sideA: Entry[], sideB: Entry[]): string {
+  const payload: TradeHashSides = {
+    a: sideA.map(entryLabel),
+    b: sideB.map(entryLabel),
+  };
+  return `${TRADE_HASH_PREFIX}${encodeURIComponent(JSON.stringify(payload))}`;
+}
+
+function decodeTradeHash(hash: string): TradeHashSides | null {
+  if (!hash.startsWith(TRADE_HASH_PREFIX)) return null;
+  try {
+    const parsed: unknown = JSON.parse(
+      decodeURIComponent(hash.slice(TRADE_HASH_PREFIX.length)),
+    );
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      Array.isArray((parsed as TradeHashSides).a) &&
+      Array.isArray((parsed as TradeHashSides).b)
+    ) {
+      const names = (arr: unknown[]): string[] =>
+        arr.filter((n): n is string => typeof n === 'string');
+      return { a: names((parsed as TradeHashSides).a), b: names((parsed as TradeHashSides).b) };
+    }
+  } catch {
+    // Malformed hash — ignore and leave the builder empty.
+  }
+  return null;
+}
+
+function matchPoolByName(name: string): PoolPlayer | null {
+  const q = name.trim().toLowerCase();
+  if (!q) return null;
+  const exact = POOL.players.find(p => p.name.toLowerCase() === q);
+  if (exact) return exact;
+  return POOL.players.find(p => p.name.toLowerCase().includes(q)) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +243,32 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     }
   }, [myTeamId, teamAId]);
 
+  // Populate the builder from a shared #trade= link on first load. Runs once;
+  // skips names that don't resolve against the consensus pool.
+  const hashAppliedRef = useRef(false);
+  useEffect(() => {
+    if (hashAppliedRef.current) return;
+    hashAppliedRef.current = true;
+    const shared = decodeTradeHash(window.location.hash);
+    if (!shared) return;
+    const resolveSide = (names: string[]): Entry[] => {
+      const seen = new Set<string>();
+      const out: Entry[] = [];
+      for (const name of names) {
+        const p = matchPoolByName(name);
+        if (p && !seen.has(p.id)) {
+          seen.add(p.id);
+          out.push(p);
+        }
+      }
+      return out;
+    };
+    const a = resolveSide(shared.a);
+    const b = resolveSide(shared.b);
+    if (a.length > 0) setSideA(a);
+    if (b.length > 0) setSideB(b);
+  }, []);
+
   const addTo = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
     (p: PoolPlayer) => setter(prev => [...prev, p as Entry]);
   const removeFrom = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
@@ -219,6 +297,27 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   };
 
   const canRun = sideA.length > 0 || sideB.length > 0;
+  const [copied, setCopied] = useState(false);
+
+  const copyTradeLink = async () => {
+    const url = `${window.location.origin}/trade-analyzer${encodeTradeHash(sideA, sideB)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard API unavailable (older browsers / non-secure context):
+      // fall back to the legacy execCommand path.
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className={styles.page}>
@@ -280,6 +379,15 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           >
             Analyze trade
           </button>
+          {(sideA.length > 0 || sideB.length > 0) && (
+            <button
+              type="button"
+              className={styles.copy}
+              onClick={copyTradeLink}
+            >
+              {copied ? 'Copied ✓' : 'Copy trade link'}
+            </button>
+          )}
           {(sideA.length > 0 || sideB.length > 0) && (
             <button
               type="button"
