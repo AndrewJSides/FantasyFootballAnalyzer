@@ -45,7 +45,7 @@ export const TOOL_LANDINGS: Record<'trade-analyzer' | 'draft-grades', ToolLandin
       { h: 'Every league, every season', p: 'Works across Sleeper, ESPN, and Yahoo, backed by the consensus board refreshed twice daily.' },
     ],
     ctas: [
-      { to: '', label: 'Connect your league', primary: true },
+      { to: '', label: 'Load the league', primary: true },
       { to: 'rankings', label: 'Browse rankings' },
     ],
   },
@@ -67,7 +67,7 @@ export const TOOL_LANDINGS: Record<'trade-analyzer' | 'draft-grades', ToolLandin
       { h: 'Mock first', p: 'Practice snake or auction drafts against AI opponents.' },
     ],
     ctas: [
-      { to: '', label: 'Connect your league', primary: true },
+      { to: '', label: 'Load the league', primary: true },
       { to: 'draft-room', label: 'Run a mock draft' },
     ],
   },
