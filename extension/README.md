@@ -1,8 +1,14 @@
-# Fantasy Football Analyzer — ESPN Helper
+# TraderApe — ESPN Helper
 
 Tiny MV3 extension whose only job is to read your `espn_s2` and `SWID` cookies
-from `espn.com` and hand them to the Fantasy Football Analyzer web app when it
+from `espn.com` and hand them to the TraderApe web app when it
 asks. Replaces the manual DevTools step on the ESPN onboarding flow.
+
+> Status: the web app's ESPN cookie flow is currently manual copy-paste, so no
+> code in the app probes this extension today (the auto-fill connect form was
+> removed Oct 12). The extension still works standalone — the popup checks your
+> espn.com session and opens the app — and the allowlist is pinned to the live
+> TraderApe domain so auto-fill can be re-wired later without a new release.
 
 ## What it does
 
@@ -19,9 +25,9 @@ asks. Replaces the manual DevTools step on the ESPN onboarding flow.
 - No cookie storage (cookies stay where they are; we just read them when asked)
 - No access to anything outside `*.espn.com` (the host permissions in
   `manifest.json` are the only origins we can touch)
-- Only responds to messages from `https://fantasyfootballanalyzer.app/*` (set
-  via `externally_connectable` plus a belt-and-braces origin check in
-  `background.js`). The shipped build never trusts localhost — see "Local
+- Only responds to messages from `https://www.traderape.me/*` and
+  `https://traderape.me/*` (set via `externally_connectable` plus a
+  belt-and-braces origin check in `background.js`). The shipped build never trusts localhost — see "Local
   development install" below for how to test without weakening the shipped
   allowlist.
 
@@ -39,12 +45,14 @@ asks. Replaces the manual DevTools step on the ESPN onboarding flow.
 3. Toggle "Developer mode" on (top right)
 4. Click "Load unpacked"
 5. Pick this `extension/` directory
-6. Copy the extension ID shown on the card. Set it in your dev environment:
-   ```
-   VITE_ESPN_EXTENSION_ID=abcdefghijklmnopqrstuvwxyz123456
-   ```
-   (or hardcode in `src/components/LeagueForm.tsx`)
-7. Reload the Analyzer web app. The "Auto-fill from extension" button should appear.
+6. The "Auto-fill from extension" flow is not currently wired into the web
+   app (it was removed with the connect form in October 2026), so this
+   section is for the popup's session-check UX only. If auto-fill is
+   re-added later, set the extension ID as `VITE_ESPN_EXTENSION_ID` (GitHub >
+   Settings > Secrets and variables > Actions > Variables) so the frontend
+   build knows where to send the cookie request.
+7. Reload the TraderApe web app. The extension responds to `ping` and
+   `get-espn-cookies` messages from `https://www.traderape.me`.
 
 ### Firefox
 
@@ -63,10 +71,10 @@ Firefox uses the WebExtensions API which is compatible. Load via
 3. Pay the one-time $5 developer fee at the
    [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
 4. Upload the zip. Review usually takes 1-3 business days.
-5. Once published, copy the extension ID from the listing URL and set
-   it as the `VITE_ESPN_EXTENSION_ID` repository variable (GitHub > Settings >
-   Secrets and variables > Actions > Variables). Both deploy workflows pass it
-   to the build; the frontend builds in GitHub Actions, not on Vercel.
+5. Once published, copy the extension ID from the listing URL and keep it on
+   file. It becomes the `VITE_ESPN_EXTENSION_ID` value only if the auto-fill
+   flow is ever re-added to the web app (see "Local development install"
+   step 6 — currently unneeded).
 
 ### Firefox Add-ons (AMO)
 
@@ -85,7 +93,7 @@ Firefox uses the WebExtensions API which is compatible. Load via
   We cannot read cookies for any other site.
 - `externally_connectable.matches` is the security boundary. Only listed
   origins can `chrome.runtime.sendMessage(EXT_ID, ...)`. It is pinned to the
-  live frontend domain (`fantasyfootballanalyzer.app`) ONLY — **the shipped
+  live frontend domain (`www.traderape.me`) ONLY — **the shipped
   manifest and `background.js` must never include localhost origins**: on a
   store-installed extension a localhost entry lets any local dev server
   (someone else's `npm run dev`) silently read a user's ESPN session cookies

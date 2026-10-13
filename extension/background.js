@@ -1,5 +1,5 @@
 // Service worker: only job is to answer "get the user's ESPN cookies"
-// when the Fantasy Football Analyzer web app asks for them.
+// when the TraderApe web app asks for them.
 //
 // We never store cookies, never send them anywhere, never make network calls.
 // The web origin asking is gated by manifest.externally_connectable.
@@ -34,7 +34,8 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
   // For local testing, add http://localhost:5173 / :4173 to BOTH lists in an
   // unpacked copy, and strip them before packing a release.
   const ALLOWED_ORIGINS = new Set([
-    'https://fantasyfootballanalyzer.app',
+    'https://www.traderape.me',
+    'https://traderape.me',
   ]);
   let senderOrigin = '';
   try {

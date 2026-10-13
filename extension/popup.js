@@ -1,4 +1,4 @@
-const ANALYZER_URL = 'https://fantasyfootballanalyzer.app/';
+const ANALYZER_URL = 'https://www.traderape.me/';
 
 const statusEl = document.getElementById('status');
 const openEspnBtn = document.getElementById('open-espn');
