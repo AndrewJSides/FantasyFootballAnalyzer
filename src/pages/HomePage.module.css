@@ -504,6 +504,17 @@ a.feature:hover .featureIcon {
   gap: 0.75rem;
 }
 
+/* Narrow phones: the nowrap "unlock" button plus the spaced 6-char PIN input
+   squeeze below ~360px, so stack them instead of letting the input shrink. */
+@media (max-width: 480px) {
+  .pinRow {
+    flex-direction: column;
+  }
+  .pinButton {
+    width: 100%;
+  }
+}
+
 .pinInput {
   flex: 1;
   min-width: 0;
