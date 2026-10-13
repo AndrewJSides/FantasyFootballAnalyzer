@@ -3,11 +3,11 @@ import { nflLogoUrl } from '@/data/nflTeams';
 import { formatBuildDate } from '@/utils/formatBuildDate';
 import styles from './HomePage.module.css';
 
-// Static hero. Kept free of hooks, browser APIs, and the league form so it can
-// be server-rendered into the initial HTML at build time (see
-// scripts/prerender.tsx) and crawlers see the real copy. The manifesto lives
-// in HomeManifesto so the page can render it below the form. Single source of
-// truth: HomePage and the prerender both render this.
+// Static hero. Kept free of hooks and browser APIs so it can be
+// server-rendered into the initial HTML at build time (see
+// scripts/prerender.tsx) and crawlers see the real copy. Single source of
+// truth: the prerender bakes this into the homepage's first paint, and the
+// app swaps it for the live league loader once React hydrates.
 //
 // Reads draftPoolMeta, not the pool itself: the board card needs five players
 // and a build stamp, and pulling the whole ~450KB pool JSON in for that would
@@ -32,7 +32,7 @@ export function HomeHero() {
           <p className={styles.subtitle}>
             Grade the trade before you make it. Value over replacement,
             computed for our league's exact shape, with roster-aware takes
-            on positional need. Enter your league PIN — no account needed.
+            on positional need. Our league loads automatically — no account needed.
           </p>
           <nav className={styles.heroLinks} aria-label="Start here">
             <a href={`${base}trade-analyzer`}>Trade Analyzer</a>
