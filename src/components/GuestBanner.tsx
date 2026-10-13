@@ -1,7 +1,8 @@
 import styles from './GuestBanner.module.css';
 
 interface GuestBannerProps {
-  // Clears guest mode and lands on the home connect form.
+  // Clears guest mode and lands on the home loader, which auto-loads the
+  // single league (the old multi-league connect form is gone).
   onConnect: () => void;
 }
 
@@ -16,7 +17,7 @@ export function GuestBanner({ onConnect }: GuestBannerProps) {
       <div className={`container ${styles.inner}`}>
         <p className={styles.text}>
           <span className={styles.tag}>Guest mode</span>
-          Rankings, site values, and the draft room only. Connect your league
+          Rankings, site values, and the draft room only. Load the league
           for real team names, draft grades, trades, awards, and history.
           Switching seasons needs a login.
         </p>
@@ -25,7 +26,7 @@ export function GuestBanner({ onConnect }: GuestBannerProps) {
           className={styles.connect}
           onClick={() => { onConnect(); }}
         >
-          Connect your league
+          Load the league
         </button>
       </div>
     </div>

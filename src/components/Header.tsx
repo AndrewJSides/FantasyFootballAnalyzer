@@ -13,8 +13,9 @@ interface HeaderProps {
   platform?: string;
   league?: League | null;
   // Guest mode: no real connection. The header swaps the league name + refresh
-  // for a "Connect your league" CTA (which clears the guest and lands on the
-  // home form). The Yahoo button stays so a guest can log in on demand.
+  // for a "Load the league" CTA (which clears the guest and lands on the
+  // home loader, which auto-loads the single league). The Yahoo button stays
+  // so a guest can log in on demand.
   isGuest?: boolean;
   onChangeLeague?: () => void;
   onRefresh?: () => void;
@@ -235,11 +236,11 @@ export function Header({
                 <button
                   onClick={handleChangeLeague}
                   className={styles.connectCta}
-                  title="Enter the league PIN to load our league — no account needed."
-                  aria-label="Enter league PIN"
+                  title="Load our league — no account needed."
+                  aria-label="Load the league"
                 >
-                  <span className={styles.connectCtaFull}>Enter league PIN</span>
-                  <span className={styles.connectCtaShort} aria-hidden="true">PIN</span>
+                  <span className={styles.connectCtaFull}>Load the league</span>
+                  <span className={styles.connectCtaShort} aria-hidden="true">Load</span>
                 </button>
               )}
             </div>

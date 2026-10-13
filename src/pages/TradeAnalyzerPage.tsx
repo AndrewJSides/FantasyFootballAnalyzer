@@ -364,14 +364,14 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             Grade a trade <em>before</em> you make it. Pick the players changing
             hands and get a value-over-replacement verdict for your league's
             exact shape
-            {leagueLoaded ? ` — ${league.name}` : ''}. Connect a Yahoo, ESPN, or
-            Sleeper league for roster-aware takes on how the deal hits each
+            {leagueLoaded ? ` — ${league.name}` : ''}. Load the league for
+            roster-aware takes on how the deal hits each
             team's positional depth.
           </p>
           {!leagueLoaded && (
             <p className={styles.guestNote}>
               No league connected — running in manual mode against the consensus
-              board. <a href="/">Connect your league</a> for team rosters and
+              board. <a href="/">Load the league</a> for team rosters and
               depth analysis.
             </p>
           )}

@@ -70,9 +70,9 @@ describe('Header nav', () => {
 
   it('drops the header CTA where GuestBanner carries its own', () => {
     renderAt('/rankings', { league: LEAGUE, isGuest: true });
-    expect(screen.queryByRole('button', { name: 'Enter league PIN' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Load the league' })).not.toBeInTheDocument();
 
     renderAt('/', { league: LEAGUE, isGuest: true });
-    expect(screen.getByRole('button', { name: 'Enter league PIN' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Load the league' })).toBeInTheDocument();
   });
 });
