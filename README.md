@@ -1,11 +1,11 @@
-# Fantasy Football Analyzer
+# TraderApe
 
-Free, open-source league analysis and a live draft assistant for Sleeper,
-ESPN, and Yahoo fantasy football leagues. No accounts, no ads, no server-side
-storage: credentials stay in the browser and pass straight through to the
-platform APIs.
+Free, open-source fantasy football league analysis and a live draft assistant
+for Sleeper, ESPN, and Yahoo leagues. Grade the trade before you make it.
+No accounts, no ads, no server-side storage: credentials stay in the browser
+and pass straight through to the platform APIs.
 
-**Live:** https://fantasyfootballanalyzer.app/
+**Live:** https://www.traderape.me/
 
 ## What it does
 
