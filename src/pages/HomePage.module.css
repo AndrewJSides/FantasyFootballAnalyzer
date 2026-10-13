@@ -346,6 +346,8 @@
 
 @media (max-width: 560px) {
   .features { grid-template-columns: 1fr; }
+  .pinRow { flex-direction: column; }
+  .pinButton { width: 100%; }
 }
 
 .feature {

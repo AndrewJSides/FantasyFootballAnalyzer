@@ -10,7 +10,6 @@
 export { Header } from './Header';
 export { YearSelector } from './YearSelector';
 export { SeasonLoadingOverlay } from './SeasonLoadingOverlay';
-export { LeagueForm } from './LeagueForm';
 export { WaiverTable } from './WaiverTable';
 export { TradeTable } from './TradeTable';
 export { RivalryCard } from './RivalryCard';
