@@ -171,7 +171,7 @@ function SideBuilder(props: {
           >
             <option value="">— pick a team —</option>
             {teams.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+              <option key={t.id} value={t.id}>{t.name}{t.isMyTeam ? ' (you)' : ''}</option>
             ))}
           </select>
         </label>
