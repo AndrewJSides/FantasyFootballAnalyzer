@@ -19,16 +19,17 @@ export interface GuestSettings {
   // League starts a QB-eligible flex (superflex / 2QB). Drives the Draft
   // Room's QB-pricing warning and changes how the board should be read.
   hasSuperflex: boolean;
+  // platform: Platform;
   // Which platform's board the Rankings delta column compares against. This
   // is only a ranking lens, not a real account. Sleeper by default: its ADP
-  // is scoring-specific, so it tracks the half-PPR default most closely.
+  // is scoring-specific, so it tracks the PPR default most closely.
   platform: Platform;
 }
 
 export const GUEST_LEAGUE_ID = 'guest';
 
 export const DEFAULT_GUEST_SETTINGS: GuestSettings = {
-  scoringType: 'half_ppr',
+  scoringType: 'ppr',
   draftType: 'snake',
   totalTeams: 12,
   hasSuperflex: false,
@@ -109,7 +110,7 @@ export function clearGuestSettings(): void {
 // a guest league is never built with 'custom'.
 export function settingsFromGuestLeague(league: League): GuestSettings {
   return {
-    scoringType: league.scoringType === 'custom' ? 'half_ppr' : league.scoringType,
+    scoringType: league.scoringType === 'custom' ? 'ppr' : league.scoringType,
     draftType: league.draftType,
     totalTeams: league.totalTeams,
     hasSuperflex: league.hasSuperflex ?? false,

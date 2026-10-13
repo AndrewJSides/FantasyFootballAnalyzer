@@ -57,9 +57,9 @@ describe('buildGuestLeague', () => {
     expect(settingsFromGuestLeague(buildGuestLeague(settings))).toEqual(settings);
   });
 
-  it('narrows a custom-scoring league back to half_ppr when recovering settings', () => {
+  it('narrows a custom-scoring league back to ppr when recovering settings', () => {
     const league = { ...buildGuestLeague(DEFAULT_GUEST_SETTINGS), scoringType: 'custom' as const };
-    expect(settingsFromGuestLeague(league).scoringType).toBe('half_ppr');
+    expect(settingsFromGuestLeague(league).scoringType).toBe('ppr');
   });
 });
 
