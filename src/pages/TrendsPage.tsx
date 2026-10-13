@@ -27,8 +27,9 @@ const FORMAT_LABEL: Record<TrendFormat, string> = {
 };
 const FORMAT_ORDER: TrendFormat[] = ['half_ppr', 'ppr', 'standard', 'superflex'];
 
-// Open on the loaded league's format; half PPR for guests (the guest league
-// is half PPR) and for any scoring the boards don't carry.
+// Open on the loaded league's format; PPR for guests (the guest league
+// defaults to PPR) and half PPR for any scoring the boards don't carry
+// (matches the Rankings page's custom-scoring treatment).
 function defaultFormat(league: League): TrendFormat {
   if ((league.rosterSlots?.SUPERFLEX ?? 0) > 0) return 'superflex';
   const scoring = league.scoringType as TrendFormat;
