@@ -20,7 +20,6 @@ import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { BOARD_SPECIAL_POSITIONS, gradeAllPicks, type GradedPick } from './grading';
 import { basePosition, canonicalTeam, matchKey } from './playerNames';
 import { isPlaceholderPlayer } from './placeholders';
-import { leagueOutlooks } from './seasonOutlook';
 import { draftValues } from './projectionValues';
 
 export interface PoolIndex {
@@ -430,7 +429,11 @@ export function gradeLeaguePicks(league: League, pool: DraftPoolFile): GradedPic
 function computeLeaguePicks(league: League, pool: DraftPoolFile): GradedPick[] {
   const allPicks = league.teams.flatMap(t => t.draftPicks || []);
   if (hasSeasonResults(allPicks, league)) {
-    return gradeAllPicks(league, undefined, undefined, undefined, leagueOutlooks(league, pool));
+    // Points-first: grade on actual scored points only. No rest-of-season
+    // projections — a drafted player is worth exactly what he has scored.
+    // (Owner, 2026-10-13: the points leader grading 7th on consensus value
+    // showed the projection/value model answering the wrong question.)
+    return gradeAllPicks(league);
   }
   const override = consensusPositionRanks(allPicks, pool);
   // Auctions additionally get the market's dollar prices, so pre-season

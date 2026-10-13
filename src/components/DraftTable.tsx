@@ -28,7 +28,6 @@ import { vorConfigFor } from '@/utils/projectionValues';
 import { KeeperValuePanel } from './KeeperValuePanel';
 import { POOL } from '@/data/draftPool';
 import { WEEKLY_SHAPE } from '@/data/weeklyShape';
-import { leagueOutlooks } from '@/utils/seasonOutlook';
 import { NflTeamLabel } from './NflTeamLabel';
 import { PosBadge } from './PosBadge';
 import { TeamLink } from './TeamLink';
@@ -121,8 +120,6 @@ export function DraftTable({
   tePremiumPerReception,
   leagueStatus,
   currentWeek,
-  gamesPlayed,
-  platform,
 }: DraftTableProps) {
 
   // Detect if auction draft
@@ -187,13 +184,9 @@ export function DraftTable({
       !hasResults && !isAuction && consensusBoardCoverage(allPicks, POOL) >= BOARD_MATCH_FLOOR
         ? consensusBoardSlots(allPicks, POOL, boardFormatFor({ scoringType, rosterSlots }))
         : undefined;
-    // Live season: rank on points so far plus the projected rest of season.
-    const outlook = hasResults
-      ? leagueOutlooks(
-          { status: leagueStatus, platform, season, currentWeek, scoringType, rosterSlots, totalTeams, teams, passTdPoints, tePremiumPerReception, gamesPlayed },
-          POOL,
-        )
-      : undefined;
+    // Points-first (owner, 2026-10-13): once results exist, grade on actual
+    // scored points only — no rest-of-season projections.
+    const outlook = undefined;
     // An empty market map (pool matched nobody) must not engage dollar mode.
     return gradeAllPicks(
       mockLeague,
@@ -202,7 +195,7 @@ export function DraftTable({
       board,
       outlook,
     ).filter(pick => !isPlaceholderPlayer(pick.player.name));
-  }, [teams, totalTeams, isAuction, auctionBudget, hasResults, allPicks, scoringType, rosterSlots, leagueStatus, season, currentWeek, passTdPoints, tePremiumPerReception, gamesPlayed, platform]);
+  }, [teams, totalTeams, isAuction, auctionBudget, hasResults, allPicks, scoringType, rosterSlots, leagueStatus]);
 
   // Whether grades rank on season value (live outlook, or a finished
   // season with games played) rather than raw points.
