@@ -69,6 +69,10 @@
   }
   .vs {
     text-align: center;
+    padding-top: 0;
+  }
+  .totals {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -214,6 +218,7 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 2rem;
 }
