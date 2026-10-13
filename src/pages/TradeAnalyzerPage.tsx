@@ -42,6 +42,14 @@ function entryPos(e: Entry): string {
   return 'position' in e ? (e as Player).position : (e as PoolPlayer).pos;
 }
 
+// Two entries are the same player when their ids match, or when their names
+// match — league roster ids and consensus-pool ids come from different
+// schemes, so the id check alone can't catch cross-source duplicates.
+function sameEntry(a: Entry, b: Entry): boolean {
+  if (a.id === b.id) return true;
+  return a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
+}
+
 // ---------------------------------------------------------------------------
 // Shareable trade links: sides are encoded as player names in the URL hash,
 // e.g. /trade-analyzer#trade=%7B%22a%22%3A%5B%22Saquon+Barkley%22%5D...%7D
@@ -118,7 +126,7 @@ function SideBuilder(props: {
   const results = useMemo(() => searchPool(searchQuery), [searchQuery]);
 
   const addRosterPlayer = (p: Player) => {
-    if (!entries.some(e => 'platformId' in e && (e as Player).id === p.id)) {
+    if (!entries.some(e => sameEntry(e, p))) {
       onAddSearch(p as unknown as PoolPlayer);
     }
   };
@@ -270,7 +278,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   }, []);
 
   const addTo = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
-    (p: PoolPlayer) => setter(prev => [...prev, p as Entry]);
+    (p: PoolPlayer) =>
+      setter(prev => (prev.some(e => sameEntry(e, p)) ? prev : [...prev, p as Entry]));
   const removeFrom = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
     (idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
 
