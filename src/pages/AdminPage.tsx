@@ -1,8 +1,9 @@
 // /admin — league owner console. Everything here is gated by the admin key
 // (ADMIN_SYNC_KEY on the server, entered once per session). Lets the owner:
 //   1. Connect Yahoo (existing OAuth flow)
-//   2. Pick one of their leagues and sync it to the TraderApe database
-//   3. Create / view the share PIN for a synced league
+//   2. See every synced league with its share PIN and last-synced time
+//   3. Pick one of their leagues and sync it to the TraderApe database
+//      (the PIN is created or reused alongside the sync)
 //
 // PIN holders get read-only access via ?pin=… — they never touch this page.
 
@@ -18,6 +19,34 @@ function getAdminKey(): string | null {
   } catch {
     return null;
   }
+}
+
+async function adminGet(path: string, adminKey: string) {
+  const res = await fetch(path, {
+    headers: { 'X-Admin-Key': adminKey },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
+function formatSyncedAt(iso: string | null): string {
+  if (!iso) return 'never';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? 'never'
+    : d.toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+}
+
+interface SyncedLeagueInfo {
+  leagueKey: string;
+  name: string;
+  season: number;
+  lastSyncedAt: string | null;
+  pin: string | null;
 }
 
 async function adminPost(path: string, adminKey: string, body: Record<string, unknown>) {
@@ -39,8 +68,28 @@ export function AdminPage() {
   const [leagues, setLeagues] = useState<Array<{ id: string; name: string }>>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [pins, setPins] = useState<Record<string, string>>({});
+  const [synced, setSynced] = useState<SyncedLeagueInfo[]>([]);
+  const [syncedLoading, setSyncedLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Inventory of what's already in the database: every synced league with
+  // its share PIN and last-synced time. Loads on unlock, refreshes after
+  // each sync so the timestamps stay honest.
+  const loadSyncedInventory = useCallback(async () => {
+    setSyncedLoading(true);
+    try {
+      const data = await adminGet('/api/league-pin', adminKey);
+      setSynced(data.leagues ?? []);
+      for (const l of data.leagues ?? []) {
+        if (l.pin) setPins(prev => ({ ...prev, [l.leagueKey]: l.pin }));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load synced leagues.');
+    } finally {
+      setSyncedLoading(false);
+    }
+  }, [adminKey]);
 
   const unlock = useCallback(async () => {
     setKeyError(null);
@@ -63,7 +112,8 @@ export function AdminPage() {
       /* private mode — key just won't persist */
     }
     setUnlocked(true);
-  }, [adminKey]);
+    void loadSyncedInventory();
+  }, [adminKey, loadSyncedInventory]);
 
   // Re-validate a stored key on mount: the OAuth round trip reloads this
   // page, and without this the owner would have to click Unlock again.
@@ -104,13 +154,14 @@ export function AdminPage() {
         setStatus(`Synced "${result.league.name}" (${result.league.season}) to the database.`);
         const pinResult = await adminPost('/api/league-pin', adminKey, { leagueKey: leagueId });
         setPins(prev => ({ ...prev, [leagueId]: pinResult.pin }));
+        void loadSyncedInventory();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sync failed.');
       } finally {
         setSyncing(null);
       }
     },
-    [adminKey]
+    [adminKey, loadSyncedInventory]
   );
 
   if (!unlocked) {
@@ -150,8 +201,36 @@ export function AdminPage() {
         )}
       </section>
 
+      <section style={{ marginBottom: '2rem' }}>
+        <h2>2. Synced leagues</h2>
+        {syncedLoading && <p>Loading…</p>}
+        {!syncedLoading && synced.length === 0 && (
+          <p style={{ color: '#666' }}>Nothing in the database yet — sync a league below.</p>
+        )}
+        {!syncedLoading && synced.length > 0 && (
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {synced.map(l => (
+              <li key={l.leagueKey} style={{ marginBottom: '0.75rem', padding: '0.75rem 1rem', border: '1px solid #ddd', borderRadius: 8 }}>
+                <strong>{l.name}</strong>
+                <span style={{ color: '#666' }}> ({l.season})</span>
+                <div style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>
+                  <span>Last synced: {formatSyncedAt(l.lastSyncedAt)}</span>
+                  <span style={{ marginLeft: '1rem' }}>
+                    PIN: {l.pin ? (
+                      <code style={{ fontSize: '1.1rem', letterSpacing: '0.2em' }}>{l.pin}</code>
+                    ) : (
+                      <span style={{ color: '#999' }}>none</span>
+                    )}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section>
-        <h2>2. Sync a league &amp; get its PIN</h2>
+        <h2>3. Sync a league &amp; get its PIN</h2>
         {leagues.length === 0 && <p>{yahooConnected ? 'Loading leagues…' : 'Connect Yahoo first.'}</p>}
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {leagues.map(l => (
