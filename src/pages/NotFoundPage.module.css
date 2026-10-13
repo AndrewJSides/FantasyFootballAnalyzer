@@ -1,0 +1,56 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · 404
+   ───────────────────────────────────────────── */
+
+.page {
+  padding: 4rem 0 6rem;
+  text-align: center;
+}
+
+.ape {
+  font-size: clamp(64px, 12vw, 120px);
+  line-height: 1;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(4px 4px 0 var(--lime));
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: clamp(40px, 7vw, 92px);
+  font-weight: 400;
+  line-height: 0.9;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin: 0 0 1.25rem;
+}
+
+.copy {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  line-height: 1.45;
+  color: var(--bone);
+  max-width: 52ch;
+  margin: 0 auto 2rem;
+}
+
+.homeLink {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.15rem;
+  border: 2px solid var(--lime);
+  color: var(--ink);
+  background: var(--lime);
+  box-shadow: 4px 4px 0 var(--bone);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.homeLink:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--bone);
+}

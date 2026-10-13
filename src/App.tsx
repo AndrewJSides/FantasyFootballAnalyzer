@@ -17,6 +17,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { HomePage } from '@/pages/HomePage';
 import { AdminPage } from '@/pages/AdminPage';
 import { ToolLanding } from '@/pages/ToolLanding';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 import { TOOL_LANDINGS } from '@/pages/toolLandings';
 import { posForSlug, labelForPos } from '@/data/rankingsVariants';
 import { Analytics } from '@/utils/analytics';
@@ -855,7 +856,7 @@ function App() {
           <Route path="/luck" element={dataRoute(l => <LuckPage league={l} />)} />
           <Route path="/players" element={dataRoute(l => <PlayerJourneyPage league={l} />)} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </div>
         </Suspense>
