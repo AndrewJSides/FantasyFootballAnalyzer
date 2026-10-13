@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import type { LoadingProgress } from '@/hooks/useLeague';
+import { DEFAULT_LEAGUE_PIN } from '@/api/pinLeague';
 import styles from './HomePage.module.css';
 
 interface HomePageProps {
@@ -10,13 +10,11 @@ interface HomePageProps {
 }
 
 export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProps) {
-  const [pin, setPin] = useState('');
   const base = import.meta.env.BASE_URL;
 
-  const submit = () => {
-    const trimmed = pin.trim();
-    if (trimmed) onLoadPin(trimmed);
-  };
+  // Single-league mode: the app auto-loads our league (App's default-load
+  // effect). No PIN form — this page is just the loading / error state.
+  const retry = () => onLoadPin(DEFAULT_LEAGUE_PIN);
 
   return (
     <div className={styles.page}>
@@ -29,35 +27,21 @@ export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProp
           roster-aware takes on positional need.
         </p>
 
-        {/* PIN entry is the front door: no accounts, no connect forms. */}
-        <div
-          className={styles.pinBox}
-          title="Enter the league PIN to load our league — no account needed."
-        >
-          <label className={styles.pinLabel} htmlFor="league-pin">
-            League PIN
-          </label>
-          <div className={styles.pinRow}>
-            <input
-              id="league-pin"
-              value={pin}
-              onChange={e => setPin(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === 'Enter' && submit()}
-              placeholder="Enter PIN"
-              autoComplete="off"
-              maxLength={10}
-              className={styles.pinInput}
-              disabled={isLoading}
-            />
-            <button
-              type="button"
-              onClick={submit}
-              disabled={isLoading || !pin.trim()}
-              className={styles.pinButton}
-            >
-              {isLoading ? 'Loading…' : 'Load league'}
-            </button>
-          </div>
+        <div className={styles.pinBox} title="Loading our league — no account needed.">
+          {isLoading ? (
+            <p className={styles.pinLabel}>Loading our league…</p>
+          ) : error ? (
+            <>
+              <p className={styles.pinLabel}>Couldn't load the league.</p>
+              <div className={styles.pinRow}>
+                <button type="button" onClick={retry} className={styles.pinButton}>
+                  Try again
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className={styles.pinLabel}>Loading our league…</p>
+          )}
         </div>
 
         {isLoading && progress && (

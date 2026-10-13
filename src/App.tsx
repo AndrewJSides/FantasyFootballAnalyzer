@@ -54,6 +54,7 @@ import {
   clearOAuthState,
 } from '@/api/yahoo';
 import { credentialsForSeason } from '@/api';
+import { DEFAULT_LEAGUE_PIN } from '@/api/pinLeague';
 import type { League, SeasonOption } from '@/types';
 import { logger } from '@/utils/logger';
 import { rememberConnection } from '@/utils/lastConnection';
@@ -336,6 +337,19 @@ function App() {
       navigate('/draft', { replace: true });
     }
   }, [loadPinLeague, navigate]);
+
+  // Single-league mode: auto-load our league on arrival at '/', no PIN gate.
+  // Skipped for share-link (?league=) and PIN-link (?pin=) visits, which have
+  // their own loaders. Runs once; a manual retry goes through handleLoadPin.
+  const defaultLoadAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (defaultLoadAttemptedRef.current) return;
+    if (pinTarget || shareTarget) return;
+    if (location.pathname !== '/') return;
+    if (league || isLoading) return;
+    defaultLoadAttemptedRef.current = true;
+    handleLoadPin(DEFAULT_LEAGUE_PIN);
+  }, [pinTarget, shareTarget, location.pathname, league, isLoading, handleLoadPin]);
 
   // Header Yahoo control: connect from anywhere in the app (the login powers
   // the draft board's live Yahoo prices even for Sleeper/ESPN leagues).

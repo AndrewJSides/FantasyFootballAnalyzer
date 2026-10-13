@@ -1,3 +1,7 @@
+// TraderApe is single-league for now: this PIN auto-loads on visit.
+// The PIN entry form is hidden; the machinery stays for ?pin= links.
+export const DEFAULT_LEAGUE_PIN = '5M43NA';
+
 // Load a league snapshot from the TraderApe database via its share PIN.
 // No account needed: possession of the PIN is the auth. The snapshot is the
 // normalized League object the owner's browser synced, so it renders through
