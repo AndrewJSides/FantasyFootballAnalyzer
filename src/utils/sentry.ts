@@ -13,7 +13,7 @@ const DSN = import.meta.env.VITE_SENTRY_DSN;
 // The repo is public and the built site has been re-hosted elsewhere with
 // this DSN baked in (a *.web.app mirror reported a stale-chunk error on
 // 2026-08-30). Only the real production origin gets to spend the quota.
-const PRODUCTION_HOST = 'fantasyfootballanalyzer.app';
+const PRODUCTION_HOST = 'traderape.me';
 export function isProductionHost(hostname: string): boolean {
   return hostname === PRODUCTION_HOST || hostname === `www.${PRODUCTION_HOST}`;
 }

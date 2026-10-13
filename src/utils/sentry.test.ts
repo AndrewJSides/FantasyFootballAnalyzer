@@ -195,8 +195,8 @@ describe('isExpectedUserError', () => {
 
 describe('isProductionHost', () => {
   it('accepts only the production domain, so mirrors of the public build stay dark', () => {
-    expect(isProductionHost('fantasyfootballanalyzer.app')).toBe(true);
-    expect(isProductionHost('www.fantasyfootballanalyzer.app')).toBe(true);
+    expect(isProductionHost('traderape.me')).toBe(true);
+    expect(isProductionHost('www.traderape.me')).toBe(true);
     expect(isProductionHost('fantasy-focus-distractions.web.app')).toBe(false);
     expect(isProductionHost('krool.github.io')).toBe(false);
     expect(isProductionHost('localhost')).toBe(false);
