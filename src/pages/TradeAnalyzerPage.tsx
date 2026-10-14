@@ -440,7 +440,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // nothing real. The button disables and a note explains.
   const sameTeam = leagueLoaded && teamAId !== '' && teamAId === teamBId;
   const canRun = (sideA.length > 0 || sideB.length > 0) && !sameTeam;
-  const [copied, setCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const resultsRef = useRef<HTMLDivElement>(null);
   // A shared-link auto-run lands the visitor at the top of a populated
   // builder; once the verdict renders, bring it into view. Scoped to the
@@ -457,22 +457,29 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     // Use the live location (not a hardcoded path) so the copied link keeps
     // the shared-league params (?league= / ?pin=) the trade was priced for.
     const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB)}`;
+    let ok = false;
     try {
       await navigator.clipboard.writeText(url);
+      ok = true;
     } catch {
       // Clipboard API unavailable (older browsers / non-secure context):
-      // fall back to the legacy execCommand path.
+      // fall back to the legacy execCommand path. execCommand returns false
+      // when the copy silently fails, so only confirm on true success.
       const ta = document.createElement('textarea');
       ta.value = url;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.appendChild(ta);
       ta.select();
-      document.execCommand('copy');
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      }
       document.body.removeChild(ta);
     }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    setCopyStatus(ok ? 'copied' : 'failed');
+    window.setTimeout(() => setCopyStatus('idle'), 2000);
   };
 
   return (
@@ -541,7 +548,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               className={styles.copy}
               onClick={copyTradeLink}
             >
-              {copied ? 'Copied ✓' : 'Copy trade link'}
+              {copyStatus === 'copied' ? 'Copied ✓' : copyStatus === 'failed' ? 'Copy failed' : 'Copy trade link'}
             </button>
           )}
           {(sideA.length > 0 || sideB.length > 0) && (
