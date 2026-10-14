@@ -302,8 +302,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   }, [myTeamId, teamAId, leagueKey]);
 
   // Populate the builder from a shared #trade= link on first load. Runs once;
-  // skips names that don't resolve against the consensus pool.
+  // skips names that don't resolve against the consensus pool. hashSides holds
+  // the resolved sides until their analysis has run (see the auto-run effect
+  // below): a ref isn't enough because the league may still be loading when
+  // the hash is applied, and the analysis must reprice once it arrives.
   const hashAppliedRef = useRef(false);
+  const [hashSides, setHashSides] = useState<{ a: Entry[]; b: Entry[] } | null>(null);
   useEffect(() => {
     if (hashAppliedRef.current) return;
     hashAppliedRef.current = true;
@@ -325,6 +329,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     const b = resolveSide(shared.b);
     if (a.length > 0) setSideA(a);
     if (b.length > 0) setSideB(b);
+    if (a.length > 0 || b.length > 0) setHashSides({ a, b });
   }, []);
 
   const addTo = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
@@ -357,10 +362,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     [],
   );
 
-  const runAnalysis = () => {
+  const runAnalysis = (sides?: { a: Entry[]; b: Entry[] }) => {
+    const entriesA = sides?.a ?? sideA;
+    const entriesB = sides?.b ?? sideB;
     const valueLeague = valueLeagueFor(leagueLoaded ? league : null);
-    const ra = resolveTradeSide(sideA);
-    const rb = resolveTradeSide(sideB);
+    const ra = resolveTradeSide(entriesA);
+    const rb = resolveTradeSide(entriesB);
     const warns: string[] = [];
     if (ra.unresolved.length > 0 || rb.unresolved.length > 0) {
       warns.push(
@@ -377,8 +384,37 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       }),
     );
     setWarnings(warns);
-    syncTradeHashToUrl(sideA, sideB);
+    syncTradeHashToUrl(entriesA, entriesB);
   };
+
+  // A shared #trade= link should land on the verdict, not a populated but
+  // un-analyzed builder. Runs as soon as the hash sides are applied (with
+  // manual-mode values if the league hasn't loaded yet), then re-runs once
+  // the real league arrives (null -> league) so the verdict reprices for the
+  // league's size, scoring, and roster shape. The pending auto-run survives
+  // until the league's team pickers have settled, so the league-priced run
+  // includes Side A's preselect (and its roster takes). If the user edits the
+  // builder before the league arrives, the pending auto-run is stale and is
+  // dropped.
+  useEffect(() => {
+    if (!hashSides) return;
+    const stale =
+      hashSides.a.length !== sideA.length ||
+      hashSides.b.length !== sideB.length ||
+      hashSides.a.some((e, i) => !sameEntry(e, sideA[i])) ||
+      hashSides.b.some((e, i) => !sameEntry(e, sideB[i]));
+    if (stale) {
+      setHashSides(null);
+      return;
+    }
+    runAnalysis(hashSides);
+    const teamsSettled = !leagueLoaded || teamAId !== '' || myTeamId === '';
+    if (teamsSettled) setHashSides(null);
+    // runAnalysis is an event handler whose identity changes every render;
+    // depending on it would re-analyze on every keystroke. The listed deps
+    // are the only ones that should re-trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leagueLoaded, league, hashSides, sideA, sideB, teamAId, teamBId, myTeamId]);
 
   // A trade needs two different teams: trading with yourself grades
   // nothing real. The button disables and a note explains.
@@ -462,7 +498,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             type="button"
             className={styles.analyze}
             disabled={!canRun}
-            onClick={runAnalysis}
+            onClick={() => runAnalysis()}
           >
             Analyze trade
           </button>
