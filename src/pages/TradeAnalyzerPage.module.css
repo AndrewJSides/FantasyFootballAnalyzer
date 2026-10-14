@@ -365,6 +365,13 @@
   .breakdowns {
     grid-template-columns: 1fr;
   }
+  /* The verdict row is a single flex line ("Side A wins" + "by N VOR pts");
+     on a phone it can run out of room, so let the margin wrap underneath
+     instead of squeezing or overflowing the viewport. */
+  .verdict {
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+  }
 }
 
 .breakdown {
