@@ -581,7 +581,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
 
         {result && (
           <div ref={resultsRef}>
-            <Results result={result} />
+            <Results result={result} leagueLoaded={leagueLoaded} />
           </div>
         )}
       </div>
@@ -593,7 +593,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
 // Results
 // ---------------------------------------------------------------------------
 
-function Results({ result }: { result: FullTradeAnalysis }) {
+function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLoaded: boolean }) {
   const verdict =
     result.winner === 'even'
       ? 'Even trade'
@@ -636,9 +636,21 @@ function Results({ result }: { result: FullTradeAnalysis }) {
 
       <p className={styles.method}>
         Values are value-over-replacement (VOR) in projected points, computed
-        for your league's size, scoring, and roster shape. A raw value win
-        isn't everything — check the roster takes below for how each team's
-        starting lineup actually changes.
+        {leagueLoaded ? (
+          <>
+            {' '}
+            for your league's size, scoring, and roster shape. A raw value win
+            isn't everything — check the roster takes below for how each team's
+            starting lineup actually changes.
+          </>
+        ) : (
+          <>
+            {' '}
+            for a standard 10-team full-PPR league (1 QB, 2 RB, 2 WR, TE, FLEX,
+            K, DST, 6 bench). Load the league to grade the trade against your
+            league's real shape and get roster takes for each team.
+          </>
+        )}
       </p>
     </section>
   );
