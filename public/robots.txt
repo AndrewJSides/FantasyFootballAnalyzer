@@ -1,5 +1,5 @@
-# Robots.txt for FantasyFootballAnalyzer
+# Robots.txt for TraderApe
 User-agent: *
 Allow: /
 
-Sitemap: https://fantasyfootballanalyzer.app/sitemap.xml
+Sitemap: https://www.traderape.me/sitemap.xml

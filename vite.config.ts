@@ -6,7 +6,7 @@ import path from 'path'
 import { execSync } from 'node:child_process'
 import { blockerSafeName } from './scripts/chunkNames'
 
-const SITE_URL = 'https://fantasyfootballanalyzer.app/'
+const SITE_URL = 'https://www.traderape.me/'
 
 // Source map upload only happens when an auth token is present, which is CI
 // only (GitHub secret). Local builds and PRs see no token, so the Sentry plugin

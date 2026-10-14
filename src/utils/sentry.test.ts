@@ -43,7 +43,7 @@ describe('scrubString', () => {
     // URL-encoded so no literal `access_token=` appears for the key=value
     // rule, and with no `?` the query-string rule never fires.
     const url =
-      'https://fantasyfootballanalyzer.app/yahoo-success#tokens=%7B%22access_token%22%3A%22ya29SECRET%22%7D';
+      'https://www.traderape.me/yahoo-success#tokens=%7B%22access_token%22%3A%22ya29SECRET%22%7D';
     const scrubbed = scrubString(url);
     expect(scrubbed).not.toContain('ya29SECRET');
     expect(scrubbed).toContain('#tokens=[redacted]');
