@@ -332,6 +332,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     hashAppliedRef.current = true;
     const shared = decodeTradeHash(window.location.hash);
     if (!shared) return;
+    // Names that don't match the consensus pool used to be dropped silently,
+    // so a shared link could quietly lose players. Count the misses and say
+    // so out loud instead.
+    let skipped = 0;
     const resolveSide = (names: string[]): Entry[] => {
       const seen = new Set<string>();
       const out: Entry[] = [];
@@ -340,6 +344,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         if (p && !seen.has(p.id)) {
           seen.add(p.id);
           out.push(p);
+        } else if (!p) {
+          skipped += 1;
         }
       }
       return out;
@@ -349,6 +355,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     if (a.length > 0) setSideA(a);
     if (b.length > 0) setSideB(b);
     if (a.length > 0 || b.length > 0) setHashSides({ a, b });
+    if (skipped > 0) {
+      setWarnings([
+        `${skipped} player${skipped === 1 ? '' : 's'} in this shared link ` +
+          `couldn't be matched and ${skipped === 1 ? 'was' : 'were'} left out.`,
+      ]);
+    }
   }, []);
 
   // Editing a side (add/remove a player) invalidates the verdict on screen:
