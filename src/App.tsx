@@ -102,7 +102,6 @@ function RankingsVariantRoute({
 }
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'Connect Your League',
   '/draft': 'Draft Analysis',
   '/draft-room': 'Draft Room',
   '/rankings': 'Rankings',
