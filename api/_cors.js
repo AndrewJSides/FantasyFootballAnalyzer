@@ -1,9 +1,9 @@
-// Shared CORS for the API functions. Production runs on GitHub Pages; local
-// `vite dev` runs on localhost. Reflect the request origin when it's on the
+// Shared CORS for the API functions. Production runs on Vercel at
+// traderape.me; local `vite dev` runs on localhost. Reflect the request origin when it's on the
 // allowlist so both work; any other origin gets the production value back
 // and the browser blocks the read.
 
-const PROD_ORIGIN = new URL(process.env.FRONTEND_URL || 'https://fantasyfootballanalyzer.app').origin;
+const PROD_ORIGIN = new URL(process.env.FRONTEND_URL || 'https://www.traderape.me').origin;
 const DEV_ORIGINS = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
