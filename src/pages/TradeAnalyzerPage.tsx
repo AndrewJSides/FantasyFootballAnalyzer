@@ -309,6 +309,30 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const removeFrom = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
     (idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
 
+  // Switching a side's team resets that side: entries came from the old team's
+  // roster (or were searched in its context) and any analysis on screen is
+  // stale for the new pairing. Never clears the other side.
+  const changeTeam = (
+    teamSetter: React.Dispatch<React.SetStateAction<string>>,
+    entriesSetter: React.Dispatch<React.SetStateAction<Entry[]>>,
+    querySetter: React.Dispatch<React.SetStateAction<string>>,
+  ) =>
+    (id: string) => {
+      teamSetter(id);
+      entriesSetter([]);
+      querySetter('');
+      setResult(null);
+      setWarnings([]);
+    };
+  const changeTeamA = useMemo(
+    () => changeTeam(setTeamAId, setSideA, setQueryA),
+    [],
+  );
+  const changeTeamB = useMemo(
+    () => changeTeam(setTeamBId, setSideB, setQueryB),
+    [],
+  );
+
   const runAnalysis = () => {
     const valueLeague = valueLeagueFor(leagueLoaded ? league : null);
     const ra = resolveTradeSide(sideA);
@@ -384,7 +408,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onRemove={removeFrom(setSideA)}
             teams={teams}
             teamId={teamAId}
-            onTeamChange={setTeamAId}
+            onTeamChange={changeTeamA}
             searchQuery={queryA}
             onSearchChange={setQueryA}
             onAddSearch={addTo(setSideA)}
@@ -397,7 +421,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onRemove={removeFrom(setSideB)}
             teams={teams}
             teamId={teamBId}
-            onTeamChange={setTeamBId}
+            onTeamChange={changeTeamB}
             searchQuery={queryB}
             onSearchChange={setQueryB}
             onAddSearch={addTo(setSideB)}
