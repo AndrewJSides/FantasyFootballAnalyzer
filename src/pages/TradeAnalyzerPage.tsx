@@ -98,6 +98,26 @@ function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// Keep the address bar's #trade= hash in sync with the analyzed trade, so a
+// plain copy of the URL from the bar shares the same thing the copy button
+// does. replaceState keeps the back button clean; the mount-once hash loader
+// above never re-fires on these replacements.
+function syncTradeHashToUrl(sideA: Entry[], sideB: Entry[]): void {
+  window.history.replaceState(
+    null,
+    '',
+    `${window.location.pathname}${encodeTradeHash(sideA, sideB)}`,
+  );
+}
+
+// A cleared builder must not leave a hash behind that would reload the trade
+// on the next refresh.
+function clearTradeHashFromUrl(): void {
+  if (window.location.hash.startsWith(TRADE_HASH_PREFIX)) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+}
+
 function tokens(s: string): string[] {
   return s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 }
@@ -357,6 +377,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       }),
     );
     setWarnings(warns);
+    syncTradeHashToUrl(sideA, sideB);
   };
 
   // A trade needs two different teams: trading with yourself grades
@@ -458,7 +479,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); }}
+              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); clearTradeHashFromUrl(); }}
             >
               Clear
             </button>
