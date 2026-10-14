@@ -355,7 +355,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setWarnings(warns);
   };
 
-  const canRun = sideA.length > 0 || sideB.length > 0;
+  // A trade needs two different teams: trading with yourself grades
+  // nothing real. The button disables and a note explains.
+  const sameTeam = leagueLoaded && teamAId !== '' && teamAId === teamBId;
+  const canRun = (sideA.length > 0 || sideB.length > 0) && !sameTeam;
   const [copied, setCopied] = useState(false);
 
   const copyTradeLink = async () => {
@@ -457,6 +460,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             </button>
           )}
         </div>
+
+        {sameTeam && (
+          <p className={styles.warning}>
+            Side A and Side B are the same team — pick two different teams to grade a trade.
+          </p>
+        )}
 
         {warnings.map((w, i) => (
           <p key={i} className={styles.warning}>{w}</p>
