@@ -335,11 +335,27 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     if (a.length > 0 || b.length > 0) setHashSides({ a, b });
   }, []);
 
+  // Editing a side (add/remove a player) invalidates the verdict on screen:
+  // it was priced for the previous entries, so clear the stale result,
+  // warnings, and URL hash — same discipline as changeTeam below.
   const addTo = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
     (p: PoolPlayer) =>
-      setter(prev => (prev.some(e => sameEntry(e, p)) ? prev : [...prev, p as Entry]));
+      setter(prev => {
+        if (prev.some(e => sameEntry(e, p))) return prev;
+        setResult(null);
+        setWarnings([]);
+        clearTradeHashFromUrl();
+        return [...prev, p as Entry];
+      });
   const removeFrom = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
-    (idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
+    (idx: number) =>
+      setter(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        setResult(null);
+        setWarnings([]);
+        clearTradeHashFromUrl();
+        return prev.filter((_, i) => i !== idx);
+      });
 
   // Switching a side's team resets that side: entries came from the old team's
   // roster (or were searched in its context) and any analysis on screen is
