@@ -91,7 +91,9 @@ function buildRankingsMarkup(
   sleeperAdpFor: (p: any, scoring: string) => number | undefined,
   opts: { pos?: string; limit: number; heading: string; intro: string; nav: string },
 ): string {
-  const scoring = 'half_ppr'
+  // The live app opens guests on full PPR (Andrew's league is full PPR), so
+  // the crawlable snapshot uses the same scoring; the copy below says PPR.
+  const scoring = 'ppr'
   const avg = (p: any) => {
     const v = consensusAvg(p, scoring)
     return Number.isFinite(v) ? v : p.overallRank
@@ -378,14 +380,14 @@ async function prerender() {
           heading: `${POOL.season} Fantasy Football Draft Rankings`,
           intro:
             `Free ${POOL.season} consensus fantasy football draft rankings and ADP from ` +
-            `FantasyPros, ESPN, and Sleeper, half PPR scoring. Snake ADP and auction values ` +
+            `FantasyPros, ESPN, and Sleeper, full PPR scoring. Snake ADP and auction values ` +
             `for Sleeper, ESPN, and Yahoo leagues, no login required.`,
           nav: rankingsNav(null, basePath),
         }) + rankingsFaq,
       title: `${POOL.season} Fantasy Football Draft Rankings (Free): Sleeper, ESPN, Yahoo`,
       desc:
         `Free ${POOL.season} fantasy football draft rankings and ADP. FantasyPros, ESPN, and ` +
-        `Sleeper boards side by side with auction values, half PPR by default. Sleeper, ` +
+        `Sleeper boards side by side with auction values, full PPR by default. Sleeper, ` +
         `ESPN, and Yahoo leagues, no login.`,
     })
 
@@ -402,19 +404,19 @@ async function prerender() {
             heading: `${POOL.season} Fantasy Football ${v.pos} Rankings`,
             intro:
               `Free ${POOL.season} fantasy football ${v.label.toLowerCase()} rankings and ADP. Consensus of ` +
-              `FantasyPros, ESPN, and Sleeper, half PPR by default, with snake ADP and auction ` +
+              `FantasyPros, ESPN, and Sleeper, full PPR by default, with snake ADP and auction ` +
               `values for Sleeper, ESPN, and Yahoo leagues. No login required.`,
             nav: rankingsNav(v.slug, basePath),
           }) +
           faqJsonLd([
             [`Are these ${v.pos} rankings free?`, 'Yes. No account and no signup. The project is open source.'],
             [`How often do the ${v.pos} rankings update?`, `Daily, from a consensus of FantasyPros, ESPN, and Sleeper for the ${POOL.season} season.`],
-            ['What scoring is used?', 'Half PPR by default, with standard and full PPR available, plus superflex.'],
+            ['What scoring is used?', 'Full PPR by default, with standard and half PPR available, plus superflex.'],
           ]),
         title: `${POOL.season} Fantasy Football ${v.pos} Rankings (Free): Sleeper, ESPN, Yahoo`,
         desc:
           `Free ${POOL.season} ${v.pos} rankings and ADP for fantasy football. FantasyPros, ESPN, ` +
-          `and Sleeper ${v.label.toLowerCase()} consensus, half PPR, with auction values. No login.`,
+          `and Sleeper ${v.label.toLowerCase()} consensus, full PPR, with auction values. No login.`,
       })
     }
 
