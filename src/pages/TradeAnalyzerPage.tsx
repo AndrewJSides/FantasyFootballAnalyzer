@@ -24,14 +24,21 @@ type Entry = Player | PoolPlayer;
 function searchPool(query: string, limit = 8): PoolPlayer[] {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
-  const out: PoolPlayer[] = [];
+  // Rank exact prefix hits before looser infix hits so typing "ja" offers
+  // Ja'Marr Chase before mid-name matches. The pool is consensus-ranked, so
+  // pool order still breaks ties within each bucket.
+  const prefix: PoolPlayer[] = [];
+  const infix: PoolPlayer[] = [];
   for (const p of POOL.players) {
-    if (p.name.toLowerCase().includes(q)) {
-      out.push(p);
-      if (out.length >= limit) break;
+    const name = p.name.toLowerCase();
+    if (name.startsWith(q)) {
+      if (prefix.length < limit) prefix.push(p);
+    } else if (name.includes(q)) {
+      if (infix.length < limit) infix.push(p);
     }
+    if (prefix.length >= limit) break;
   }
-  return out;
+  return [...prefix, ...infix].slice(0, limit);
 }
 
 function entryLabel(e: Entry): string {
