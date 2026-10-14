@@ -149,7 +149,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           <div className={styles.avatarPlaceholder}>{team.name.charAt(0).toUpperCase()}</div>
         )}
         <div className={styles.headerInfo}>
-          <h2 className={styles.teamName}>{team.name}</h2>
+          <h2 className={styles.teamName}>{team.name}{team.isMyTeam ? ' (you)' : ''}</h2>
           <span className={styles.meta}>
             {team.ownerName ? `${team.ownerName} · ` : ''}
             {team.wins}-{team.losses}

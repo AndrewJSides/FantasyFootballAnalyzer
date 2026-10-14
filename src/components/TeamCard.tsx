@@ -107,7 +107,7 @@ export function TeamCard({ league, team, onClick, luckMetrics }: TeamCardProps) 
           </div>
         )}
         <div className={styles.headerInfo}>
-          <h3 className={styles.teamName}>{team.name}</h3>
+          <h3 className={styles.teamName}>{team.name}{team.isMyTeam ? ' (you)' : ''}</h3>
           {team.ownerName && (
             <span className={styles.ownerName}>{team.ownerName}</span>
           )}
