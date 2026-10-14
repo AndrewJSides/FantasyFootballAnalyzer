@@ -101,20 +101,23 @@ function normName(s: string): string {
 // Keep the address bar's #trade= hash in sync with the analyzed trade, so a
 // plain copy of the URL from the bar shares the same thing the copy button
 // does. replaceState keeps the back button clean; the mount-once hash loader
-// above never re-fires on these replacements.
+// above never re-fires on these replacements. The search string is preserved
+// so a shared-league param (?league= / ?pin=) survives the analysis —
+// dropping it would unload the league on the next refresh.
 function syncTradeHashToUrl(sideA: Entry[], sideB: Entry[]): void {
   window.history.replaceState(
     null,
     '',
-    `${window.location.pathname}${encodeTradeHash(sideA, sideB)}`,
+    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB)}`,
   );
 }
 
 // A cleared builder must not leave a hash behind that would reload the trade
-// on the next refresh.
+// on the next refresh. The search string stays so the league context isn't
+// lost with the trade.
 function clearTradeHashFromUrl(): void {
   if (window.location.hash.startsWith(TRADE_HASH_PREFIX)) {
-    window.history.replaceState(null, '', window.location.pathname);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
   }
 }
 
@@ -435,7 +438,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   }, [autoScrollPending, result]);
 
   const copyTradeLink = async () => {
-    const url = `${window.location.origin}/trade-analyzer${encodeTradeHash(sideA, sideB)}`;
+    // Use the live location (not a hardcoded path) so the copied link keeps
+    // the shared-league params (?league= / ?pin=) the trade was priced for.
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB)}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
