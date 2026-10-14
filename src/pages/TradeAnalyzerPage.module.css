@@ -362,7 +362,8 @@
 }
 
 @media (max-width: 760px) {
-  .breakdowns {
+  .breakdowns,
+  .totals {
     grid-template-columns: 1fr;
   }
   /* The verdict row is a single flex line ("Side A wins" + "by N VOR pts");
