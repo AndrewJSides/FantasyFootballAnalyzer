@@ -211,19 +211,28 @@ function SideBuilder(props: {
         <div className={styles.rosterList}>
           <span className={styles.label}>Tap a player to add</span>
           <ul>
-            {(team.roster ?? []).map(p => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  className={styles.rosterBtn}
-                  onClick={() => addRosterPlayer(p)}
-                >
-                  <PosBadge pos={p.position} />
-                  <span className={styles.pName}>{p.name}</span>
-                  <span className={styles.pTeam}>{p.team}</span>
-                </button>
-              </li>
-            ))}
+            {(team.roster ?? []).map(p => {
+              // Re-tapping an already-added player silently did nothing; now
+              // the button shows its added state and won't accept the tap.
+              const added = entries.some(e => sameEntry(e, p));
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    className={styles.rosterBtn}
+                    disabled={added}
+                    onClick={() => addRosterPlayer(p)}
+                    aria-label={added ? `${p.name} (already added)` : `Add ${p.name}`}
+                  >
+                    <PosBadge pos={p.position} />
+                    <span className={styles.pName}>{p.name}</span>
+                    {added
+                      ? <span className={styles.pTeam}>✓ added</span>
+                      : <span className={styles.pTeam}>{p.team}</span>}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

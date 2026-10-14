@@ -171,6 +171,15 @@
   background: var(--ink-3);
 }
 
+.rosterBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.rosterBtn:disabled:hover {
+  background: transparent;
+}
+
 .pName {
   flex: 1;
   overflow: hidden;
