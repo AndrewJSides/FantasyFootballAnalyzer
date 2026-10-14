@@ -410,6 +410,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     runAnalysis(hashSides);
     const teamsSettled = !leagueLoaded || teamAId !== '' || myTeamId === '';
     if (teamsSettled) setHashSides(null);
+    setAutoScrollPending(true);
     // runAnalysis is an event handler whose identity changes every render;
     // depending on it would re-analyze on every keystroke. The listed deps
     // are the only ones that should re-trigger.
@@ -421,6 +422,17 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const sameTeam = leagueLoaded && teamAId !== '' && teamAId === teamBId;
   const canRun = (sideA.length > 0 || sideB.length > 0) && !sameTeam;
   const [copied, setCopied] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  // A shared-link auto-run lands the visitor at the top of a populated
+  // builder; once the verdict renders, bring it into view. Scoped to the
+  // auto-run — manual "Analyze trade" clicks stay put.
+  const [autoScrollPending, setAutoScrollPending] = useState(false);
+  useEffect(() => {
+    if (autoScrollPending && result) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setAutoScrollPending(false);
+    }
+  }, [autoScrollPending, result]);
 
   const copyTradeLink = async () => {
     const url = `${window.location.origin}/trade-analyzer${encodeTradeHash(sideA, sideB)}`;
@@ -532,7 +544,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           <p key={i} className={styles.warning}>{w}</p>
         ))}
 
-        {result && <Results result={result} />}
+        {result && (
+          <div ref={resultsRef}>
+            <Results result={result} />
+          </div>
+        )}
       </div>
     </div>
   );
