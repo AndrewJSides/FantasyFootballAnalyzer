@@ -267,15 +267,19 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // When a synced league (PIN or directly connected) loads, preselect
   // Andrew's own team as Side A so the common "what should I give?" flow
   // starts one tap ahead. Never overrides a team the user already picked.
+  const leagueKey = leagueLoaded && league ? `${league.platform}:${league.id}` : '';
   const myTeamId = useMemo(
     () => (leagueLoaded && league ? league.teams.find(t => t.isMyTeam)?.id ?? '' : ''),
     [leagueLoaded, league],
   );
+  // The league for which the user hand-picked (or hand-cleared) Side A's
+  // team. A manual clear leaves teamAId empty just like "never picked",
+  // so without this the effect below would re-preselect behind their back.
+  const touchedTeamAForRef = useRef('');
   useEffect(() => {
-    if (myTeamId && !teamAId) {
-      setTeamAId(myTeamId);
-    }
-  }, [myTeamId, teamAId]);
+    if (!myTeamId || teamAId || touchedTeamAForRef.current === leagueKey) return;
+    setTeamAId(myTeamId);
+  }, [myTeamId, teamAId, leagueKey]);
 
   // Populate the builder from a shared #trade= link on first load. Runs once;
   // skips names that don't resolve against the consensus pool.
@@ -411,7 +415,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onRemove={removeFrom(setSideA)}
             teams={teams}
             teamId={teamAId}
-            onTeamChange={changeTeamA}
+            onTeamChange={id => { touchedTeamAForRef.current = leagueKey; changeTeamA(id); }}
             searchQuery={queryA}
             onSearchChange={setQueryA}
             onAddSearch={addTo(setSideA)}
