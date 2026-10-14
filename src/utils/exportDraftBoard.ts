@@ -232,7 +232,7 @@ function drawBlocks(data: DraftBoardData, blocks: Block[], blockW: number, cols:
   });
   ctx.fillStyle = BONE_DIM;
   ctx.textAlign = 'right';
-  ctx.fillText('fantasyfootballanalyzer.app', w - MARGIN, footY);
+  ctx.fillText('traderape.me', w - MARGIN, footY);
   ctx.textAlign = 'left';
 
   return canvas;

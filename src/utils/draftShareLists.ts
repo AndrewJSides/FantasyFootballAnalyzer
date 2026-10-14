@@ -60,7 +60,7 @@ export interface ShareListsOptions {
   limit?: number;
 }
 
-const FOOTER = 'fantasyfootballanalyzer.app';
+const FOOTER = 'traderape.me';
 
 // Keepers are auto-logged at their cost round / keeper price, not drafted
 // decisions, so they'd top every list as fake steals. Hold them out.

@@ -141,7 +141,7 @@ async function drawAwardsBoard(data: AwardsBoardData): Promise<HTMLCanvasElement
   ctx.fillStyle = BONE_DIM;
   ctx.font = `700 13px ${MONO}`;
   ctx.textAlign = 'right';
-  ctx.fillText('fantasyfootballanalyzer.app', w - MARGIN, h - 22);
+  ctx.fillText('traderape.me', w - MARGIN, h - 22);
   ctx.textAlign = 'left';
 
   return canvas;
