@@ -473,7 +473,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // Flip the trade around: Side A <-> Side B, including team picks and
   // search boxes. The old verdict was priced for the previous orientation,
   // so it (and its URL hash) clears — same discipline as addTo/removeFrom.
+  // Mark Side A's team as user-touched: the swap is a deliberate pick, and
+  // without this a later manual clear of Side A would let the isMyTeam
+  // preselect re-fire behind the user's back.
   const swapSides = () => {
+    touchedTeamAForRef.current = leagueKey;
     setSideA(sideB);
     setSideB(sideA);
     setTeamAId(teamBId);
