@@ -260,6 +260,15 @@ function SideBuilder(props: {
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Type a name…"
+          // Player names are proper nouns — stop phone keyboards from
+          // "correcting" them (e.g. Hurts -> Hurts' fine, but more often the
+          // spacebar replaces the name mid-typing and breaks the search).
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          // Escape clears the search without touching the picked players.
+          onKeyDown={e => { if (e.key === 'Escape') onSearchChange(''); }}
         />
       </label>
       {results.length > 0 && (
