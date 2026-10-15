@@ -307,6 +307,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // Andrew's own team as Side A so the common "what should I give?" flow
   // starts one tap ahead. Never overrides a team the user already picked.
   const leagueKey = leagueLoaded && league ? `${league.platform}:${league.id}` : '';
+  // Tracks the league the builder last rendered for. A genuinely different
+  // league arriving mid-session resets the builder (see the effect after
+  // the preselect below); the first load ('' -> league) is excluded so a
+  // shared #trade= link's sides survive until the league's auto-run.
+  const prevLeagueKeyRef = useRef(leagueKey);
   const myTeamId = useMemo(
     () => (leagueLoaded && league ? league.teams.find(t => t.isMyTeam)?.id ?? '' : ''),
     [leagueLoaded, league],
@@ -315,6 +320,31 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // team. A manual clear leaves teamAId empty just like "never picked",
   // so without this the effect below would re-preselect behind their back.
   const touchedTeamAForRef = useRef('');
+  // A genuinely different league arriving mid-session (e.g. opening a
+  // ?league= share link while already on this page) invalidates everything
+  // the builder holds: stale team ids would sit behind the "pick a team"
+  // placeholder and silently block the isMyTeam preselect above. Reset the
+  // whole builder — same discipline as switching a side's team. The first
+  // load ('' -> league) is NOT a reset: that's when a shared #trade= link's
+  // sides are still arriving, and clearing them here would strand the link.
+  // Declared after the preselect effect so the reset lands first in the
+  // same commit and the preselect immediately picks the new league's team.
+  useEffect(() => {
+    if (prevLeagueKeyRef.current === leagueKey || prevLeagueKeyRef.current === '') {
+      prevLeagueKeyRef.current = leagueKey;
+      return;
+    }
+    prevLeagueKeyRef.current = leagueKey;
+    touchedTeamAForRef.current = '';
+    setTeamAId('');
+    setTeamBId('');
+    setSideA([]);
+    setSideB([]);
+    setQueryA('');
+    setQueryB('');
+    setResult(null);
+    setWarnings([]);
+  }, [leagueKey]);
   useEffect(() => {
     if (!myTeamId || teamAId || touchedTeamAForRef.current === leagueKey) return;
     setTeamAId(myTeamId);
