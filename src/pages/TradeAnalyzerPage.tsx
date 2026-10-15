@@ -267,8 +267,20 @@ function SideBuilder(props: {
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          // Escape clears the search without touching the picked players.
-          onKeyDown={e => { if (e.key === 'Escape') onSearchChange(''); }}
+          // Escape clears the search without touching the picked players. Enter
+          // adds the top result — the fast keyboard path when the search has
+          // an obvious hit ("puka" -> Puka Nacua) without tapping it. Tapping
+          // a result button still clears the search too.
+          onKeyDown={e => {
+            if (e.key === 'Escape') { onSearchChange(''); return; }
+            if (e.key === 'Enter') {
+              const top = results[0];
+              if (top && !entries.some(en => sameEntry(en, top))) {
+                onAddSearch(top);
+                onSearchChange('');
+              }
+            }
+          }}
         />
       </label>
       {results.length > 0 && (
