@@ -423,7 +423,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
 
   // Switching a side's team resets that side: entries came from the old team's
   // roster (or were searched in its context) and any analysis on screen is
-  // stale for the new pairing. Never clears the other side.
+  // stale for the new pairing. Never clears the other side. The URL hash
+  // clears too — same discipline as addTo/removeFrom — so the address bar
+  // never points at a trade the builder no longer holds.
   const changeTeam = (
     teamSetter: React.Dispatch<React.SetStateAction<string>>,
     entriesSetter: React.Dispatch<React.SetStateAction<Entry[]>>,
@@ -435,6 +437,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       querySetter('');
       setResult(null);
       setWarnings([]);
+      clearTradeHashFromUrl();
     };
   const changeTeamA = useMemo(
     () => changeTeam(setTeamAId, setSideA, setQueryA),
