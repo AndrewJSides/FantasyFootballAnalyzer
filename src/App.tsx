@@ -116,6 +116,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/players': 'Player Journey',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
+  '/admin': 'Owner Console',
 };
 
 // Draft-prep routes whose boards include Yahoo market data (ADP, auction
