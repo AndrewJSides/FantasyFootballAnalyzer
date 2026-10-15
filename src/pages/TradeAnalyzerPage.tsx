@@ -112,6 +112,12 @@ function normName(s: string): string {
 // so a shared-league param (?league= / ?pin=) survives the analysis —
 // dropping it would unload the league on the next refresh.
 function syncTradeHashToUrl(sideA: Entry[], sideB: Entry[]): void {
+  if (sideA.length === 0 && sideB.length === 0) {
+    // Analyzing an empty builder (only reachable from a hand-made empty
+    // #trade= link) shouldn't leave a noise hash in the address bar.
+    clearTradeHashFromUrl();
+    return;
+  }
   window.history.replaceState(
     null,
     '',
