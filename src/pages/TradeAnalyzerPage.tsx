@@ -264,19 +264,28 @@ function SideBuilder(props: {
       </label>
       {results.length > 0 && (
         <ul className={styles.searchResults}>
-          {results.map(p => (
-            <li key={p.id}>
-              <button
-                type="button"
-                className={styles.rosterBtn}
-                onClick={() => { onAddSearch(p); onSearchChange(''); }}
-              >
-                <PosBadge pos={p.pos} />
-                <span className={styles.pName}>{p.name}</span>
-                <span className={styles.pTeam}>{p.team} · {p.pos}</span>
-              </button>
-            </li>
-          ))}
+          {results.map(p => {
+            // Like the roster buttons above, show the added state instead of
+            // silently no-op'ing when the search hit is already on this side.
+            const added = entries.some(e => sameEntry(e, p));
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  className={styles.rosterBtn}
+                  disabled={added}
+                  onClick={() => { onAddSearch(p); onSearchChange(''); }}
+                  aria-label={added ? `${p.name} (already added)` : `Add ${p.name}`}
+                >
+                  <PosBadge pos={p.pos} />
+                  <span className={styles.pName}>{p.name}</span>
+                  {added
+                    ? <span className={styles.pTeam}>✓ added</span>
+                    : <span className={styles.pTeam}>{p.team} · {p.pos}</span>}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
