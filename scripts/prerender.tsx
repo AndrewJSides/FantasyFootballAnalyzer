@@ -21,9 +21,8 @@
 // route (the ones a guest can land on) gets its own prerendered file; gated
 // data routes stay on the shim and aren't meant to be indexed.
 //
-// Home content comes from the pure presentational components (HomeHero,
-// HomeManifesto, HomeFeatures) so SSR never touches the league form, platform
-// APIs, or jspdf. The rankings snapshot is computed from POOL with pure utils,
+// Home content comes from the pure presentational component (HomeHero) so SSR
+// never touches the league form, platform APIs, or jspdf. The rankings snapshot is computed from POOL with pure utils,
 // no React hooks. Vite's ssrLoadModule resolves the @/ alias and CSS imports.
 //
 // This must never fail the build: a throw here degrades to the empty-root SPA
@@ -347,15 +346,11 @@ async function prerender() {
 
     // --- Homepage ---
     const { HomeHero } = await vite.ssrLoadModule('/src/pages/HomeHero.tsx')
-    const { HomeManifesto } = await vite.ssrLoadModule('/src/pages/HomeManifesto.tsx')
-    const { HomeFeatures } = await vite.ssrLoadModule('/src/pages/HomeFeatures.tsx')
     const homeMarkup = renderToStaticMarkup(
       createElement(
         Fragment,
         null,
         createElement(HomeHero),
-        createElement(HomeManifesto),
-        createElement(HomeFeatures),
       ),
     )
     writeFileSync(DIST_HTML, inject(homeMarkup))
