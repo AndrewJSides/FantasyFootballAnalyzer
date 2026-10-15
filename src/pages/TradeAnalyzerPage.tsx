@@ -677,7 +677,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearTradeHashFromUrl(); }}
+              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); setCopyStatus('idle'); clearTradeHashFromUrl(); }}
             >
               Clear
             </button>
