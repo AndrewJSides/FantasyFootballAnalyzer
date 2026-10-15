@@ -675,12 +675,19 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
 // ---------------------------------------------------------------------------
 
 function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLoaded: boolean }) {
+  const teamAName = result.teamAImpact?.teamName ?? '';
+  const teamBName = result.teamBImpact?.teamName ?? '';
+  // Name the winning team when we know it (league loaded with teams
+  // picked); fall back to "Side A/B wins" in manual mode.
+  const winnerName = result.winner === 'A' ? teamAName : result.winner === 'B' ? teamBName : '';
   const verdict =
     result.winner === 'even'
       ? 'Even trade'
-      : result.winner === 'A'
-        ? 'Side A wins'
-        : 'Side B wins';
+      : winnerName
+        ? `${winnerName} wins`
+        : result.winner === 'A'
+          ? 'Side A wins'
+          : 'Side B wins';
   return (
     <section className={styles.results} aria-label="Trade verdict">
       <div className={`${styles.verdict} ${styles[`verdict${result.winner}`]}`}>
@@ -694,18 +701,18 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
 
       <div className={styles.totals}>
         <div className={styles.total}>
-          <span className={styles.totalLabel}>Side A value</span>
+          <span className={styles.totalLabel}>{teamAName ? `Side A — ${teamAName}` : 'Side A'} value</span>
           <span className={styles.totalNum}>{result.sideATotal}</span>
         </div>
         <div className={styles.total}>
-          <span className={styles.totalLabel}>Side B value</span>
+          <span className={styles.totalLabel}>{teamBName ? `Side B — ${teamBName}` : 'Side B'} value</span>
           <span className={styles.totalNum}>{result.sideBTotal}</span>
         </div>
       </div>
 
       <div className={styles.breakdowns}>
-        <PlayerBreakdown title="Side A" players={result.sideA} />
-        <PlayerBreakdown title="Side B" players={result.sideB} />
+        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} />
+        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} />
       </div>
 
       {(result.teamAImpact || result.teamBImpact) && (
