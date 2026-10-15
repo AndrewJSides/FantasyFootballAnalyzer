@@ -605,7 +605,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             aria-label="Swap sides"
             title="Swap sides"
           >
-            ⇄
+            <span className={styles.swapIconH} aria-hidden="true">⇄</span>
+            <span className={styles.swapIconV} aria-hidden="true">⇅</span>
           </button>
           <SideBuilder
             title="Side B gives"

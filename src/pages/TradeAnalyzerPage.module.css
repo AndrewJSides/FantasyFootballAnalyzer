@@ -97,6 +97,19 @@
   opacity: 0.35;
   cursor: default;
 }
+/* The panels stack vertically on narrow screens, so the swap arrow points
+   up/down instead of left/right. */
+.swapIconV {
+  display: none;
+}
+@media (max-width: 760px) {
+  .swapIconH {
+    display: none;
+  }
+  .swapIconV {
+    display: inline;
+  }
+}
 .swap:focus-visible {
   outline: 2px solid var(--lime);
   outline-offset: 2px;
