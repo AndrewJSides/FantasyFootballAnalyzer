@@ -67,8 +67,8 @@
   .builder {
     grid-template-columns: 1fr;
   }
-  .vs {
-    text-align: center;
+  .swap {
+    margin: 0 auto;
     padding-top: 0;
   }
   .totals {
@@ -76,10 +76,30 @@
   }
 }
 
-.vs {
-  font-size: 2rem;
+.swap {
+  font-size: 1.75rem;
+  line-height: 1;
   color: var(--lime);
-  padding-top: 3rem;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin-top: 3rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.swap:hover:not(:disabled) {
+  border-color: var(--lime);
+  transform: rotate(180deg);
+}
+.swap:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.swap:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
 }
 
 .side {

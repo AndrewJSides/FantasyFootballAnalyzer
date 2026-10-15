@@ -409,6 +409,21 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     [],
   );
 
+  // Flip the trade around: Side A <-> Side B, including team picks and
+  // search boxes. The old verdict was priced for the previous orientation,
+  // so it (and its URL hash) clears — same discipline as addTo/removeFrom.
+  const swapSides = () => {
+    setSideA(sideB);
+    setSideB(sideA);
+    setTeamAId(teamBId);
+    setTeamBId(teamAId);
+    setQueryA(queryB);
+    setQueryB(queryA);
+    setResult(null);
+    setWarnings([]);
+    clearTradeHashFromUrl();
+  };
+
   const runAnalysis = (sides?: { a: Entry[]; b: Entry[] }) => {
     const entriesA = sides?.a ?? sideA;
     const entriesB = sides?.b ?? sideB;
@@ -546,7 +561,16 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onAddSearch={addTo(setSideA)}
             leagueLoaded={leagueLoaded}
           />
-          <div className={styles.vs} aria-hidden="true">⇄</div>
+          <button
+            type="button"
+            className={styles.swap}
+            onClick={swapSides}
+            disabled={sideA.length === 0 && sideB.length === 0}
+            aria-label="Swap sides"
+            title="Swap sides"
+          >
+            ⇄
+          </button>
           <SideBuilder
             title="Side B gives"
             entries={sideB}
