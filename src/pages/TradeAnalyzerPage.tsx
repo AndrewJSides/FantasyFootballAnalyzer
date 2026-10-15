@@ -105,6 +105,16 @@ function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// Warning shown when a shared #trade= link names players the consensus pool
+// can't resolve. Held in state (not folded into the warnings array) so an
+// analysis re-run — manual or the shared-link auto-run — doesn't wipe it. It
+// clears only when the user edits the builder, at which point the trade is
+// no longer the shared one.
+function skippedSharedWarning(count: number): string {
+  return `${count} player${count === 1 ? '' : 's'} in this shared link ` +
+    `couldn't be matched and ${count === 1 ? 'was' : 'were'} left out.`;
+}
+
 // Keep the address bar's #trade= hash in sync with the analyzed trade, so a
 // plain copy of the URL from the bar shares the same thing the copy button
 // does. replaceState keeps the back button clean; the mount-once hash loader
@@ -308,6 +318,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const [queryB, setQueryB] = useState('');
   const [result, setResult] = useState<FullTradeAnalysis | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  // Players a shared #trade= link named that the consensus pool couldn't
+  // resolve. Survives re-analysis; clears when the user edits the builder.
+  const [skippedShared, setSkippedShared] = useState(0);
 
   // When a synced league (PIN or directly connected) loads, preselect
   // Andrew's own team as Side A so the common "what should I give?" flow
@@ -350,6 +363,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setQueryB('');
     setResult(null);
     setWarnings([]);
+    setSkippedShared(0);
   }, [leagueKey]);
   useEffect(() => {
     if (!myTeamId || teamAId || touchedTeamAForRef.current === leagueKey) return;
@@ -369,8 +383,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     const shared = decodeTradeHash(window.location.hash);
     if (!shared) return;
     // Names that don't match the consensus pool used to be dropped silently,
-    // so a shared link could quietly lose players. Count the misses and say
-    // so out loud instead.
+    // so a shared link could quietly lose players. Count the misses and keep
+    // the count in state — runAnalysis folds it back into the warnings on
+    // every run (manual and auto) instead of wiping it on first render.
     let skipped = 0;
     const resolveSide = (names: string[]): Entry[] => {
       const seen = new Set<string>();
@@ -391,12 +406,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     if (a.length > 0) setSideA(a);
     if (b.length > 0) setSideB(b);
     if (a.length > 0 || b.length > 0) setHashSides({ a, b });
-    if (skipped > 0) {
-      setWarnings([
-        `${skipped} player${skipped === 1 ? '' : 's'} in this shared link ` +
-          `couldn't be matched and ${skipped === 1 ? 'was' : 'were'} left out.`,
-      ]);
-    }
+    if (skipped > 0) setSkippedShared(skipped);
   }, []);
 
   // Editing a side (add/remove a player) invalidates the verdict on screen:
@@ -408,6 +418,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         if (prev.some(e => sameEntry(e, p))) return prev;
         setResult(null);
         setWarnings([]);
+        setSkippedShared(0);
         clearTradeHashFromUrl();
         return [...prev, p as Entry];
       });
@@ -417,6 +428,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         if (idx < 0 || idx >= prev.length) return prev;
         setResult(null);
         setWarnings([]);
+        setSkippedShared(0);
         clearTradeHashFromUrl();
         return prev.filter((_, i) => i !== idx);
       });
@@ -437,6 +449,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       querySetter('');
       setResult(null);
       setWarnings([]);
+      setSkippedShared(0);
       clearTradeHashFromUrl();
     };
   const changeTeamA = useMemo(
@@ -460,6 +473,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setQueryB(queryA);
     setResult(null);
     setWarnings([]);
+    setSkippedShared(0);
     clearTradeHashFromUrl();
   };
 
@@ -470,6 +484,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     const ra = resolveTradeSide(entriesA);
     const rb = resolveTradeSide(entriesB);
     const warns: string[] = [];
+    // The shared-link "couldn't be matched" notice is state, not a one-shot:
+    // every re-run re-emits it so the auto-run on first load can't swallow it.
+    if (skippedShared > 0) warns.push(skippedSharedWarning(skippedShared));
     if (ra.unresolved.length > 0 || rb.unresolved.length > 0) {
       warns.push(
         `Couldn't match ${[...ra.unresolved, ...rb.unresolved].join(', ')} to rankings — left out of the math.`,
@@ -647,7 +664,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); clearTradeHashFromUrl(); }}
+              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearTradeHashFromUrl(); }}
             >
               Clear
             </button>
