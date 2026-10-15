@@ -66,7 +66,7 @@ async function getJson(url: string, headers: Record<string, string> = {}): Promi
     }
     try {
       const res = await fetch(url, {
-        headers: { 'User-Agent': 'FantasyFootballAnalyzer (github.com/Krool/FantasyFootballAnalyzer)', ...headers },
+        headers: { 'User-Agent': 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)', ...headers },
         signal: AbortSignal.timeout(20_000),
       });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);

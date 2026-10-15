@@ -27,7 +27,7 @@ interface SleeperWeeklyEntry {
 
 async function fetchWeek(week: number): Promise<Map<string, number>> {
   const url = `https://api.sleeper.app/projections/nfl/${SEASON}/${week}?season_type=regular`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'fantasy-football-analyzer' } });
+  const res = await fetch(url, { headers: { 'User-Agent': 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)' } });
   if (!res.ok) throw new Error(`week ${week}: HTTP ${res.status}`);
   const data = (await res.json()) as SleeperWeeklyEntry[];
   const out = new Map<string, number>();
