@@ -101,8 +101,7 @@ function RankingsVariantRoute({
   return <RankingsPage key={pos ?? 'all'} league={league} onUpdateGuest={onUpdateGuest} initialPos={pos} />;
 }
 
-const PAGE_TITLES: Record<string, string> = {
-  '/draft': 'Draft Analysis',
+const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/draft-room': 'Draft Room',
   '/rankings': 'Rankings',
   '/values': 'Site Values',
@@ -118,6 +117,12 @@ const PAGE_TITLES: Record<string, string> = {
   '/draft-grades': 'Draft Grades',
   '/admin': 'Owner Console',
 };
+
+// Paths with no per-page title that are NOT 404s: home keeps the bare brand
+// title, /shifts redirects to /trends, unknown /rankings/ slugs redirect to
+// /rankings, and the Yahoo OAuth callbacks navigate away before the tab is
+// ever visible.
+const KNOWN_TITLELESS_PATHS = new Set(['/', '/shifts', '/yahoo-success', '/yahoo-error']);
 
 // Draft-prep routes whose boards include Yahoo market data (ADP, auction
 // values) regardless of which league, if any, is loaded.
@@ -217,9 +222,16 @@ function App() {
       ? posForSlug(location.pathname.slice('/rankings/'.length).replace(/\/+$/, ''))
       : undefined;
     const page = rankPos ? `${labelForPos(rankPos)} Rankings` : PAGE_TITLES[location.pathname];
+    // Unmatched routes render the branded 404 (NotFoundPage): title the tab
+    // 'Off the Board' so it matches the static 404.html title and stays
+    // tellable apart from the home tab in history and tab strips. The
+    // known-titleless paths above are real routes (or transient redirects)
+    // that keep the bare brand title.
+    const isKnownTitleless =
+      KNOWN_TITLELESS_PATHS.has(location.pathname) || location.pathname.startsWith('/rankings/');
     document.title = page
       ? `${page} · TraderApe`
-      : 'TraderApe';
+      : (isKnownTitleless ? 'TraderApe' : 'Off the Board · TraderApe');
     // Sanitized, path-only page_view (gtag's automatic one is disabled so the
     // token-bearing /yahoo-success URL never reaches GA). Fires per SPA route.
     Analytics.pageView(location.pathname);
