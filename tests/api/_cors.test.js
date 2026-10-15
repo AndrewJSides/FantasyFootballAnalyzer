@@ -4,7 +4,7 @@ import { allowedFrontendBase, applyCors, isAllowedFrontend } from '../../api/_co
 // isAllowedFrontend gates where the OAuth callback redirects freshly minted
 // access/refresh tokens. It is deliberately stricter than CORS reflection: a
 // regression that widens it leaks tokens to an attacker-supplied origin. These
-// lock the contract. (PROD_ORIGIN resolves to https://fantasyfootballanalyzer.app at import
+// lock the contract. (PROD_ORIGIN resolves to https://www.traderape.me at import
 // time from the default FRONTEND_URL.)
 describe('isAllowedFrontend (OAuth token-redirect allowlist)', () => {
   const original = process.env.ALLOW_DEV_OAUTH
@@ -14,7 +14,7 @@ describe('isAllowedFrontend (OAuth token-redirect allowlist)', () => {
   })
 
   it('allows the production origin', () => {
-    expect(isAllowedFrontend('https://fantasyfootballanalyzer.app/')).toBe(true)
+    expect(isAllowedFrontend('https://www.traderape.me/')).toBe(true)
   })
 
   it('rejects an arbitrary attacker origin', () => {
@@ -47,20 +47,20 @@ describe('isAllowedFrontend (OAuth token-redirect allowlist)', () => {
 // token-bearing redirect. These lock the canonicalization.
 describe('allowedFrontendBase (canonical OAuth redirect base)', () => {
   it('returns the base with trailing slashes stripped, path preserved', () => {
-    expect(allowedFrontendBase('https://fantasyfootballanalyzer.app/'))
-      .toBe('https://fantasyfootballanalyzer.app')
-    expect(allowedFrontendBase('https://fantasyfootballanalyzer.app'))
-      .toBe('https://fantasyfootballanalyzer.app')
+    expect(allowedFrontendBase('https://www.traderape.me/'))
+      .toBe('https://www.traderape.me')
+    expect(allowedFrontendBase('https://www.traderape.me'))
+      .toBe('https://www.traderape.me')
   })
 
   it('rejects an allowed origin carrying a query string or fragment', () => {
-    expect(allowedFrontendBase('https://fantasyfootballanalyzer.app/?q=1')).toBeNull()
-    expect(allowedFrontendBase('https://fantasyfootballanalyzer.app/#frag')).toBeNull()
-    expect(allowedFrontendBase('https://fantasyfootballanalyzer.app/path?x=#')).toBeNull()
+    expect(allowedFrontendBase('https://www.traderape.me/?q=1')).toBeNull()
+    expect(allowedFrontendBase('https://www.traderape.me/#frag')).toBeNull()
+    expect(allowedFrontendBase('https://www.traderape.me/path?x=#')).toBeNull()
   })
 
   it('rejects embedded credentials on an allowed origin', () => {
-    expect(allowedFrontendBase('https://user:pw@fantasyfootballanalyzer.app/')).toBeNull()
+    expect(allowedFrontendBase('https://user:pw@www.traderape.me/')).toBeNull()
   })
 
   it('returns null for a disallowed origin', () => {
@@ -73,9 +73,9 @@ describe('allowedFrontendBase (canonical OAuth redirect base)', () => {
 // (Access-Control-Allow-Credentials: true) with an Allow-Origin value. The risk
 // is reflecting an off-allowlist origin back, which would let any site read
 // those responses. These lock that the reflection never widens past the
-// allowlist. (PROD_ORIGIN resolves to https://fantasyfootballanalyzer.app from the default
+// allowlist. (PROD_ORIGIN resolves to https://www.traderape.me from the default
 // FRONTEND_URL at import time.)
-const PROD = 'https://fantasyfootballanalyzer.app'
+const PROD = 'https://www.traderape.me'
 
 function mockReq({ method = 'GET', headers = {} } = {}) {
   return { method, headers }
