@@ -275,8 +275,10 @@ function SideBuilder(props: {
             if (e.key === 'Escape') { onSearchChange(''); return; }
             if (e.key === 'Enter') {
               const top = results[0];
-              if (top && !entries.some(en => sameEntry(en, top))) {
-                onAddSearch(top);
+              if (top) {
+                if (!entries.some(en => sameEntry(en, top))) onAddSearch(top);
+                // Clear either way: the search did its job whether the top
+                // hit was just added or was already on this side.
                 onSearchChange('');
               }
             }
