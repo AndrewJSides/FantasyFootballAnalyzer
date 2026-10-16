@@ -785,8 +785,8 @@ function App() {
                 // league loaded, the nav hidden, and the page blank for good.
                 <Navigate key={location.key} to={isEmptyPreseason(league) ? '/draft-room' : '/draft'} replace />
               ) : (
-                // No league: show the TraderApe front door (league PIN entry).
-                // This is also where the header's "Connect" CTA lands.
+                // No league: the loading state. App's default-load effect
+                // auto-loads our league from here in single-league mode.
                 <HomePage
                   onLoadPin={handleLoadPin}
                   isLoading={isLoading}

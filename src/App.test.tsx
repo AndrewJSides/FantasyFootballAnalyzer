@@ -6,7 +6,7 @@
 // not what the pages draw.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter, useLocation } from 'react-router-dom';
 import App from './App';
 import type { League } from '@/types';
@@ -117,16 +117,11 @@ vi.mock('@/components/GuestBanner', () => ({ GuestBanner: () => null }));
 vi.mock('@/components/SeasonFallbackNotice', () => ({
   SeasonFallbackNotice: ({ message }: { message: string }) => <div data-testid="notice">{message}</div>,
 }));
-// The PIN form stands in for the real one: a button that hands App the
-// PIN, so handleLoadPin (load -> navigate) runs for real.
+// Single-league mode: no PIN form anymore — the home page is just the
+// loading / error state, and App's default-load effect auto-loads the league
+// (which is what the tests below exercise).
 vi.mock('@/pages/HomePage', () => ({
-  HomePage: ({ onLoadPin }: { onLoadPin: (pin: string) => void }) => (
-    <div data-testid="home-page">
-      <button type="button" onClick={() => onLoadPin('TESTPIN')}>
-        Load PIN League
-      </button>
-    </div>
-  ),
+  HomePage: () => <div data-testid="home-page" />,
 }));
 // The lazy pages the routes below can reach (lazyPage resolves these mocks
 // through the same dynamic import).
@@ -187,8 +182,10 @@ beforeEach(() => {
     h.store.set({ league });
     return league;
   });
-  h.loadPinLeagueMock.mockImplementation(async () => {
-    const league = sleeperLeague('pin');
+  h.loadPinLeagueMock.mockImplementation(async (pin: string) => {
+    // Like the real api/pinLeague: the snapshot carries which PIN loaded it,
+    // so the share-param rewrite leaves PIN leagues' URLs alone.
+    const league = sleeperLeague('pin', { viaPin: pin } as Partial<League>);
     h.store.set({ league });
     return league;
   });
@@ -209,7 +206,7 @@ describe('share links (?league=sleeper:<id>)', () => {
     );
   });
 
-  it('tries a failing share link once, then falls through to home without looping', async () => {
+  it('tries a failing share link once, then falls through to the auto-load without looping', async () => {
     // Like the real hook, a failed load still toggles isLoading, which is
     // the re-render that lets the guard resolve to the redirect.
     h.loadMock.mockImplementation(async () => {
@@ -218,8 +215,9 @@ describe('share links (?league=sleeper:<id>)', () => {
       return null;
     });
     renderApp('/awards?league=sleeper:404404');
-    // The failed load resolves the guard to the no-league redirect.
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
+    // The failed load resolves the guard to the no-league redirect; '/'
+    // auto-loads our league in single-league mode, landing on the draft page.
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
     // The attempted-id guard must hold across the re-renders: one try only.
     expect(h.loadMock).toHaveBeenCalledTimes(1);
   });
@@ -252,19 +250,20 @@ describe('share links (?league=sleeper:<id>)', () => {
     );
   });
 
-  it('degrades a private ESPN share link to the prefilled connect form', async () => {
-    // A cookie-less load of a private league fails; the link should land on
-    // the connect form (home), tried exactly once, not loop or strand the
-    // visitor on a guarded route.
+  it('degrades a private ESPN share link: one try, prefill persisted, then the auto-load takes over', async () => {
+    // A cookie-less load of a private league fails; the link should be tried
+    // exactly once, not loop or strand the visitor on a guarded route. The
+    // prefill persists like a manual attempt would, and '/' auto-loads our
+    // league in single-league mode (no connect form to land on anymore).
     h.loadMock.mockImplementation(async () => {
       h.store.set({ isLoading: true });
       h.store.set({ isLoading: false });
       return null;
     });
     renderApp('/awards?league=espn:123456789');
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
     expect(h.loadMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('loc').textContent).toMatch(/^\//);
+    expect(screen.getByTestId('loc').textContent).toBe('/draft');
     // The prefill for the connect form persists like a manual attempt would.
     expect(JSON.parse(localStorage.getItem('ffa:lastconn:v1') ?? 'null')).toMatchObject({
       platform: 'espn',
@@ -291,9 +290,12 @@ describe('Yahoo reload persistence (?league=yahoo:<league_key>)', () => {
     );
   });
 
-  it('sends a logged-out visitor to the connect form on the Yahoo tab without loading', async () => {
+  it('sends a logged-out visitor home without loading (the auto-load takes over from there)', async () => {
     renderApp(`/awards?league=yahoo:${KEY}`);
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
+    // A logged-out browser must not attempt the OAuth-gated load; the Yahoo
+    // prefill is remembered for the connect flow. '/' auto-loads our league
+    // in single-league mode, landing on the draft page.
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
     expect(h.loadMock).not.toHaveBeenCalled();
     expect(JSON.parse(localStorage.getItem('ffa:lastconn:v1') ?? 'null')).toMatchObject({
       platform: 'yahoo',
@@ -304,7 +306,9 @@ describe('Yahoo reload persistence (?league=yahoo:<league_key>)', () => {
   it('ignores a malformed Yahoo key', async () => {
     h.yahooAuthed = true;
     renderApp('/awards?league=yahoo:notakey');
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
+    // Malformed key: no share target, so the guard bounces to '/' and the
+    // auto-load lands on the draft page. Nothing loads for the bad key.
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
     expect(h.loadMock).not.toHaveBeenCalled();
   });
 });
@@ -350,10 +354,12 @@ describe('route guards', () => {
     expect(screen.getByTestId('loc').textContent).toBe('/rankings');
   });
 
-  it('sends a visitor with no league from a data route home', async () => {
+  it('bounces a visitor with no league off a data route (home auto-loads from there)', async () => {
     renderApp('/teams');
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
-    expect(screen.getByTestId('loc').textContent).toBe('/');
+    // No league: the guard bounces to '/', and single-league auto-load takes
+    // it from there to the draft page.
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
+    expect(screen.getByTestId('loc').textContent).toBe('/draft');
   });
 
   it('auto-enters guest mode on the public /rankings instead of redirecting', async () => {
@@ -384,20 +390,23 @@ describe('Yahoo OAuth return (/yahoo-success)', () => {
   it('rejects a tampered state without saving the tokens riding along', async () => {
     h.validateOAuthState.mockReturnValue(false);
     renderApp(`/yahoo-success?state=forged${tokensHash}`);
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
+    // Tampered state: the tokens are rejected and the stash is discarded.
+    // The redirect lands on '/', and single-league auto-load takes it from
+    // there to the draft page.
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
     expect(h.saveTokens).not.toHaveBeenCalled();
     expect(h.clearOAuthState).toHaveBeenCalled();
     // The stash is discarded so a later login can't replay it.
     expect(h.takeOAuthReturn).toHaveBeenCalled();
-    expect(screen.getByTestId('loc').textContent).toBe('/');
+    expect(screen.getByTestId('loc').textContent).toBe('/draft');
   });
 
-  it('saves the fragment tokens on a valid state and lands home', async () => {
+  it('saves the fragment tokens on a valid state, then the auto-load lands on the draft page', async () => {
     h.validateOAuthState.mockReturnValue(true);
     renderApp(`/yahoo-success?state=good${tokensHash}`);
-    expect(await screen.findByTestId('home-page')).toBeTruthy();
+    expect(await screen.findByTestId('draft-page')).toBeTruthy();
     expect(h.saveTokens).toHaveBeenCalledWith(tokens);
-    expect(screen.getByTestId('loc').textContent).toBe('/');
+    expect(screen.getByTestId('loc').textContent).toBe('/draft');
   });
 });
 
@@ -410,34 +419,27 @@ describe('Yahoo OAuth return (/yahoo-success)', () => {
 // '/' rendering nothing under the header - the blank page users reported after
 // loading a league. These two pin the destinations; the one below pins the
 // rewrite guard that keeps them reachable.
-describe('connect flow lands on a page', () => {
-  it('reaches the draft analysis after connecting, share param and all', async () => {
+describe('auto-load lands on a page', () => {
+  it('reaches the draft analysis after the home auto-load, with no PIN or share param in the URL', async () => {
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load PIN League' }));
 
     expect(await screen.findByTestId('draft-page')).toBeTruthy();
-    await waitFor(() =>
-      expect(decodeURIComponent(screen.getByTestId('loc').textContent ?? '')).toBe(
-        '/draft?league=sleeper:pin',
-      ),
-    );
+    // Single-league mode: the PIN auto-loads, so it never belongs in the
+    // URL — and PIN leagues don't get the ?league= share param either.
+    await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/draft'));
+    expect(h.loadPinLeagueMock).toHaveBeenCalledTimes(1);
   });
 
-  it('reaches the draft room when the connected league has not drafted yet', async () => {
-    h.loadPinLeagueMock.mockImplementation(async () => {
-      const league = sleeperLeague('pin', { status: 'preseason' } as Partial<League>);
+  it('reaches the draft room when the auto-loaded league has not drafted yet', async () => {
+    h.loadPinLeagueMock.mockImplementation(async (pin: string) => {
+      const league = sleeperLeague('pin', { status: 'preseason', viaPin: pin } as Partial<League>);
       h.store.set({ league });
       return league;
     });
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load PIN League' }));
 
     expect(await screen.findByTestId('draft-room-page')).toBeTruthy();
-    await waitFor(() =>
-      expect(decodeURIComponent(screen.getByTestId('loc').textContent ?? '')).toBe(
-        '/draft-room?league=sleeper:pin',
-      ),
-    );
+    await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/draft-room'));
   });
 
   it('leaves the URL alone when the browser has already left the rendered path', async () => {
@@ -486,9 +488,8 @@ describe('stranded-on-home detector', () => {
     expect(JSON.stringify(strandCalls[0][1])).not.toContain('55');
   });
 
-  it('stays quiet on a healthy connect that reaches a page', async () => {
+  it('stays quiet on a healthy auto-load that reaches a page', async () => {
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: 'Load PIN League' }));
     expect(await screen.findByTestId('draft-page')).toBeTruthy();
     await vi.advanceTimersByTimeAsync(2500);
     expect(
