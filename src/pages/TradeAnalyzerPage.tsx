@@ -650,6 +650,22 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // instead of hitting a dead end. Cleared whenever the builder changes,
   // since the URL encodes the exact sides.
   const [failedCopyUrl, setFailedCopyUrl] = useState<string | null>(null);
+  // The "copied"/"failed" label resets after a beat. Track the timer so a
+  // second click can't let the first timer erase the fresh status, and so
+  // an unmount inside the window doesn't set state after teardown.
+  const copyStatusTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (copyStatusTimer.current !== null) window.clearTimeout(copyStatusTimer.current);
+    },
+    [],
+  );
+  const clearCopyStatusTimer = () => {
+    if (copyStatusTimer.current !== null) {
+      window.clearTimeout(copyStatusTimer.current);
+      copyStatusTimer.current = null;
+    }
+  };
   const resultsRef = useRef<HTMLDivElement>(null);
   // A shared-link auto-run lands the visitor at the top of a populated
   // builder; once the verdict renders, bring it into view. Scoped to the
@@ -687,9 +703,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       }
       document.body.removeChild(ta);
     }
+    clearCopyStatusTimer();
     setCopyStatus(ok ? 'copied' : 'failed');
     setFailedCopyUrl(ok ? null : url);
-    window.setTimeout(() => setCopyStatus('idle'), 2000);
+    copyStatusTimer.current = window.setTimeout(() => setCopyStatus('idle'), 2000);
   };
 
   return (
@@ -776,7 +793,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); }}
+              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearCopyStatusTimer(); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); }}
             >
               Clear
             </button>
