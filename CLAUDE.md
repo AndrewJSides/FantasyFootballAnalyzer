@@ -1,19 +1,20 @@
 # CLAUDE.md
 
-Fantasy Football Analyzer is a React + TypeScript single-page app (Vite). It is
+TraderApe is a React + TypeScript single-page app (Vite). It is
 a static site with no backend of its own, plus a thin Vercel serverless layer in
 `api/` that exists only to hold secrets and bypass CORS. League data (Sleeper,
 ESPN, Yahoo) is fetched in the browser; draft rankings are bundled at build time.
 
-Production: https://fantasyfootballanalyzer.app/
+Production: https://www.traderape.me/
 
 ## Architecture at a glance
 
 - **Frontend**: static SPA built by Vite, published to the `gh-pages` branch,
   served by GitHub Pages at the custom domain root (`/`).
-- **Serverless `api/`**: Vercel functions (Yahoo OAuth + proxy, ESPN proxy).
-  Deployed separately from the frontend and reached at
-  `https://fantasy-football-analyzer-mu.vercel.app`.
+- **Serverless `api/`**: Vercel functions (Yahoo OAuth + proxy, ESPN proxy),
+  served by the same Vercel deployment that hosts the frontend
+  (`vercel.json` builds `dist/`, rewrites `/api/*` to `/api/$1`, and falls
+  back to `/index.html`). No separate Vercel project.
 - **Data pipeline**: a twice-daily GitHub Action fetches rankings and rebuilds the
   bundled draft pool committed into `src/data/`.
 - **`extension/`**: a small MV3 browser extension that auto-fills the ESPN
@@ -24,10 +25,11 @@ Production: https://fantasyfootballanalyzer.app/
 
 ## Deployment
 
-GitHub Pages serves the SPA from the `gh-pages` branch. Production is published
-by CI, not from your machine. The custom domain is pinned by `public/CNAME`
-(`fantasyfootballanalyzer.app`); that file must ship in every deploy or GitHub
-resets the custom domain. Vite `base` is `/` (the app used to live under the
+GitHub Pages still publishes the SPA from the `gh-pages` branch on master
+pushes, but the live production site is the Vercel deployment (auto-deploys
+from `master`) at https://www.traderape.me/. The old GitHub Pages custom
+domain pin (`public/CNAME`, `fantasyfootballanalyzer.app`) is gone — do not
+re-add it. Vite `base` is `/` (the app used to live under the
 `/FantasyFootballAnalyzer/` github.io subpath; it now serves at root).
 
 Two deploy paths that do not overlap:
@@ -46,17 +48,20 @@ Two deploy paths that do not overlap:
 `npm run deploy` is a manual break-glass fallback. It builds your local working
 tree (committed or not) and pushes `dist/` to `gh-pages`, so prefer pushing.
 
-**Vercel** hosts only the `api/` functions. `vercel.json` sets a no-op build
-command (the frontend does not build on Vercel), `outputDirectory: "."`, and
-baseline security headers. Frontend changes never need a Vercel deploy; `api/`
-changes do.
+- **`vercel.json`** builds the full frontend on Vercel (`buildCommand:
+  npm run build`, `outputDirectory: dist`) plus the `/api/*` serverless
+  functions — one deployment serves everything at
+  https://www.traderape.me/, with security headers on every route.
+  The API code falls back to `https://www.traderape.me` when the
+  `FRONTEND_URL` env var is unset (see `api/_cors.js`, `api/yahoo-auth.js`),
+  but the Vercel value is what production reads.
 
 ### Vercel environment
 
 - `FRONTEND_URL` is the production frontend origin. It is the Yahoo OAuth
   redirect target (concatenated as `${FRONTEND_URL}/yahoo-success`, so NO
   trailing slash) and, via `api/_cors.js`, the sole allowed production CORS
-  origin. It must equal `https://fantasyfootballanalyzer.app`. If it lags the
+  origin. It must equal `https://www.traderape.me`. If it lags the
   frontend domain, Yahoo login breaks on the new origin while ESPN/Sleeper and
   guest mode keep working. The in-code default matches it (since 2026-10-04),
   but the Vercel value is what production reads.
