@@ -625,11 +625,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           <h1 className={styles.heading}>Trade Analyzer</h1>
           <p className={styles.intro}>
             Grade a trade <em>before</em> you make it. Pick the players changing
-            hands and get a value-over-replacement verdict for your league's
-            exact shape
-            {leagueLoaded ? ` — ${league.name}` : ''}. Load the league for
-            roster-aware takes on how the deal hits each
-            team's positional depth.
+            hands and get a value-over-replacement verdict
+            {leagueLoaded
+              ? <> for your league's exact shape — {league.name}. Load the league for
+                roster-aware takes on how the deal hits each team's positional depth.</>
+              : ' against the consensus board.'}
           </p>
           {!leagueLoaded && (
             <p className={styles.guestNote}>
