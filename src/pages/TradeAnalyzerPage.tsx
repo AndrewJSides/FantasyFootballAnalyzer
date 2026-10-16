@@ -713,6 +713,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           </p>
         )}
 
+        {sideA.length === 0 && sideB.length === 0 && (
+          <p className={styles.emptyHint}>
+            Add players to either side — from a team roster or the name search — then hit Analyze trade.
+          </p>
+        )}
+
         {warnings.map((w, i) => (
           <p key={i} className={styles.warning}>{w}</p>
         ))}

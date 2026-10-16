@@ -335,6 +335,15 @@
   margin: 0 0 1.5rem;
 }
 
+/* Empty-builder guidance under the action buttons. Plain text, not a
+   bordered callout: it's a nudge, not a problem. */
+.emptyHint {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--bone-dim);
+  margin: 0 0 1.5rem;
+}
+
 /* Results */
 
 .results {
