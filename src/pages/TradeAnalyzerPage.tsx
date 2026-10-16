@@ -62,6 +62,9 @@ function sameEntry(a: Entry, b: Entry): boolean {
 // e.g. /trade-analyzer#trade=%7B%22a%22%3A%5B%22Saquon+Barkley%22%5D...%7D
 // Names resolve against the bundled consensus pool, so links work in manual
 // mode with no league connected. Unknown names are skipped on load.
+// When a league is loaded the sender's team picks ride along as optional
+// ta/tb team ids, so the link reopens the same pairing the sender analyzed.
+// Old links without ta/tb still decode — the Side A preselect covers them.
 // ---------------------------------------------------------------------------
 
 const TRADE_HASH_PREFIX = '#trade=';
@@ -69,12 +72,23 @@ const TRADE_HASH_PREFIX = '#trade=';
 interface TradeHashSides {
   a: string[];
   b: string[];
+  ta?: string;
+  tb?: string;
 }
 
-function encodeTradeHash(sideA: Entry[], sideB: Entry[]): string {
+function encodeTradeHash(
+  sideA: Entry[],
+  sideB: Entry[],
+  teamAId = '',
+  teamBId = '',
+): string {
   const payload: TradeHashSides = {
     a: sideA.map(entryLabel),
     b: sideB.map(entryLabel),
+    // Team ids only exist with a loaded league; leaving them out in manual
+    // mode keeps the hash short and identical to the pre-team-pick format.
+    ...(teamAId ? { ta: teamAId } : {}),
+    ...(teamBId ? { tb: teamBId } : {}),
   };
   return `${TRADE_HASH_PREFIX}${encodeURIComponent(JSON.stringify(payload))}`;
 }
@@ -93,7 +107,14 @@ function decodeTradeHash(hash: string): TradeHashSides | null {
     ) {
       const names = (arr: unknown[]): string[] =>
         arr.filter((n): n is string => typeof n === 'string');
-      return { a: names((parsed as TradeHashSides).a), b: names((parsed as TradeHashSides).b) };
+      const id = (v: unknown): string | undefined =>
+        typeof v === 'string' && v ? v : undefined;
+      return {
+        a: names((parsed as TradeHashSides).a),
+        b: names((parsed as TradeHashSides).b),
+        ta: id((parsed as TradeHashSides).ta),
+        tb: id((parsed as TradeHashSides).tb),
+      };
     }
   } catch {
     // Malformed hash — ignore and leave the builder empty.
@@ -121,7 +142,12 @@ function skippedSharedWarning(count: number): string {
 // above never re-fires on these replacements. The search string is preserved
 // so a shared-league param (?league= / ?pin=) survives the analysis —
 // dropping it would unload the league on the next refresh.
-function syncTradeHashToUrl(sideA: Entry[], sideB: Entry[]): void {
+function syncTradeHashToUrl(
+  sideA: Entry[],
+  sideB: Entry[],
+  teamAId = '',
+  teamBId = '',
+): void {
   if (sideA.length === 0 && sideB.length === 0) {
     // Analyzing an empty builder (only reachable from a hand-made empty
     // #trade= link) shouldn't leave a noise hash in the address bar.
@@ -131,7 +157,7 @@ function syncTradeHashToUrl(sideA: Entry[], sideB: Entry[]): void {
   window.history.replaceState(
     null,
     '',
-    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB)}`,
+    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId)}`,
   );
 }
 
@@ -409,6 +435,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // the hash is applied, and the analysis must reprice once it arrives.
   const hashAppliedRef = useRef(false);
   const [hashSides, setHashSides] = useState<{ a: Entry[]; b: Entry[] } | null>(null);
+  // A shared #trade= link's team picks (ta/tb) live in a ref, not hashSides:
+  // the auto-run effect consumes hashSides as soon as the sides analyze,
+  // which in the no-league-yet case is before the league arrives to resolve
+  // the team ids against. The ref survives until the team-apply effect below.
+  const sharedTeamsRef = useRef<{ ta?: string; tb?: string } | null>(null);
   useEffect(() => {
     if (hashAppliedRef.current) return;
     hashAppliedRef.current = true;
@@ -438,8 +469,41 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     if (a.length > 0) setSideA(a);
     if (b.length > 0) setSideB(b);
     if (a.length > 0 || b.length > 0) setHashSides({ a, b });
+    if (a.length > 0 || b.length > 0) {
+      // Seed the team-apply ref even when the sides resolve to nothing new:
+      // a link can carry team picks for players the pool can't resolve.
+      sharedTeamsRef.current = { ta: shared.ta, tb: shared.tb };
+    }
     if (skipped > 0) setSkippedShared(skipped);
   }, []);
+
+  // A shared #trade= link carries the sender's team picks (ta/tb). Once the
+  // league loads, resolve them against its teams so the link reopens the
+  // same pairing the sender analyzed — Side B especially, which otherwise
+  // always opens empty. Ids that don't resolve (different league, hand-made
+  // link) are ignored and the isMyTeam preselect covers Side A as before.
+  // Raw setters only — changeTeam would clear the sides the link just added.
+  // Declared after the preselect effect: in the commit where the league
+  // lands, the preselect's myTeamId set queues first and this one wins.
+  const sharedTeamsAppliedRef = useRef(false);
+  useEffect(() => {
+    if (sharedTeamsAppliedRef.current || !leagueLoaded) return;
+    sharedTeamsAppliedRef.current = true;
+    const shared = sharedTeamsRef.current;
+    if (!shared || (!shared.ta && !shared.tb)) return;
+    const leagueTeams = league && !league.isGuest ? league.teams : [];
+    const resolveTeam = (id?: string) =>
+      id && leagueTeams.some(t => t.id === id) ? id : '';
+    const ta = resolveTeam(shared.ta);
+    const tb = resolveTeam(shared.tb);
+    if (ta) {
+      setTeamAId(ta);
+      // Same discipline as a hand pick: once the link's team is applied, the
+      // preselect never re-fires behind the user for this league.
+      touchedTeamAForRef.current = leagueKey;
+    }
+    if (tb) setTeamBId(tb);
+  }, [leagueLoaded, leagueKey, league]);
 
   // Editing a side (add/remove a player) invalidates the verdict on screen:
   // it was priced for the previous entries, so clear the stale result,
@@ -538,7 +602,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       }),
     );
     setWarnings(warns);
-    syncTradeHashToUrl(entriesA, entriesB);
+    syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId);
   };
 
   // A shared #trade= link should land on the verdict, not a populated but
@@ -591,7 +655,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const copyTradeLink = async () => {
     // Use the live location (not a hardcoded path) so the copied link keeps
     // the shared-league params (?league= / ?pin=) the trade was priced for.
-    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB)}`;
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId)}`;
     let ok = false;
     try {
       await navigator.clipboard.writeText(url);
