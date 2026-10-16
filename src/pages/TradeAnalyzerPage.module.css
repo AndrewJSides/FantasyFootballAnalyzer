@@ -355,8 +355,11 @@
   border-left: 6px solid var(--lime);
 }
 
+/* Side B wins in gold so the verdict's accent tells the two outcomes apart
+   at a glance — lime alone couldn't distinguish "Side A wins" from
+   "Side B wins". */
 .verdictB {
-  border-left: 6px solid var(--lime);
+  border-left: 6px solid var(--gold);
 }
 
 .verdictEven {
