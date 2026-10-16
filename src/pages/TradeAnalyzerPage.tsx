@@ -515,6 +515,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         setResult(null);
         setWarnings([]);
         setSkippedShared(0);
+        setFailedCopyUrl(null);
         clearTradeHashFromUrl();
         return [...prev, p as Entry];
       });
@@ -525,6 +526,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         setResult(null);
         setWarnings([]);
         setSkippedShared(0);
+        setFailedCopyUrl(null);
         clearTradeHashFromUrl();
         return prev.filter((_, i) => i !== idx);
       });
@@ -546,6 +548,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       setResult(null);
       setWarnings([]);
       setSkippedShared(0);
+      setFailedCopyUrl(null);
       clearTradeHashFromUrl();
     };
   const changeTeamA = useMemo(
@@ -574,6 +577,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setResult(null);
     setWarnings([]);
     setSkippedShared(0);
+    setFailedCopyUrl(null);
     clearTradeHashFromUrl();
   };
 
@@ -640,6 +644,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const sameTeam = leagueLoaded && teamAId !== '' && teamAId === teamBId;
   const canRun = (sideA.length > 0 || sideB.length > 0) && !sameTeam;
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  // When the clipboard is unavailable (older browsers, non-secure context,
+  // mobile webviews), the button can't copy — but the link still exists.
+  // Keep it visible as a selectable field so the user can copy it by hand
+  // instead of hitting a dead end. Cleared whenever the builder changes,
+  // since the URL encodes the exact sides.
+  const [failedCopyUrl, setFailedCopyUrl] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   // A shared-link auto-run lands the visitor at the top of a populated
   // builder; once the verdict renders, bring it into view. Scoped to the
@@ -678,6 +688,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       document.body.removeChild(ta);
     }
     setCopyStatus(ok ? 'copied' : 'failed');
+    setFailedCopyUrl(ok ? null : url);
     window.setTimeout(() => setCopyStatus('idle'), 2000);
   };
 
@@ -765,12 +776,30 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); setCopyStatus('idle'); clearTradeHashFromUrl(); }}
+              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); }}
             >
               Clear
             </button>
           )}
         </div>
+
+        {failedCopyUrl && (
+          <div className={styles.copyFallback}>
+            <p className={styles.copyFallbackHint}>
+              Auto-copy isn't available on this device — select the link below
+              and copy it by hand:
+            </p>
+            <input
+              type="text"
+              readOnly
+              className={styles.copyFallbackInput}
+              value={failedCopyUrl}
+              aria-label="Trade link — select and copy manually"
+              onFocus={e => e.currentTarget.select()}
+              onClick={e => e.currentTarget.select()}
+            />
+          </div>
+        )}
 
         {sameTeam && (
           <p className={styles.warning}>

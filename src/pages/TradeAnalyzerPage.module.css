@@ -326,6 +326,37 @@
   color: var(--ink);
 }
 
+/* Manual-copy fallback: shown when the clipboard API is unavailable, so a
+   failed "Copy trade link" still leaves the URL in the user's hands. */
+.copyFallback {
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--gold);
+}
+
+.copyFallbackHint {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--gold);
+  margin: 0 0 0.6rem;
+}
+
+.copyFallbackInput {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--bone);
+  background: var(--ink);
+  border: 1px solid var(--rule);
+  padding: 0.6rem 0.8rem;
+}
+
+.copyFallbackInput:focus {
+  outline: 2px solid var(--lime);
+  outline-offset: 1px;
+}
+
 .warning {
   font-family: var(--font-mono);
   font-size: 0.8rem;
