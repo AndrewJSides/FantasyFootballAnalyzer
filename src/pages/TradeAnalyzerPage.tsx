@@ -821,7 +821,7 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
         <span className={styles.verdictLabel}>{verdict}</span>
         {result.winner !== 'even' && (
           <span className={styles.verdictMargin}>
-            by {result.margin} VOR pts
+            by {result.margin} VOR pt{result.margin === 1 ? '' : 's'}
           </span>
         )}
       </div>
