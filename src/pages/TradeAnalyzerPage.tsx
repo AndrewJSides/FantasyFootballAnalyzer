@@ -756,6 +756,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               type="button"
               className={styles.copy}
               onClick={copyTradeLink}
+              aria-live="polite"
             >
               {copyStatus === 'copied' ? 'Copied ✓' : copyStatus === 'failed' ? 'Copy failed' : 'Copy trade link'}
             </button>
