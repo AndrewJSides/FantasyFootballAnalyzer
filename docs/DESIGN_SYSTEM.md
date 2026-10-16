@@ -1,6 +1,6 @@
 # GRIDIRON Design System
 
-The visual language of Fantasy Football Analyzer. Read this before adding any
+The visual language of TraderApe. Read this before adding any
 new component, page, or style. The goal is a sports tabloid aesthetic on a
 dark stadium background, with terminal-style data density.
 

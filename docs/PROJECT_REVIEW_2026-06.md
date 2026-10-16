@@ -295,7 +295,7 @@ handcuff view" but never names either.
     direction arrows (currently sorted columns show no asc/desc anywhere);
     sticky player column on wide tables; in-system confirm dialog instead of
     `window.confirm`; keyboard-shortcut legend under the status bar. (S each)
-74. **Per-page document titles** ("Draft Room · Fantasy Football Analyzer"). (S)
+74. **Per-page document titles** ("Draft Room · TraderApe"). (S)
 
 ### Mobile (draft day is multi-device)
 75. **Draft Room phone layout:** at ≤900px the board lands *below* logger,

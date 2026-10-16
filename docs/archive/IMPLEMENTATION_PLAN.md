@@ -1,7 +1,7 @@
-# Fantasy Football Analyzer - Major Feature Implementation Plan
+# TraderApe - Major Feature Implementation Plan
 
 ## Overview
-Transform the Fantasy Football Analyzer into the definitive fantasy analysis tool with platform parity, engagement features, and comprehensive analytics.
+Transform TraderApe into the definitive fantasy analysis tool with platform parity, engagement features, and comprehensive analytics.
 
 **Timeline:** 8 Phases, ~50 tasks
 **Goal:** Make every fantasy user say "I need this for my league"
