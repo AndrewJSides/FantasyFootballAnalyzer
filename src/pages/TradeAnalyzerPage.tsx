@@ -469,9 +469,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     if (a.length > 0) setSideA(a);
     if (b.length > 0) setSideB(b);
     if (a.length > 0 || b.length > 0) setHashSides({ a, b });
-    if (a.length > 0 || b.length > 0) {
-      // Seed the team-apply ref even when the sides resolve to nothing new:
-      // a link can carry team picks for players the pool can't resolve.
+    // Seed the team-apply ref whenever the link carries team picks — even
+    // when every named player failed to resolve against the pool (all names
+    // stale), the pairing the sender analyzed still matters.
+    if (shared.ta || shared.tb) {
       sharedTeamsRef.current = { ta: shared.ta, tb: shared.tb };
     }
     if (skipped > 0) setSkippedShared(skipped);
