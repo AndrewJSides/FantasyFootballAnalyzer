@@ -750,7 +750,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             type="button"
             className={styles.swap}
             onClick={swapSides}
-            disabled={sideA.length === 0 && sideB.length === 0}
+            // Swap exchanges the team picks too, not just the players — so it
+            // stays enabled when either side has a team picked (e.g. the Side A
+            // preselect) even before any players are added.
+            disabled={sideA.length === 0 && sideB.length === 0 && teamAId === '' && teamBId === ''}
             aria-label="Swap sides"
             title="Swap sides"
           >
