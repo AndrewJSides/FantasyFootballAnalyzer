@@ -294,6 +294,9 @@ function SideBuilder(props: {
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
+          // Phones: the Enter key already adds the top search hit, so label
+          // the keyboard's action key "search" to match what it does.
+          enterKeyHint="search"
           // Escape clears the search without touching the picked players. Enter
           // adds the top result — the fast keyboard path when the search has
           // an obvious hit ("puka" -> Puka Nacua) without tapping it. Tapping
