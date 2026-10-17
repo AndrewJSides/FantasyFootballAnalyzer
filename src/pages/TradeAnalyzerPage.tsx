@@ -844,11 +844,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           <p key={i} className={styles.warning}>{w}</p>
         ))}
 
-        {result && (
-          <div ref={resultsRef}>
-            <Results result={result} leagueLoaded={leagueLoaded} />
-          </div>
-        )}
+        {/* Always mounted: the live region must exist before the verdict
+            appears so screen readers announce it. Announcing only the
+            verdict, not the builder/search chatter, keeps it noise-free. */}
+        <div ref={resultsRef} aria-live="polite">
+          {result && <Results result={result} leagueLoaded={leagueLoaded} />}
+        </div>
       </div>
     </div>
   );
