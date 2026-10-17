@@ -326,7 +326,7 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
         <div className={styles.controls}>
           <div className={styles.searchBox}>
             <input
-              type="text"
+              type="search"
               placeholder="Search players..."
               enterKeyHint="search"
               value={searchQuery}
