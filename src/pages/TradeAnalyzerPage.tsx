@@ -380,6 +380,20 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const [queryB, setQueryB] = useState('');
   const [result, setResult] = useState<FullTradeAnalysis | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // Title the tab with the verdict once a trade is analyzed: tabs and
+  // history entries for different trades stay tellable apart, and a shared
+  // #trade= link's recipient sees the verdict in their tab too. App.tsx's
+  // per-page title effect only fires on pathname change, so this owns the
+  // title while the analyzer is mounted; leaving the page restores it.
+  useEffect(() => {
+    if (!result) return;
+    const { label, margin } = verdictCopy(result);
+    document.title = margin ? `${label} by ${margin} · TraderApe` : `${label} · TraderApe`;
+    return () => {
+      document.title = 'Trade Analyzer · TraderApe';
+    };
+  }, [result]);
   // Players a shared #trade= link named that the consensus pool couldn't
   // resolve. Survives re-analysis; clears when the user edits the builder.
   const [skippedShared, setSkippedShared] = useState(0);
@@ -859,13 +873,15 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
 // Results
 // ---------------------------------------------------------------------------
 
-function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLoaded: boolean }) {
+// One source of truth for the human-readable verdict, shared by the results
+// section and the document title. Names the winning team when we know it
+// (league loaded with teams picked); falls back to "Side A/B wins" in
+// manual mode.
+function verdictCopy(result: FullTradeAnalysis): { label: string; margin: string | null } {
   const teamAName = result.teamAImpact?.teamName ?? '';
   const teamBName = result.teamBImpact?.teamName ?? '';
-  // Name the winning team when we know it (league loaded with teams
-  // picked); fall back to "Side A/B wins" in manual mode.
   const winnerName = result.winner === 'A' ? teamAName : result.winner === 'B' ? teamBName : '';
-  const verdict =
+  const label =
     result.winner === 'even'
       ? 'Even trade'
       : winnerName
@@ -873,15 +889,19 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
         : result.winner === 'A'
           ? 'Side A wins'
           : 'Side B wins';
+  const margin = result.winner === 'even' ? null : `${result.margin} VOR pt${result.margin === 1 ? '' : 's'}`;
+  return { label, margin };
+}
+
+function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLoaded: boolean }) {
+  const teamAName = result.teamAImpact?.teamName ?? '';
+  const teamBName = result.teamBImpact?.teamName ?? '';
+  const { label: verdict, margin } = verdictCopy(result);
   return (
     <section className={styles.results} aria-label="Trade verdict">
       <div className={`${styles.verdict} ${styles[`verdict${result.winner}`]}`}>
         <span className={styles.verdictLabel}>{verdict}</span>
-        {result.winner !== 'even' && (
-          <span className={styles.verdictMargin}>
-            by {result.margin} VOR pt{result.margin === 1 ? '' : 's'}
-          </span>
-        )}
+        {margin && <span className={styles.verdictMargin}>by {margin}</span>}
       </div>
 
       <div className={styles.totals}>
