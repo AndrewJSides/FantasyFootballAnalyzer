@@ -328,6 +328,7 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
             <input
               type="text"
               placeholder="Search players..."
+              enterKeyHint="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}

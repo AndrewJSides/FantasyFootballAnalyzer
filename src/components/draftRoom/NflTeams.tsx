@@ -61,6 +61,8 @@ export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
       <input
         className={styles.search}
         placeholder="Search by NFL team or player..."
+        aria-label="Search by NFL team or player"
+        enterKeyHint="search"
         value={query}
         onChange={e => setQuery(e.target.value)}
       />
