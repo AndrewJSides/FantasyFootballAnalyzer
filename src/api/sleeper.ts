@@ -69,42 +69,6 @@ export async function getDraft(draftId: string): Promise<SleeperAPI.Draft> {
   return fetchJSON<SleeperAPI.Draft>(`/draft/${draftId}`);
 }
 
-// Username → that user's leagues, for the connect form's league finder.
-// Returns null when no Sleeper user matches the username. Spans the current
-// and previous seasons: each Sleeper season is its own league id, and during
-// the offseason the league a user wants is usually last year's. The resolved
-// user_id rides along so the caller can remember it: league rosters key
-// owners by user_id, and it's the only stable identity Sleeper exposes
-// (league users responses carry username as null).
-export async function findLeaguesByUsername(
-  username: string,
-): Promise<{ userId: string; leagues: Array<{ id: string; name: string; season: string }> } | null> {
-  const user = await fetchJSON<{ user_id?: string } | null>(
-    `/user/${encodeURIComponent(username)}`,
-  );
-  if (!user?.user_id) return null;
-  const year = new Date().getFullYear();
-  const perSeason = await Promise.all(
-    [year, year - 1].map(async (season) => {
-      try {
-        const leagues = await fetchJSON<SleeperAPI.League[] | null>(
-          `/user/${user.user_id}/leagues/nfl/${season}`,
-        );
-        return leagues ?? [];
-      } catch {
-        // One missing season shouldn't sink the lookup.
-        return [];
-      }
-    }),
-  );
-  return {
-    userId: user.user_id,
-    leagues: perSeason
-      .flat()
-      .map((l) => ({ id: l.league_id, name: l.name, season: l.season })),
-  };
-}
-
 // Sleeper's league.status moves pre_draft → drafting → in_season → complete.
 // Past-year leagues are always final regardless of what status says.
 function toLeagueStatus(status: string, season: number, nflSeason: number): LeagueStatus {
