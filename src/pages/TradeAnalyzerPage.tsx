@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
@@ -727,7 +728,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           {!leagueLoaded && (
             <p className={styles.guestNote}>
               No league connected — running in manual mode against the consensus
-              board. <a href="/">Load the league</a> for team rosters and
+              board. <Link to="/">Load the league</Link> for team rosters and
               depth analysis.
             </p>
           )}
