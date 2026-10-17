@@ -9,7 +9,7 @@
 //
 // Pages emitted (each a real dist/<route>/index.html that returns HTTP 200):
 //   - index.html              - homepage hero, manifesto, feature grid.
-//   - rankings/               - top-200 half-PPR consensus rankings table.
+//   - rankings/               - top-200 full-PPR consensus rankings table.
 //   - rankings/<pos>/         - one per position (qb, rb, wr, te, k, dst, flex).
 //   - trends/                 - day/week consensus-board risers and fallers.
 //   - trade-analyzer/, draft-grades/ - tool landing pages.
@@ -79,7 +79,7 @@ function rankingsNav(activeSlug: string | null, basePath: string): string {
   return `<nav aria-label="Rankings by position"><p>Rankings by position: ${items.join(' · ')}</p></nav>`
 }
 
-// Crawlable snapshot of a rankings view in half-PPR consensus order, with the
+// Crawlable snapshot of a rankings view in full-PPR consensus order, with the
 // columns the live Snake board shows. Plain HTML (the live React table replaces
 // it on mount), so it carries the player names and ADP that rankings searches
 // look for without needing the interactive component. With `pos` set it filters
@@ -139,7 +139,9 @@ function buildValuesMarkup(
   platformRankSource: (platform: string, scoring: string) => { value: (p: any) => number | undefined },
   opts: { limit: number; consensusCap: number },
 ): string {
-  const scoring = 'half_ppr'
+  // The live app opens guests on full PPR (Andrew's league is full PPR), so
+  // the site-vs-consensus snapshot uses the same scoring; the copy says PPR.
+  const scoring = 'ppr'
   const SITES: Array<[string, string]> = [
     ['sleeper', 'Sleeper'],
     ['espn', 'ESPN'],
@@ -187,7 +189,7 @@ function buildValuesMarkup(
     `<section><h1>${pool.season} Fantasy Football Draft Values by Site</h1>` +
     `<p>Sleeper, ESPN, and Yahoo each draft from their own board. These are the ` +
     `players each site prices furthest from the consensus of all of them, so you ` +
-    `know where a player falls to you and where he goes early. Half PPR, ` +
+    `know where a player falls to you and where he goes early. Full PPR, ` +
     `refreshed daily, no login required.</p>` +
     sections +
     `</section>`
@@ -207,8 +209,10 @@ function buildTrendsMarkup(
   // Same dedup as the live page: with a short history both windows resolve to
   // the same baseline, and indexing byte-identical tables twice helps nobody.
   let windows: Array<[any, string]> = [
-    [computeTrends(history, 1), 'Last day'],
-    [computeTrends(history, 7), 'Last week'],
+    // The live app opens guests on full PPR (Andrew's league is full PPR), so
+    // the crawlable snapshot uses the same board; the copy below says PPR.
+    [computeTrends(history, 1, 'ppr'), 'Last day'],
+    [computeTrends(history, 7, 'ppr'), 'Last week'],
   ]
   if (sameWindow(windows[0][0], windows[1][0])) windows = [windows[0]]
   const sections = windows
@@ -246,7 +250,7 @@ function buildTrendsMarkup(
     `<section><h1>${pool.season} Fantasy Football ADP Risers and Fallers</h1>` +
     `<p>Who moved on the consensus draft board over the last day and the last ` +
     `week: the top risers climbing draft boards and the fallers getting cheaper. ` +
-    `Consensus of FantasyPros, ESPN, Sleeper, and Yahoo, half PPR, updated daily. ` +
+    `Consensus of FantasyPros, ESPN, Sleeper, and Yahoo, full PPR, updated daily. ` +
     `Free, no login required.</p>` +
     (sections ||
       `<p>The board has not recorded enough daily snapshots to measure movement ` +
@@ -432,7 +436,7 @@ async function prerender() {
       desc:
         `Where Sleeper, ESPN, and Yahoo ADP disagree with consensus for ${POOL.season}. ` +
         `The players each site drafts late (wait on him) and early (he will be gone), ` +
-        `half PPR, updated daily. Free, no login.`,
+        `full PPR, updated daily. Free, no login.`,
     })
 
     // Day/week movement on the consensus board. The history needs two
@@ -447,7 +451,7 @@ async function prerender() {
     ])
     // With no measurable movement yet (a fresh season's history), the head
     // must not promise "top ten risers" over an explanatory paragraph.
-    const trendsHaveData = !!computeTrends(ADP_HISTORY, 1)
+    const trendsHaveData = !!computeTrends(ADP_HISTORY, 1, 'ppr')
     writeRoute({
       path: 'trends',
       markup: buildTrendsMarkup(POOL, ADP_HISTORY, computeTrends, sameWindow) + trendsFaq,
@@ -457,7 +461,7 @@ async function prerender() {
       desc: trendsHaveData
         ? `Who moved on the ${POOL.season} consensus draft board in the last day and the last ` +
           `week. Top ten ADP risers and fallers from FantasyPros, ESPN, Sleeper, and Yahoo ` +
-          `data, half PPR, updated daily. Free, no login.`
+          `data, full PPR, updated daily. Free, no login.`
         : `Daily and weekly ADP movement on the ${POOL.season} consensus draft board, from ` +
           `FantasyPros, ESPN, Sleeper, and Yahoo data. Updates daily once the season's ` +
           `rankings start moving. Free, no login.`,
