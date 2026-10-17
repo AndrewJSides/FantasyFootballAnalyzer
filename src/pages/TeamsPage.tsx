@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { DataAsOf } from '@/components/DataAsOf';
 import { TeamCard } from '@/components/TeamCard';
 import type { League } from '@/types';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
@@ -119,6 +120,9 @@ export function TeamsPage({ league }: TeamsPageProps) {
           <p className={styles.subtitle}>
             {league.totalTeams} teams in {league.name}
           </p>
+          {/* The snapshot comes from the owner's last /admin sync, not a live
+              pull — show how fresh it is. */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
           {league.hasMedianMatchup && (
             <p className={styles.subtitle}>
               Median league — luck compares head-to-head results only; the extra

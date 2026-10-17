@@ -665,3 +665,14 @@ html {
     display: none !important;
   }
 }
+
+/* "Data as of …" freshness stamp (src/components/DataAsOf.tsx): shared by
+   league pages. Meta text, not a headline — sits under page headers. */
+.data-as-of {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  margin: 0.5rem 0 0;
+}
