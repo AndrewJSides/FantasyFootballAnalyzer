@@ -164,10 +164,13 @@
 
 /* iOS Safari auto-zooms any <select>/<input> with font-size < 16px on focus,
    which bounces the viewport on the trade analyzer's team pickers and search
-   boxes. Keep the desktop sizing, but floor the inputs at 16px on phones. */
+   boxes — and on the manual-copy fallback field, which the clipboard-failure
+   path relies on being usable by hand. Keep the desktop sizing, but floor
+   the inputs at 16px on phones. */
 @media (max-width: 760px) {
   .select,
-  .input {
+  .input,
+  .copyFallbackInput {
     font-size: 1rem;
   }
 }
