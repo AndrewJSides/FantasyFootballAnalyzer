@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { LoadingProgress } from '@/hooks/useLeague';
 import { DEFAULT_LEAGUE_PIN } from '@/api/pinLeague';
 import styles from './HomePage.module.css';
@@ -10,7 +11,6 @@ interface HomePageProps {
 }
 
 export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProps) {
-  const base = import.meta.env.BASE_URL;
 
   // Single-league mode: the app auto-loads our league (App's default-load
   // effect). No PIN form — this page is just the loading / error state.
@@ -71,8 +71,8 @@ export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProp
         )}
 
         <nav className={styles.heroLinks} aria-label="Start here">
-          <a href={`${base}trade-analyzer`}>Trade Analyzer</a>
-          <a href={`${base}rankings`}>Rankings</a>
+          <Link to="/trade-analyzer">Trade Analyzer</Link>
+          <Link to="/rankings">Rankings</Link>
           <span className={styles.heroLinksNote}>No login required</span>
         </nav>
       </header>
