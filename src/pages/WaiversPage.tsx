@@ -1,4 +1,5 @@
 import { WaiverTable } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import type { League } from '@/types';
 import styles from './WaiversPage.module.css';
 
@@ -16,6 +17,10 @@ export function WaiversPage({ league }: WaiversPageProps) {
       <div className="container">
         <div className={styles.header}>
           <h1 className={styles.title}>Waiver Wire</h1>
+          {/* Transactions come from the owner's last /admin sync, not a live
+              pull — show how fresh the snapshot is (matches
+              Teams/Luck/Trades/Awards pages). */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
           <p className={styles.subtitle}>
             {league.season} pickups and free agent adds
           </p>
