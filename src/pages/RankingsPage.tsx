@@ -1,4 +1,4 @@
-import { Fragment, useDeferredValue, useMemo, useState } from 'react';
+import { Fragment, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { POOL } from '@/data/draftPool';
 import { formatBuildDate } from '@/utils/formatBuildDate';
 import { NflTeamLabel, PosBadge } from '@/components';
@@ -66,6 +66,16 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   const landingPos = initialPos && POSITIONS.includes(initialPos) ? initialPos : undefined;
   const [query, setQuery] = useState('');
   const [posFilter, setPosFilter] = useState(landingPos ?? 'ALL');
+  // Tab title mirrors the heading: the filtered position when one is active
+  // (matches the Teams/Player Journey title pattern). Clearing the filter or
+  // leaving the page restores the page title.
+  useEffect(() => {
+    document.title =
+      posFilter === 'ALL' ? 'Rankings · TraderApe' : `${labelForPos(posFilter)} Rankings · TraderApe`;
+    return () => {
+      document.title = 'Rankings · TraderApe';
+    };
+  }, [posFilter]);
   const [sortBy, setSortBy] = useState<SortKey>('avg');
   const [sortRev, setSortRev] = useState(false);
   const { starred, avoided, cycle } = useTargets(POOL.season);
