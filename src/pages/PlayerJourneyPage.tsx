@@ -212,6 +212,20 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
     return playersWithJourneys.find(p => p.player.id === selectedPlayerId) || null;
   }, [selectedPlayerId, playersWithJourneys]);
 
+  // Title the tab with the selected player's name: tabs and history entries
+  // for different players stay tellable apart (matches the Trade Analyzer's
+  // verdict title). App.tsx's per-page title effect only fires on pathname
+  // change, and ?player= never changes the pathname, so this owns the title
+  // while a player is selected; clearing the selection or leaving the page
+  // restores the page title.
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    document.title = `${selectedPlayer.player.name} · TraderApe`;
+    return () => {
+      document.title = 'Player Journey · TraderApe';
+    };
+  }, [selectedPlayer]);
+
   // Per-stint scoring: the payoff of a journey page. Each ownership stretch
   // (drafted/added week -> dropped/traded week) gets a points-per-week from
   // the platform's weekly player points, when the platform provides them.
