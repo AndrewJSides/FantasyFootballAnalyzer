@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { League, Team } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import { getGradeDisplayText } from '@/utils/grading';
 import { gradeLeaguePicks } from '@/utils/consensusGrade';
 import { POOL } from '@/data/draftPool';
@@ -155,6 +156,8 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
             {team.wins}-{team.losses}
             {team.ties ? `-${team.ties}` : ''} · {(team.pointsFor ?? 0).toFixed(1)} PF
           </span>
+          {/* Same snapshot as the Teams and Luck pages — show how fresh it is. */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
           {awards.length > 0 && (
             <div className={styles.awardStrip}>
               {awards.map(a => (
