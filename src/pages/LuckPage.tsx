@@ -10,6 +10,7 @@ import {
   type ScheduleRecord,
 } from '@/utils/luckDetails';
 import { TeamLink, LuckIcon } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import { leagueInjuryLuck } from '@/utils/leagueInjuryLuck';
 import styles from './LuckPage.module.css';
 
@@ -444,6 +445,9 @@ function Header({ league, weeks }: { league: League; weeks?: number }) {
         {league.name}
         {weeks ? ` · ${weeks} week${weeks === 1 ? '' : 's'} final` : ''}
       </p>
+      {/* Luck comes from the owner's last /admin sync, not a live pull —
+          show how fresh the snapshot is. */}
+      <DataAsOf syncedAt={league.pinSyncedAt} />
     </div>
   );
 }
