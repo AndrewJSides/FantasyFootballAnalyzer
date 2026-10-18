@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DataAsOf } from '@/components/DataAsOf';
 import { TeamCard } from '@/components/TeamCard';
@@ -20,6 +20,20 @@ export function TeamsPage({ league }: TeamsPageProps) {
     const id = searchParams.get('team');
     return id ? league.teams.find(t => t.id === id) ?? null : null;
   }, [searchParams, league.teams]);
+
+  // Title the tab with the open team's name: tabs and history entries for
+  // different teams stay tellable apart (matches the Player Journey's
+  // player-name title). App.tsx's per-page title effect only fires on
+  // pathname change, and ?team= never changes the pathname, so this owns
+  // the title while a team is open; closing the hub or leaving the page
+  // restores the page title.
+  useEffect(() => {
+    if (!detailTeam) return;
+    document.title = `${detailTeam.name} · TraderApe`;
+    return () => {
+      document.title = 'Teams · TraderApe';
+    };
+  }, [detailTeam]);
 
   const openTeam = (id: string | null) => {
     setSearchParams(prev => {
