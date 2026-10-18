@@ -6,6 +6,7 @@ import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { League, Platform } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import type { GuestScoring, GuestSettings } from '@/utils/guestLeague';
+import { DataAsOf } from '@/components/DataAsOf';
 import { DEFAULT_ROSTER_SLOTS } from '@/hooks/useDraftRoom';
 import { useTargets } from '@/hooks/useTargets';
 import { consensusAvg, platformDelta, platformRankSource } from '@/utils/consensus';
@@ -230,6 +231,9 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
             ESPN, and Yahoo price differently from the consensus of all three,
             so you know where to wait and where he will be gone.
           </p>
+          {/* The snapshot comes from the owner's last /admin sync, not a live
+              pull — show how fresh it is. */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
         </div>
 
         <div className={styles.settingsBar}>
