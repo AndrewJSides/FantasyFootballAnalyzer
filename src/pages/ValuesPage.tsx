@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { POOL } from '@/data/draftPool';
 import { formatBuildDate } from '@/utils/formatBuildDate';
 import { NflTeamLabel, PosBadge } from '@/components';
@@ -82,6 +82,16 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
   const isGuest = !!league.isGuest && !!onUpdateGuest;
   const [query, setQuery] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
+  // Tab title shows the active position filter (e.g. 'QB Site Values ·
+  // TraderApe'); clearing the filter or leaving restores the page title
+  // (matches the Rankings page's position-filter title).
+  useEffect(() => {
+    document.title =
+      posFilter === 'ALL' ? 'Site Values · TraderApe' : `${labelForPos(posFilter)} Site Values · TraderApe`;
+    return () => {
+      document.title = 'Site Values · TraderApe';
+    };
+  }, [posFilter]);
   const [direction, setDirection] = useState<Direction>('values');
   const [sortBy, setSortBy] = useState<SortKey>('consensus');
   const { starred, avoided, cycle } = useTargets(POOL.season);
