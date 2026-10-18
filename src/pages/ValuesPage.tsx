@@ -346,6 +346,9 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
             aria-label="Search players"
             placeholder="Search players..."
             enterKeyHint="search"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />

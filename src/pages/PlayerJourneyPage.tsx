@@ -329,6 +329,9 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
               type="search"
               placeholder="Search players..."
               enterKeyHint="search"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}
