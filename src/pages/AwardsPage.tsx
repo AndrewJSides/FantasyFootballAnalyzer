@@ -8,6 +8,7 @@ import { exportAwardsBoard } from '@/utils/exportAwardsBoard';
 import { awardIconSrc } from '@/utils/awardIcons';
 import { Link } from 'react-router-dom';
 import { TeamLink } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import { logger } from '@/utils/logger';
 import styles from './AwardsPage.module.css';
 
@@ -113,6 +114,9 @@ export function AwardsPage({ league }: AwardsPageProps) {
             <p className={styles.subtitle}>
               {league.name} · {awards.length} Awards
             </p>
+            {/* Awards come from the owner's last /admin sync, not a live pull —
+                show how fresh the snapshot is (matches Luck/Teams pages). */}
+            <DataAsOf syncedAt={league.pinSyncedAt} />
           </div>
           {awards.length > 0 && (
             <button
