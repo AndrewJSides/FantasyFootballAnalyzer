@@ -6,6 +6,7 @@ import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { League, Platform } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { GUEST_TEAM_OPTIONS, type GuestScoring, type GuestSettings } from '@/utils/guestLeague';
+import { DataAsOf } from '@/components/DataAsOf';
 import { DEFAULT_BUDGET, DEFAULT_ROSTER_SLOTS } from '@/hooks/useDraftRoom';
 import { useTargets } from '@/hooks/useTargets';
 import { useYahooValues } from '@/hooks/useYahooValues';
@@ -256,6 +257,9 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 'IDP league — defensive players are not in this pool.'}
             </p>
           )}
+          {/* The snapshot comes from the owner's last /admin sync, not a live
+              pull — show how fresh it is. */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
         </div>
 
         <div className={styles.settingsBar}>
