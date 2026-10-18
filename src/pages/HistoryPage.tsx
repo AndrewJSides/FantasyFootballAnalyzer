@@ -38,6 +38,22 @@ export function HistoryPage({ league }: HistoryPageProps) {
     setRivalries([]);
   }, [league.id]);
 
+  // Tab title shows the selected rivalry team's name (e.g. 'Motha Puka
+  // History · TraderApe'); clearing the selection or leaving restores the
+  // page title (matches the Teams/Rankings/Player Journey title pattern).
+  // App's per-page effect only fires on pathname change, and picking a
+  // rivalry team never changes the pathname, so this owns the title while
+  // a team is selected.
+  useEffect(() => {
+    const teamName = selectedTeamId
+      ? league.teams.find(t => t.id === selectedTeamId)?.name
+      : undefined;
+    document.title = teamName ? `${teamName} History · TraderApe` : 'History · TraderApe';
+    return () => {
+      document.title = 'History · TraderApe';
+    };
+  }, [selectedTeamId, league.teams]);
+
   useEffect(() => {
     if (!supportsHistory) {
       setError('Historical data is only available for Sleeper, ESPN, and Yahoo leagues.');
