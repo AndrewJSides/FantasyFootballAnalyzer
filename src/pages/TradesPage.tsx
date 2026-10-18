@@ -1,3 +1,4 @@
+import { DataAsOf } from '@/components/DataAsOf';
 import { TradeTable } from '@/components/TradeTable';
 import type { League } from '@/types';
 import { verdictBasisSummary } from '@/utils/tradeVerdict';
@@ -18,6 +19,9 @@ export function TradesPage({ league }: TradesPageProps) {
       <div className="container">
         <div className={styles.header}>
           <h1 className={styles.title}>Trade Analysis</h1>
+          {/* The snapshot comes from the owner's last /admin sync, not a
+              live pull — show how fresh it is (matches Teams/Luck pages). */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
           <p className={styles.subtitle}>
             Analyze trades from the {league.season} season
             {basisNote && ` · ${basisNote}`}
