@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { League, Player, DraftPick } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import { nflTeamInfo } from '@/data/nflTeams';
 import { AWARD_ICONS } from '@/utils/awardIcons';
 import styles from './PlayerJourneyPage.module.css';
@@ -321,6 +322,7 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
           <p className={styles.subtitle}>
             Track any player's path through {league.name}
           </p>
+          <DataAsOf syncedAt={league.pinSyncedAt} />
         </div>
 
         <div className={styles.controls}>
