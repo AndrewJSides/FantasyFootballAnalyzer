@@ -4,6 +4,7 @@ import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { PosBadge } from '@/components/PosBadge';
+import { DataAsOf } from '@/components/DataAsOf';
 import {
   analyzeTrade,
   resolveTradeSide,
@@ -742,6 +743,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
                 roster-aware takes on how the deal hits each team's positional depth.</>
               : ' against the consensus board.'}
           </p>
+          <DataAsOf syncedAt={league?.pinSyncedAt} />
           {!leagueLoaded && (
             <p className={styles.guestNote}>
               No league connected — running in manual mode against the consensus
