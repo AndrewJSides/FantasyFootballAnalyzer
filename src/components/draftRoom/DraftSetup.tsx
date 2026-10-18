@@ -816,6 +816,9 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                   <input
                     className={styles.input}
                     aria-label={`Team ${i + 1} name`}
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     value={team.name}
                     onChange={e =>
                       setTeams(config.teams.map(t => (t.id === team.id ? { ...t, name: e.target.value } : t)))
@@ -867,6 +870,9 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
             className={styles.input}
             aria-label="Preset name"
             placeholder="Name this setup"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             value={presetName}
             onChange={e => setPresetName(e.target.value)}
             onKeyDown={e => {
