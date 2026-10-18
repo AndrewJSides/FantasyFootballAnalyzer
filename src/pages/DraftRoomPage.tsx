@@ -741,9 +741,17 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
               {!phoneSheet && liveSync.available && !liveSync.enabled && (
                 <input
                   type="text"
+                  inputMode="url"
                   className={watchBad ? styles.watchInputBad : styles.watchInput}
                   placeholder="Mock draft URL (optional)"
                   aria-label="Sleeper mock draft URL to follow (optional)"
+                  // URLs are not words — stop phone keyboards from
+                  // "correcting" pasted links (matches the search inputs on
+                  // Rankings/Values/Player Journey/Trade Analyzer).
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   defaultValue={liveSync.watchId ?? ''}
                   onChange={e => {
                     // Blank clears back to the league's own draft.
@@ -914,8 +922,17 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                         {!liveSync.enabled && (
                           <input
                             type="text"
+                            inputMode="url"
                             className={watchBad ? styles.watchInputBad : styles.watchInput}
                             placeholder="Mock draft URL (optional)"
+                            // URLs are not words — stop phone keyboards from
+                            // "correcting" pasted links (matches the search
+                            // inputs on Rankings/Values/Player Journey/Trade
+                            // Analyzer).
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
                             defaultValue={liveSync.watchId ?? ''}
                             onChange={e => {
                               setWatchBad(
