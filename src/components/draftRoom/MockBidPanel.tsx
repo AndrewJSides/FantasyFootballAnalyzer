@@ -165,6 +165,7 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
           <span className={styles.label}>Your Max Bid {myCap > 0 ? `(cap $${myCap})` : '(full)'}</span>
           <input
             type="number"
+            inputMode="numeric"
             aria-label="Your max bid"
             className={styles.priceInput}
             min={0}

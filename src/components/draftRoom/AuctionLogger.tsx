@@ -159,6 +159,7 @@ export function AuctionLogger({ room, selected, onLogged }: AuctionLoggerProps) 
           <input
             ref={priceRef}
             type="number"
+            inputMode="numeric"
             aria-label="Sale price"
             className={styles.priceInput}
             min={1}
