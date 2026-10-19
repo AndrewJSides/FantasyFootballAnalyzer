@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { League, Team } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -21,6 +21,14 @@ interface TeamDetailProps {
 // waivers, head-to-head vs everyone, and the hardware they collected.
 // Reached by clicking any team name across the app.
 export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
+  // Tab title names the team (matches the other pages' tab-title pattern;
+  // leaving restores the Teams page title, the same screen as the back button).
+  useEffect(() => {
+    document.title = `${team.name} · TraderApe`;
+    return () => {
+      document.title = 'Teams · TraderApe';
+    };
+  }, [team.name]);
   const weekly = useMemo(() => {
     const rows: Array<{ week: number; points: number; oppPoints: number; oppName: string; won: boolean }> = [];
     for (const m of completedMatchups(league)) {
