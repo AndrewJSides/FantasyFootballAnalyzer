@@ -366,7 +366,7 @@ async function prerender() {
       await vite.ssrLoadModule('/src/utils/consensus.ts')
 
     const rankingsFaq = faqJsonLd([
-      ['Are these fantasy football rankings free?', 'Yes. No account and no signup. The project is open source.'],
+      ['Are these fantasy football rankings free?', 'Yes. Free to use, no account and no signup.'],
       ['Where do the rankings come from?', `A consensus of FantasyPros, ESPN, and Sleeper, refreshed daily for the ${POOL.season} season.`],
       ['What scoring formats are supported?', 'Standard, half PPR, and full PPR, plus superflex and 2QB leagues.'],
       ['Do the rankings include auction values?', 'Yes. Auction dollar values are scaled to your league budget and size, with ESPN and Yahoo market prices side by side.'],
@@ -408,7 +408,7 @@ async function prerender() {
             nav: rankingsNav(v.slug, basePath),
           }) +
           faqJsonLd([
-            [`Are these ${v.pos} rankings free?`, 'Yes. No account and no signup. The project is open source.'],
+            [`Are these ${v.pos} rankings free?`, 'Yes. Free to use, no account and no signup.'],
             [`How often do the ${v.pos} rankings update?`, `Daily, from a consensus of FantasyPros, ESPN, and Sleeper for the ${POOL.season} season.`],
             ['What scoring is used?', 'Full PPR by default, with standard and half PPR available, plus superflex.'],
           ]),
@@ -422,7 +422,7 @@ async function prerender() {
     const valuesFaq = faqJsonLd([
       ['Why do Sleeper, ESPN, and Yahoo rank players differently?', 'Each site runs its own draft market, so ADP drifts apart between them. A player can be a third-round pick on one site and a fifth-round pick on another.'],
       ['What does the difference column mean?', 'The site\'s board position minus the consensus of every source. Positive means that site drafts him later than consensus, so he should fall to you there.'],
-      ['Is this free?', 'Yes. No account and no signup. The project is open source.'],
+      ['Is this free?', 'Yes. Free to use, no account and no signup.'],
       ['How often does it update?', `Daily, from FantasyPros, ESPN, Sleeper, and Yahoo for the ${POOL.season} season.`],
     ])
     writeRoute({
@@ -447,7 +447,7 @@ async function prerender() {
     const trendsFaq = faqJsonLd([
       ['What counts as an ADP riser or faller?', 'How many spots a player moved on the consensus draft board, blended from FantasyPros, ESPN, Sleeper, and Yahoo, over the last day and the last week.'],
       ['How often does it update?', `Daily, alongside the ${POOL.season} consensus rankings refresh.`],
-      ['Is this free?', 'Yes. No account and no signup. The project is open source.'],
+      ['Is this free?', 'Yes. Free to use, no account and no signup.'],
     ])
     // With no measurable movement yet (a fresh season's history), the head
     // must not promise "top ten risers" over an explanatory paragraph.
@@ -481,7 +481,7 @@ async function prerender() {
     }
 
     const draftRoomFaq = faqJsonLd([
-      ['Is the mock draft simulator free?', 'Yes. No account and no signup. The project is open source.'],
+      ['Is the mock draft simulator free?', 'Yes. Free to use, no account and no signup.'],
       ['Does it support auction and snake drafts?', 'Both. Any league size, with dollar values and ADP scaled to your budget and roster.'],
       ['Can I track a live draft?', 'Yes. The live draft room follows your real draft pick by pick with budget inflation, pick suggestions, and survival odds.'],
       ['Which platforms work with the draft room?', 'Sleeper, ESPN, and Yahoo. You can also run it in guest mode with no league connected.'],
