@@ -10,8 +10,10 @@ export function NotFoundPage() {
   // title — matches the other pages' tab-title pattern.
   useEffect(() => {
     document.title = '404 — Off the Board · TraderApe';
+    // Cleanup restores the site default, not the 404 title — matches every
+    // other page's cleanup-restores-parent pattern.
     return () => {
-      document.title = '404 — Off the Board · TraderApe';
+      document.title = 'TraderApe — Grade the Trade Before You Make It';
     };
   }, []);
 
