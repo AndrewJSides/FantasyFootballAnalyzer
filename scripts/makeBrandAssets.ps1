@@ -46,7 +46,10 @@ $g.DrawRectangle($framePen, 24, 24, 1152, 582)
 # Kicker
 $kickerFont = New-Object System.Drawing.Font('Consolas', 22, [System.Drawing.FontStyle]::Bold)
 $limeBrush = New-Object System.Drawing.SolidBrush($lime)
-$g.DrawString('* FREE / OPEN SOURCE / NO ACCOUNTS', $kickerFont, $limeBrush, 80, 100)
+# Kicker copy is the source of truth: the repo is private, so "OPEN SOURCE"
+# must never appear here. (The '*' stands in for the gorilla emoji, which
+# System.Drawing can't render — scripts/makeOgCard.py pastes it from pixels.)
+$g.DrawString('* FREE / NO ACCOUNTS / NO SIGN-UP', $kickerFont, $limeBrush, 80, 100)
 
 # Headline
 $titleFont = New-Object System.Drawing.Font('Arial Black', 78, [System.Drawing.FontStyle]::Bold)
