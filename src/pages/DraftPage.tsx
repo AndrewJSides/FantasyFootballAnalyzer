@@ -43,6 +43,20 @@ export function DraftPage({ league }: DraftPageProps) {
   const showToggle = hasPlatformData && liveData !== null;
   const active: Source = source === 'live' && liveData ? 'live' : hasPlatformData ? 'platform' : 'live';
 
+  // Tab title mirrors the source toggle: the live-logged draft reads
+  // "Draft Analysis · Live Log" so the tab is tellable apart from the
+  // platform draft (matches the Rankings/Values/Trends/History title
+  // pattern). Leaving the page restores the page title.
+  useEffect(() => {
+    document.title =
+      active === 'live'
+        ? 'Draft Analysis · Live Log · TraderApe'
+        : 'Draft Analysis · TraderApe';
+    return () => {
+      document.title = 'Draft Analysis · TraderApe';
+    };
+  }, [active]);
+
   const draftType = active === 'live' && liveData ? liveData.draftType : league.draftType;
   const season = active === 'live' && liveData ? liveData.season : league.season;
   const hasData = active === 'live' ? liveData !== null : hasPlatformData;
