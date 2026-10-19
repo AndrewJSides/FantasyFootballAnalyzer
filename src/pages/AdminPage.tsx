@@ -184,6 +184,9 @@ export function AdminPage() {
           onKeyDown={e => e.key === 'Enter' && unlock()}
           placeholder="Admin key"
           autoComplete="off"
+          // Phones: Enter unlocks, so label the keyboard's action key "go"
+          // to match what it does (same pattern as the search inputs).
+          enterKeyHint="go"
           style={{ width: '100%', padding: '0.6rem', fontSize: '1rem' }}
         />
         {keyError && <p style={{ color: '#c0392b' }}>{keyError}</p>}
