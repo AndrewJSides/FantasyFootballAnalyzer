@@ -522,6 +522,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                   <span className={styles.label}>Budget Per Team</span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     className={styles.input}
                     aria-label="Budget per team"
                     min={config.rounds}
@@ -658,6 +659,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                   <span className={styles.label}>{key}</span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     className={styles.input}
                     aria-label={`${key} roster slots`}
                     min={0}
@@ -692,6 +694,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                       <span className={styles.label}>Keepers Per Team</span>
                       <input
                         type="number"
+                        inputMode="numeric"
                         className={styles.input}
                         aria-label="Keepers per team"
                         min={1}
@@ -705,6 +708,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                         <span className={styles.label}>Rounds Earlier</span>
                         <input
                           type="number"
+                          inputMode="numeric"
                           className={styles.input}
                           aria-label="Rounds earlier"
                           min={0}
@@ -771,6 +775,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                                   {isAuction && selectedId && (
                                     <input
                                       type="number"
+                                      inputMode="numeric"
                                       className={styles.keeperPrice}
                                       aria-label={`Keeper ${i + 1} price for ${team.name}`}
                                       min={1}
