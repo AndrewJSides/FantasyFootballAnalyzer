@@ -4,6 +4,7 @@ import { loadLeagueHistory as loadSleeperHistory, loadHeadToHeadRecords as loadS
 import { loadLeagueHistory as loadESPNHistory, loadHeadToHeadRecords as loadESPNH2H } from '@/api/espn';
 import { loadLeagueHistory as loadYahooHistory, loadHeadToHeadRecords as loadYahooH2H } from '@/api/yahoo';
 import { RivalryCard } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import { AWARD_ICONS } from '@/utils/awardIcons';
 import { logger } from '@/utils/logger';
 import { loadESPNCredentials } from '@/utils/espnCredentials';
@@ -236,6 +237,10 @@ export function HistoryPage({ league }: HistoryPageProps) {
       <div className="container">
         <div className={styles.header}>
           <h1 className={styles.title}>League History</h1>
+          {/* The snapshot comes from the owner's last /admin sync, not a
+              live pull — show how fresh it is (matches Teams/Luck/Trades/
+              Awards/Waivers pages). */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
           <p className={styles.subtitle}>
             {history.length} seasons of {league.name}
           </p>
