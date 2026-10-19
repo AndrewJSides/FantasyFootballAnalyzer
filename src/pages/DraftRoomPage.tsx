@@ -773,6 +773,13 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                   autoCapitalize="off"
                   spellCheck={false}
                   defaultValue={liveSync.watchId ?? ''}
+                  // Enter starts sync, like the sync toggle button — the
+                  // field already has Enter's job from the user's hand (the
+                  // Admin console's key input works the same way).
+                  enterKeyHint="go"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') liveSync.toggle();
+                  }}
                   onChange={e => {
                     // Blank clears back to the league's own draft.
                     setWatchBad(!liveSync.setWatch(e.target.value) && e.target.value.trim() !== '');
@@ -954,6 +961,12 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                             autoCapitalize="off"
                             spellCheck={false}
                             defaultValue={liveSync.watchId ?? ''}
+                            // Enter starts sync, like the sync toggle button
+                            // (matches the header-strip URL input above).
+                            enterKeyHint="go"
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') liveSync.toggle();
+                            }}
                             onChange={e => {
                               setWatchBad(
                                 !liveSync.setWatch(e.target.value) &&
