@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { DataAsOf } from '@/components/DataAsOf';
 import { TradeTable } from '@/components/TradeTable';
 import type { League } from '@/types';
@@ -9,6 +10,16 @@ interface TradesPageProps {
 }
 
 export function TradesPage({ league }: TradesPageProps) {
+  const tradeCount = league.trades?.length ?? 0;
+  // Tab shows the trade count so the Trades tab reads at a glance and stays
+  // tellable apart from the other league tabs (matches the Draft/Values
+  // title pattern). Leaving the page restores the page title.
+  useEffect(() => {
+    document.title = tradeCount > 0 ? `Trades (${tradeCount}) · TraderApe` : 'Trades · TraderApe';
+    return () => {
+      document.title = 'Trades · TraderApe';
+    };
+  }, [tradeCount]);
   const hasTrades = league.trades && league.trades.length > 0;
   // Per trade, not per platform: one trade whose weekly data is missing
   // falls back to full-season value while the rest stay post-trade.
