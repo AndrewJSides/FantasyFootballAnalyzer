@@ -304,6 +304,7 @@ export function AvailablePlayers({
           ref={inputRef}
           className={styles.search}
           aria-label="Search available players"
+          enterKeyHint="search"
           placeholder={
             COARSE_POINTER
               ? 'Search available players...'
