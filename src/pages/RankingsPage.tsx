@@ -371,6 +371,9 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             aria-label="Search players"
             placeholder="Search players..."
             enterKeyHint="search"
+            // Player names are proper nouns — keep the browser's own
+            // autocomplete dropdown from covering the app's search results.
+            autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
