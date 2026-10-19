@@ -3,6 +3,7 @@ import { POOL } from '@/data/draftPool';
 import { formatBuildDate } from '@/utils/formatBuildDate';
 import { ADP_HISTORY } from '@/data/adpHistory';
 import { NflTeamLabel, PosBadge } from '@/components';
+import { DataAsOf } from '@/components/DataAsOf';
 import { playerHeadshotUrl } from '@/data/nflTeams';
 import { TREND_NOISE_FLOOR, TREND_RELEVANCE_CAP, computeTrends, sameWindow, type TrendMover } from '@/utils/trends';
 import type { League } from '@/types';
@@ -176,6 +177,10 @@ export function TrendsPage({ league }: TrendsPageProps) {
             getting cheaper. The rank is the same blend of FantasyPros, ESPN,
             Sleeper, and Yahoo the Rankings board sorts by.
           </p>
+          {/* The league context comes from the owner's last /admin sync, not a
+              live pull — show how fresh it is. Matches Rankings/Values/Teams/
+              Luck/Trades/Awards/Waivers/Trade Analyzer/Player Journey. */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
         </div>
 
         <div className={styles.settingsBar}>
