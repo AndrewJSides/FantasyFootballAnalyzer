@@ -875,6 +875,11 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
             spellCheck={false}
             value={presetName}
             onChange={e => setPresetName(e.target.value)}
+            // Phones: Enter saves the preset, so label the keyboard's action
+            // key "done" to match what it does (matches the search inputs'
+            // enterKeyHint="search" on Rankings/Values/Player Journey/Trade
+            // Analyzer, where Enter picks the top result).
+            enterKeyHint="done"
             onKeyDown={e => {
               if (e.key === 'Enter') saveCurrentPreset();
             }}
