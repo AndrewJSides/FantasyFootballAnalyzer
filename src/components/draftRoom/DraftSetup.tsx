@@ -821,6 +821,10 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                   <input
                     className={styles.input}
                     aria-label={`Team ${i + 1} name`}
+                    // Team names are typed once per draft — the browser's
+                    // saved-form dropdown over them is noise (matches the
+                    // autoComplete=off on the other free-text name inputs).
+                    autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
@@ -875,6 +879,10 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
             className={styles.input}
             aria-label="Preset name"
             placeholder="Name this setup"
+            // Same discipline as the team-name inputs above: preset names are
+            // one-off labels, and the browser's saved-form dropdown over the
+            // field is noise.
+            autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
