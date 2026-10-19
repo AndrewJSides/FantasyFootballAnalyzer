@@ -10,6 +10,7 @@ import { useSuggestedPicks } from '@/hooks/useSuggestedPicks';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useYahooValues } from '@/hooks/useYahooValues';
 import { AuctionBoard } from '@/components/draftRoom/AuctionBoard';
+import { DataAsOf } from '@/components/DataAsOf';
 import { AuctionLogger } from '@/components/draftRoom/AuctionLogger';
 import { AvailablePlayers } from '@/components/draftRoom/AvailablePlayers';
 import { ConnectedBanner } from '@/components/draftRoom/ConnectedBanner';
@@ -610,6 +611,10 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
           <div className={styles.header}>
             <h1 className={styles.title}>Draft Room</h1>
             <p className={styles.subtitle}>{configSummary}</p>
+            {/* The mock league comes from the synced TraderApe DB snapshot,
+                so carry the same "Data as of" freshness stamp the analysis
+                pages show. Renders nothing for live/unsynced leagues. */}
+            <DataAsOf syncedAt={league.pinSyncedAt} />
           </div>
         )}
 
