@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DraftTable } from '@/components/DraftTable';
+import { DataAsOf } from '@/components/DataAsOf';
 import { SeasonLoadingOverlay } from '@/components/SeasonLoadingOverlay';
 import type { League } from '@/types';
 import { POOL } from '@/data/draftPool';
@@ -79,6 +80,10 @@ export function DraftPage({ league }: DraftPageProps) {
       <div className="container">
         <div className={styles.header}>
           <h1 className={styles.title}>Draft Analysis</h1>
+          {/* The snapshot comes from the owner's last /admin sync, not a live
+              pull — show how fresh it is (matches Teams/Luck/Trades/Awards/
+              Waivers/Trade Analyzer/History/Trends pages). */}
+          <DataAsOf syncedAt={league.pinSyncedAt} />
           <p className={styles.subtitle}>
             {season} {draftType === 'auction' ? 'Auction' : 'Snake'} Draft
             {active === 'live' && ' · logged live'}
