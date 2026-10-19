@@ -172,6 +172,10 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
             max={myCap}
             value={maxBid}
             disabled={myCap === 0}
+            // Phones: Enter submits the bid, so label the keyboard's action
+            // key "done" to match what it does (matches the auction
+            // logger's sale-price input and the preset-name input).
+            enterKeyHint="done"
             onChange={e => setMaxBid(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') submit(Math.min(Number(maxBid) || 0, myCap));

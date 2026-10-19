@@ -164,6 +164,10 @@ export function AuctionLogger({ room, selected, onLogged }: AuctionLoggerProps) 
             className={styles.priceInput}
             min={1}
             value={price}
+            // Phones: Enter logs the sale, so label the keyboard's action
+            // key "done" to match what it does (matches the draft-room
+            // preset-name input and Mock-draft-URL inputs' enterKeyHint).
+            enterKeyHint="done"
             onChange={e => setPrice(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') submit();
