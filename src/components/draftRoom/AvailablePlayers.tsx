@@ -305,6 +305,12 @@ export function AvailablePlayers({
           className={styles.search}
           aria-label="Search available players"
           enterKeyHint="search"
+          // Player names are proper nouns — keep the browser's own
+          // autocomplete dropdown from covering the app's search results.
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
           placeholder={
             COARSE_POINTER
               ? 'Search available players...'

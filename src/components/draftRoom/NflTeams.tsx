@@ -63,6 +63,12 @@ export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
         placeholder="Search by NFL team or player..."
         aria-label="Search by NFL team or player"
         enterKeyHint="search"
+        // Player names are proper nouns — keep the browser's own
+        // autocomplete dropdown from covering the app's search results.
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         value={query}
         onChange={e => setQuery(e.target.value)}
       />
