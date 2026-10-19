@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import type { League } from '@/types';
@@ -8,6 +9,15 @@ interface WaiversPageProps {
 }
 
 export function WaiversPage({ league }: WaiversPageProps) {
+  // Tab title tells the Waivers tab apart from the other league tabs
+  // (matches the Teams/Trades/Rankings/Luck page titles). Leaving restores
+  // the page title.
+  useEffect(() => {
+    document.title = 'Waiver Wire · TraderApe';
+    return () => {
+      document.title = 'Waiver Wire · TraderApe';
+    };
+  }, []);
   const hasTransactions = league.teams.some(
     team => team.transactions && team.transactions.length > 0
   );

@@ -61,6 +61,14 @@ async function adminPost(path: string, adminKey: string, body: Record<string, un
 }
 
 export function AdminPage() {
+  // Owner console gets its own tab title like the league pages; leaving
+  // restores the page title.
+  useEffect(() => {
+    document.title = 'Owner Console · TraderApe';
+    return () => {
+      document.title = 'Owner Console · TraderApe';
+    };
+  }, []);
   const [adminKey, setAdminKey] = useState<string>(() => getAdminKey() ?? '');
   const [unlocked, setUnlocked] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);

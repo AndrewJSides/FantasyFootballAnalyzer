@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { League } from '@/types';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
@@ -22,6 +22,14 @@ const signed = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)}`;
 const fmtRecord = (r: ScheduleRecord) => `${r.wins}-${r.losses}${r.ties > 0 ? `-${r.ties}` : ''}`;
 
 export function LuckPage({ league }: LuckPageProps) {
+  // Tab title tells the Luck tab apart from the other league tabs (matches
+  // the Teams/Trades/Rankings page titles). Leaving restores the page title.
+  useEffect(() => {
+    document.title = 'Luck · TraderApe';
+    return () => {
+      document.title = 'Luck · TraderApe';
+    };
+  }, []);
   const done = useMemo(() => completedMatchups(league), [league]);
   const weeks = useMemo(() => [...new Set(done.map(m => m.week))].sort((a, b) => a - b), [done]);
   const teamName = useMemo(() => new Map(league.teams.map(t => [t.id, t.name])), [league.teams]);

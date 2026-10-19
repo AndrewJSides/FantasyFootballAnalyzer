@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { League } from '@/types';
 import { calculateAllAwards, groupAwardsByCategory, getCategoryDisplayName, type Award } from '@/utils/awards';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
@@ -17,6 +17,15 @@ interface AwardsPageProps {
 }
 
 export function AwardsPage({ league }: AwardsPageProps) {
+  // Tab title tells the Awards tab apart from the other league tabs
+  // (matches the Teams/Trades/Rankings/Luck page titles). Leaving restores
+  // the page title.
+  useEffect(() => {
+    document.title = 'Season Awards · TraderApe';
+    return () => {
+      document.title = 'Season Awards · TraderApe';
+    };
+  }, []);
   // Calculate luck metrics from matchup data
   const luckMetrics = useMemo((): LuckMetrics[] => {
     const done = completedMatchups(league);
