@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { LoadingProgress } from '@/hooks/useLeague';
 import { DEFAULT_LEAGUE_PIN } from '@/api/pinLeague';
@@ -11,6 +12,16 @@ interface HomePageProps {
 }
 
 export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProps) {
+  // The landing page sets the canonical tab title; every other route sets
+  // its own title on mount, so returning here after navigating around never
+  // leaves a stale league-page title behind (matches the league pages'
+  // tab-title pattern).
+  useEffect(() => {
+    document.title = 'TraderApe — Grade the Trade Before You Make It';
+    return () => {
+      document.title = 'TraderApe — Grade the Trade Before You Make It';
+    };
+  }, []);
 
   // Single-league mode: the app auto-loads our league (App's default-load
   // effect). No PIN form — this page is just the loading / error state.
