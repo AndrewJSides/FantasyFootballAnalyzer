@@ -139,6 +139,21 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
 
   const { phase, config, derived, undo, reset } = room;
 
+  // Tab title carries the live draft progress ("Pick 42/180 · Draft Room")
+  // while a draft is running, so a tabbed-away live room stays tellable at
+  // a glance (matches the Trades count / Draft source / analyzer verdict
+  // title pattern). Setup and recap keep the plain route title; leaving
+  // the page restores it.
+  useEffect(() => {
+    document.title =
+      phase === 'drafting' && derived.totalPicks > 0
+        ? `Pick ${Math.min(derived.pickCount + 1, derived.totalPicks)}/${derived.totalPicks} · Draft Room · TraderApe`
+        : 'Draft Room · TraderApe';
+    return () => {
+      document.title = 'Draft Room · TraderApe';
+    };
+  }, [phase, derived.pickCount, derived.totalPicks]);
+
   // Phone + live draft = focus mode. The class drives the one piece of
   // chrome this page doesn't own (the app-level guest banner); everything
   // else it hides directly. Cleared on unmount so leaving mid-draft - back
