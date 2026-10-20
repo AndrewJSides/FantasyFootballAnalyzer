@@ -817,7 +817,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearCopyStatusTimer(); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); }}
+              // Clear means clear: drop the typed search text too, matching
+              // the league-change reset discipline (a lingering search leaves
+              // a filtered results list under empty sides).
+              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearCopyStatusTimer(); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); setQueryA(''); setQueryB(''); }}
             >
               Clear
             </button>
