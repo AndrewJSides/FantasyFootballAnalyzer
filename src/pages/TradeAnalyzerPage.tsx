@@ -909,11 +909,14 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
       <div className={styles.totals}>
         <div className={styles.total}>
           <span className={styles.totalLabel}>{teamAName ? `Side A — ${teamAName}` : 'Side A'} value</span>
-          <span className={styles.totalNum}>{result.sideATotal}</span>
+          {/* Side A lost: dim its number so the totals row agrees with the
+             verdict strip above (Side B keeps the lime accent). Even trades
+             leave both numbers lime. */}
+          <span className={`${styles.totalNum}${result.winner === 'B' ? ` ${styles.totalLose}` : ''}`}>{result.sideATotal}</span>
         </div>
         <div className={styles.total}>
           <span className={styles.totalLabel}>{teamBName ? `Side B — ${teamBName}` : 'Side B'} value</span>
-          <span className={styles.totalNum}>{result.sideBTotal}</span>
+          <span className={`${styles.totalNum}${result.winner === 'A' ? ` ${styles.totalLose}` : ''}`}>{result.sideBTotal}</span>
         </div>
       </div>
 

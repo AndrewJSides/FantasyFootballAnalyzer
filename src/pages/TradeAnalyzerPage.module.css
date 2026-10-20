@@ -452,6 +452,14 @@
   color: var(--lime);
 }
 
+/* The winning side's number keeps the lime accent; the losing side's drops
+   to bone-dim so the totals row agrees with the verdict strip above, where
+   the accent already tells the two outcomes apart at a glance. On an even
+   trade neither side is dimmed. */
+.totalLose {
+  color: var(--bone-dim);
+}
+
 .breakdowns {
   display: grid;
   grid-template-columns: 1fr 1fr;
