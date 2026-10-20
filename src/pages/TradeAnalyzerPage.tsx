@@ -729,7 +729,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       ta.value = url;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
+      // iOS Safari's execCommand('copy') only works on a focused, readonly
+      // field with an explicit selection range — select() alone fails there.
+      ta.readOnly = true;
       document.body.appendChild(ta);
+      ta.focus();
+      ta.setSelectionRange(0, ta.value.length);
       ta.select();
       try {
         ok = document.execCommand('copy');
