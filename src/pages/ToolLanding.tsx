@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { ToolLandingContent } from './toolLandings';
+import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './ToolLanding.module.css';
 
 // Static, keyword-rich landing pages for high-intent tool queries that the app
@@ -22,7 +23,7 @@ export function ToolLanding({ content }: { content: ToolLandingContent }) {
     // Cleanup restores the site default, not the landing title — matches the
     // other pages' cleanup-restores-parent pattern (see NotFoundPage).
     return () => {
-      document.title = 'TraderApe — Grade the Trade Before You Make It';
+      document.title = SITE_TITLE;
     };
   }, [content.title]);
   return (

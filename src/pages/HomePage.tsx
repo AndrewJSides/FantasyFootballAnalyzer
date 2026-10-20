@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { SITE_TITLE } from '../utils/siteTitle';
 import { Link } from 'react-router-dom';
 import type { LoadingProgress } from '@/hooks/useLeague';
 import { DEFAULT_LEAGUE_PIN } from '@/api/pinLeague';
@@ -17,9 +18,9 @@ export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProp
   // leaves a stale league-page title behind (matches the league pages'
   // tab-title pattern).
   useEffect(() => {
-    document.title = 'TraderApe — Grade the Trade Before You Make It';
+    document.title = SITE_TITLE;
     return () => {
-      document.title = 'TraderApe — Grade the Trade Before You Make It';
+      document.title = SITE_TITLE;
     };
   }, []);
 

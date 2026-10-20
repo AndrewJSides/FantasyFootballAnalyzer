@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './NotFoundPage.module.css';
 
 // TraderApe personality page for unmatched routes — a dead-end in the jungle
@@ -13,7 +14,7 @@ export function NotFoundPage() {
     // Cleanup restores the site default, not the 404 title — matches every
     // other page's cleanup-restores-parent pattern.
     return () => {
-      document.title = 'TraderApe — Grade the Trade Before You Make It';
+      document.title = SITE_TITLE;
     };
   }, []);
 
