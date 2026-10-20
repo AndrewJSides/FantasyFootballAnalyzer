@@ -999,6 +999,9 @@ function PlayerBreakdown({
           <li key={player.id} className={styles.vorRow}>
             <PosBadge pos={player.pos} />
             <span className={styles.pName}>{player.name}</span>
+            {/* NFL team identity line, matching the picked-player rows —
+                the verdict section is the one place picks lose their team. */}
+            <span className={styles.pTeam}>{player.team}</span>
             <span className={styles.vor}>{vor.toFixed(1)}</span>
           </li>
         ))}
