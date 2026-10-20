@@ -824,10 +824,13 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              // Clear means clear: drop the typed search text too, matching
-              // the league-change reset discipline (a lingering search leaves
-              // a filtered results list under empty sides).
-              onClick={() => { setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearCopyStatusTimer(); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); setQueryA(''); setQueryB(''); }}
+              // Clear means clear: drop the team picks too, matching the
+              // league-change reset discipline — a cleared builder with
+              // stale teams behind it is only half cleared. Mark Side A's
+              // team as user-touched so the isMyTeam preselect doesn't
+              // immediately re-add Andrew's team behind the user's back
+              // (same discipline as the swap button).
+              onClick={() => { touchedTeamAForRef.current = leagueKey; setTeamAId(''); setTeamBId(''); setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearCopyStatusTimer(); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); setQueryA(''); setQueryB(''); }}
             >
               Clear
             </button>
