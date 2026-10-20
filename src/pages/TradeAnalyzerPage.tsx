@@ -542,6 +542,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         setResult(null);
         setWarnings([]);
         setSkippedShared(0);
+        clearCopyStatusTimer();
+        setCopyStatus('idle');
         setFailedCopyUrl(null);
         clearTradeHashFromUrl();
         return [...prev, p as Entry];
@@ -553,6 +555,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         setResult(null);
         setWarnings([]);
         setSkippedShared(0);
+        clearCopyStatusTimer();
+        setCopyStatus('idle');
         setFailedCopyUrl(null);
         clearTradeHashFromUrl();
         return prev.filter((_, i) => i !== idx);
@@ -575,6 +579,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       setResult(null);
       setWarnings([]);
       setSkippedShared(0);
+      clearCopyStatusTimer();
+      setCopyStatus('idle');
       setFailedCopyUrl(null);
       clearTradeHashFromUrl();
     };
@@ -604,6 +610,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setResult(null);
     setWarnings([]);
     setSkippedShared(0);
+    clearCopyStatusTimer();
+    setCopyStatus('idle');
     setFailedCopyUrl(null);
     clearTradeHashFromUrl();
   };
