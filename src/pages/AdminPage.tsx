@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAuthUrl, getUserLeagues, isAuthenticated, loadLeague, saveOAuthReturn } from '@/api/yahoo';
 import type { League } from '@/types';
+import { SITE_TITLE } from '../utils/siteTitle';
 
 const ADMIN_KEY_STORAGE = 'traderape_admin_key';
 
@@ -62,11 +63,11 @@ async function adminPost(path: string, adminKey: string, body: Record<string, un
 
 export function AdminPage() {
   // Owner console gets its own tab title like the league pages; leaving
-  // restores the page title.
+  // restores the site default (matches the NotFoundPage tab-title pattern).
   useEffect(() => {
     document.title = 'Owner Console · TraderApe';
     return () => {
-      document.title = 'Owner Console · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, []);
   const [adminKey, setAdminKey] = useState<string>(() => getAdminKey() ?? '');
