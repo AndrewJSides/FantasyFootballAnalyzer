@@ -966,8 +966,9 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
           <>
             {' '}
             for a standard 10-team full-PPR league (1 QB, 2 RB, 2 WR, TE, FLEX,
-            K, DST, 6 bench). Load the league to grade the trade against your
-            league's real shape and get roster takes for each team.
+            K, DST, 6 bench). <Link to="/">Load the league</Link> to grade the
+            trade against your league's real shape and get roster takes for
+            each team.
           </>
         )}
       </p>

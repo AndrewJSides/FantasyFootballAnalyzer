@@ -581,3 +581,9 @@
   padding-top: 1rem;
   max-width: 70ch;
 }
+
+/* The manual-mode paragraph's "Load the league" link uses the same lime
+   accent as the header's guest-note link so it reads as a link, not prose. */
+.method a {
+  color: var(--lime);
+}
