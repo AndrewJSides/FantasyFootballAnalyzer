@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
@@ -562,35 +562,60 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         return prev.filter((_, i) => i !== idx);
       });
 
+  // Declared above changeTeam: the team-change handler lists it as a
+  // useCallback dependency, so it must exist before that definition runs.
+  // Stable across renders (only touches the ref), and its unmount cleanup
+  // means a stale "Copied" reset never fires after the page unmounts.
+  const copyStatusTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (copyStatusTimer.current !== null) window.clearTimeout(copyStatusTimer.current);
+    },
+    [],
+  );
+  const clearCopyStatusTimer = useCallback(() => {
+    if (copyStatusTimer.current !== null) {
+      window.clearTimeout(copyStatusTimer.current);
+      copyStatusTimer.current = null;
+    }
+  }, []);
+
   // Switching a side's team resets that side: entries came from the old team's
   // roster (or were searched in its context) and any analysis on screen is
   // stale for the new pairing. Never clears the other side. The URL hash
   // clears too — same discipline as addTo/removeFrom — so the address bar
   // never points at a trade the builder no longer holds.
-  const changeTeam = (
-    teamSetter: React.Dispatch<React.SetStateAction<string>>,
-    entriesSetter: React.Dispatch<React.SetStateAction<Entry[]>>,
-    querySetter: React.Dispatch<React.SetStateAction<string>>,
-  ) =>
-    (id: string) => {
-      teamSetter(id);
-      entriesSetter([]);
-      querySetter('');
-      setResult(null);
-      setWarnings([]);
-      setSkippedShared(0);
-      clearCopyStatusTimer();
-      setCopyStatus('idle');
-      setFailedCopyUrl(null);
-      clearTradeHashFromUrl();
-    };
+  // Wrapped in useCallback so the memoized per-side handlers below can list it
+  // as a dependency without re-creating every render: the body only calls
+  // stable state setters, the stable clearCopyStatusTimer, and module-level
+  // helpers.
+  const changeTeam = useCallback(
+    (
+      teamSetter: React.Dispatch<React.SetStateAction<string>>,
+      entriesSetter: React.Dispatch<React.SetStateAction<Entry[]>>,
+      querySetter: React.Dispatch<React.SetStateAction<string>>,
+    ) =>
+      (id: string) => {
+        teamSetter(id);
+        entriesSetter([]);
+        querySetter('');
+        setResult(null);
+        setWarnings([]);
+        setSkippedShared(0);
+        clearCopyStatusTimer();
+        setCopyStatus('idle');
+        setFailedCopyUrl(null);
+        clearTradeHashFromUrl();
+      },
+    [clearCopyStatusTimer],
+  );
   const changeTeamA = useMemo(
     () => changeTeam(setTeamAId, setSideA, setQueryA),
-    [],
+    [changeTeam],
   );
   const changeTeamB = useMemo(
     () => changeTeam(setTeamBId, setSideB, setQueryB),
-    [],
+    [changeTeam],
   );
 
   // Flip the trade around: Side A <-> Side B, including team picks and
@@ -687,20 +712,6 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const [failedCopyUrl, setFailedCopyUrl] = useState<string | null>(null);
   // The "copied"/"failed" label resets after a beat. Track the timer so a
   // second click can't let the first timer erase the fresh status, and so
-  // an unmount inside the window doesn't set state after teardown.
-  const copyStatusTimer = useRef<number | null>(null);
-  useEffect(
-    () => () => {
-      if (copyStatusTimer.current !== null) window.clearTimeout(copyStatusTimer.current);
-    },
-    [],
-  );
-  const clearCopyStatusTimer = () => {
-    if (copyStatusTimer.current !== null) {
-      window.clearTimeout(copyStatusTimer.current);
-      copyStatusTimer.current = null;
-    }
-  };
   const resultsRef = useRef<HTMLDivElement>(null);
   // A shared-link auto-run lands the visitor at the top of a populated
   // builder; once the verdict renders, bring it into view. Scoped to the
