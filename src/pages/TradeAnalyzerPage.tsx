@@ -641,6 +641,28 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     clearTradeHashFromUrl();
   };
 
+  // Clear means clear: drop the team picks too, matching the league-change
+  // reset discipline — a cleared builder with stale teams behind it is only
+  // half cleared. Mark Side A's team as user-touched so the isMyTeam
+  // preselect doesn't immediately re-add Andrew's team behind the user's
+  // back (same discipline as the swap button).
+  const clearBuilder = () => {
+    touchedTeamAForRef.current = leagueKey;
+    setTeamAId('');
+    setTeamBId('');
+    setSideA([]);
+    setSideB([]);
+    setResult(null);
+    setWarnings([]);
+    setSkippedShared(0);
+    clearCopyStatusTimer();
+    setCopyStatus('idle');
+    setFailedCopyUrl(null);
+    clearTradeHashFromUrl();
+    setQueryA('');
+    setQueryB('');
+  };
+
   const runAnalysis = (sides?: { a: Entry[]; b: Entry[] }) => {
     const entriesA = sides?.a ?? sideA;
     const entriesB = sides?.b ?? sideB;
@@ -848,13 +870,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             <button
               type="button"
               className={styles.clear}
-              // Clear means clear: drop the team picks too, matching the
-              // league-change reset discipline — a cleared builder with
-              // stale teams behind it is only half cleared. Mark Side A's
-              // team as user-touched so the isMyTeam preselect doesn't
-              // immediately re-add Andrew's team behind the user's back
-              // (same discipline as the swap button).
-              onClick={() => { touchedTeamAForRef.current = leagueKey; setTeamAId(''); setTeamBId(''); setSideA([]); setSideB([]); setResult(null); setWarnings([]); setSkippedShared(0); clearCopyStatusTimer(); setCopyStatus('idle'); setFailedCopyUrl(null); clearTradeHashFromUrl(); setQueryA(''); setQueryB(''); }}
+              onClick={clearBuilder}
             >
               Clear
             </button>
