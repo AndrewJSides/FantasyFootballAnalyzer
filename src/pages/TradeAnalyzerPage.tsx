@@ -51,6 +51,12 @@ function entryPos(e: Entry): string {
   return 'position' in e ? (e as Player).position : (e as PoolPlayer).pos;
 }
 
+// Both entry shapes carry the NFL team abbreviation, so the picked list can
+// show the same identity line the roster/search buttons do (name · team).
+function entryTeam(e: Entry): string {
+  return e.team ?? '';
+}
+
 // Two entries are the same player when their ids match, or when their names
 // match — league roster ids and consensus-pool ids come from different
 // schemes, so the id check alone can't catch cross-source duplicates.
@@ -349,6 +355,7 @@ function SideBuilder(props: {
             <li key={`${entryLabel(e)}-${i}`} className={styles.pick}>
               <PosBadge pos={entryPos(e)} />
               <span className={styles.pName}>{entryLabel(e)}</span>
+              <span className={styles.pTeam}>{entryTeam(e)}</span>
               <button
                 type="button"
                 className={styles.remove}
