@@ -528,6 +528,10 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     min={config.rounds}
                     value={config.budget}
                     onChange={e => updateConfig({ budget: Number(e.target.value) || 0 })}
+                    // Phones: one-shot numeric entries with no Enter action —
+                    // label the keyboard's action key "done" so it dismisses
+                    // the keyboard (matches the preset-name input below).
+                    enterKeyHint="done"
                   />
                 </div>
               )}
@@ -665,6 +669,9 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     min={0}
                     value={config.rosterSlots[key]}
                     onChange={e => setSlot(key, Number(e.target.value) || 0)}
+                    // "done" dismisses the keyboard — same pattern as the
+                    // budget input above.
+                    enterKeyHint="done"
                   />
                 </div>
               ))}
@@ -701,6 +708,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                         max={config.rounds}
                         value={keepersPerTeam}
                         onChange={e => setKeepersPerTeam(Number(e.target.value) || 1)}
+                        enterKeyHint="done"
                       />
                     </div>
                     {!isAuction && (
@@ -716,6 +724,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                           value={escalation}
                           onChange={e => setEscalation(Number(e.target.value) || 0)}
                           title="How many rounds earlier than last season a keeper costs (0 = same round)"
+                          enterKeyHint="done"
                         />
                       </div>
                     )}
@@ -785,6 +794,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                                         setKeeperPrice(team.id, selectedId, Number(e.target.value) || 1)
                                       }
                                       title="Keeper price charged before the auction"
+                                      enterKeyHint="done"
                                     />
                                   )}
                                 </div>
@@ -832,6 +842,9 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     onChange={e =>
                       setTeams(config.teams.map(t => (t.id === team.id ? { ...t, name: e.target.value } : t)))
                     }
+                    // Phones: no Enter action here — "done" dismisses the
+                    // keyboard (matches the numeric inputs above).
+                    enterKeyHint="done"
                   />
                   <label className={styles.meLabel}>
                     <input
