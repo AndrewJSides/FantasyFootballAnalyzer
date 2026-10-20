@@ -78,6 +78,7 @@ export function AdminPage() {
   const [pins, setPins] = useState<Record<string, string>>({});
   const [synced, setSynced] = useState<SyncedLeagueInfo[]>([]);
   const [syncedLoading, setSyncedLoading] = useState(false);
+  const [copiedPin, setCopiedPin] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +135,27 @@ export function AdminPage() {
     saveOAuthReturn({ path: '/admin' });
     const url = await getAuthUrl();
     window.location.href = url;
+  }, []);
+
+  // Copy a share PIN to the clipboard; resets the "Copied" feedback after
+  // a moment so it reads honestly again on the next click.
+  const copyPin = useCallback(async (pin: string, leagueKey: string) => {
+    try {
+      await navigator.clipboard.writeText(pin);
+    } catch {
+      // Clipboard API unavailable (old browser / non-secure context):
+      // fall back to a select-and-copy textarea.
+      const ta = document.createElement('textarea');
+      ta.value = pin;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopiedPin(leagueKey);
+    window.setTimeout(() => {
+      setCopiedPin(prev => (prev === leagueKey ? null : prev));
+    }, 2000);
   }, []);
 
   const loadYahooLeagues = useCallback(async () => {
@@ -228,7 +250,15 @@ export function AdminPage() {
                   <span>Last synced: {formatSyncedAt(l.lastSyncedAt)}</span>
                   <span style={{ marginLeft: '1rem' }}>
                     PIN: {l.pin ? (
-                      <code style={{ fontSize: '1.1rem', letterSpacing: '0.2em' }}>{l.pin}</code>
+                      <>
+                        <code style={{ fontSize: '1.1rem', letterSpacing: '0.2em' }}>{l.pin}</code>
+                        <button
+                          onClick={() => void copyPin(l.pin ?? '', l.leagueKey)}
+                          style={{ marginLeft: '0.5rem', padding: '0.25rem 0.6rem', fontSize: '0.85rem' }}
+                        >
+                          {copiedPin === l.leagueKey ? 'Copied ✓' : 'Copy'}
+                        </button>
+                      </>
                     ) : (
                       <span style={{ color: '#999' }}>none</span>
                     )}
