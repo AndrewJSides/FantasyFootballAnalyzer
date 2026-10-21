@@ -852,6 +852,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             type="button"
             className={styles.analyze}
             disabled={!canRun}
+            // The empty-builder hint below the button already says this in
+            // visible text; the title keeps the reason attached to the
+            // button itself for tooltips and assistive tech.
+            title={sideA.length === 0 && sideB.length === 0 ? 'Add players to either side first' : undefined}
             onClick={() => runAnalysis()}
           >
             Analyze trade
