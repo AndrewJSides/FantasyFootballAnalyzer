@@ -59,6 +59,16 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
     : hasGamesData
       ? 'Points scored in games started after the pickup'
       : 'Points scored from the pickup week on (lineup starts were unavailable for this league)';
+  // Same title-tooltip discipline as the Points header and DraftTable: the
+  // bare sortable headers get their why attached for tooltips and assistive
+  // tech. PAR is the one that needs it most — it's the default sort and the
+  // least obvious acronym in the table.
+  const parTitle =
+    'Points above replacement: points this pickup scored over a freely-available replacement player. The default sort — the best cross-position measure of pickup quality.';
+  const typeTitle =
+    'How the player was acquired: waiver claim or free-agent pickup.';
+  const gamesTitle = 'Games played since the pickup.';
+  const ppgTitle = 'Average points per game since the pickup.';
 
   // Flatten and consolidate waiver pickups (merge multiple pickups of same player by same team)
   const allPickups = useMemo(() => {
@@ -341,10 +351,10 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
               <th onClick={() => handleSort('player')} onKeyDown={handleSortKeyDown('player')} tabIndex={0} aria-sort={ariaSortFor('player')} className={styles.sortable} role="button" aria-label="Sort by Player">
                 Player{getSortIndicator('player')}
               </th>
-              <th onClick={() => handleSort('type')} onKeyDown={handleSortKeyDown('type')} tabIndex={0} aria-sort={ariaSortFor('type')} className={styles.sortable} role="button" aria-label="Sort by Type">
+              <th onClick={() => handleSort('type')} onKeyDown={handleSortKeyDown('type')} tabIndex={0} aria-sort={ariaSortFor('type')} className={styles.sortable} role="button" aria-label="Sort by Type" title={typeTitle}>
                 Type{getSortIndicator('type')}
               </th>
-              <th onClick={() => handleSort('par')} onKeyDown={handleSortKeyDown('par')} tabIndex={0} aria-sort={ariaSortFor('par')} className={styles.sortable} role="button" aria-label="Sort by PAR">
+              <th onClick={() => handleSort('par')} onKeyDown={handleSortKeyDown('par')} tabIndex={0} aria-sort={ariaSortFor('par')} className={styles.sortable} role="button" aria-label="Sort by PAR" title={parTitle}>
                 PAR{getSortIndicator('par')}
               </th>
               <th onClick={() => handleSort('points')} onKeyDown={handleSortKeyDown('points')} tabIndex={0} aria-sort={ariaSortFor('points')} className={styles.sortable} role="button" aria-label="Sort by Points" title={pointsTitle}>
@@ -352,10 +362,10 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
               </th>
               {hasGamesData && (
                 <>
-                  <th onClick={() => handleSort('games')} onKeyDown={handleSortKeyDown('games')} tabIndex={0} aria-sort={ariaSortFor('games')} className={styles.sortable} role="button" aria-label="Sort by Games">
+                  <th onClick={() => handleSort('games')} onKeyDown={handleSortKeyDown('games')} tabIndex={0} aria-sort={ariaSortFor('games')} className={styles.sortable} role="button" aria-label="Sort by Games" title={gamesTitle}>
                     Games{getSortIndicator('games')}
                   </th>
-                  <th onClick={() => handleSort('ppg')} onKeyDown={handleSortKeyDown('ppg')} tabIndex={0} aria-sort={ariaSortFor('ppg')} className={styles.sortable} role="button" aria-label="Sort by PPG">
+                  <th onClick={() => handleSort('ppg')} onKeyDown={handleSortKeyDown('ppg')} tabIndex={0} aria-sort={ariaSortFor('ppg')} className={styles.sortable} role="button" aria-label="Sort by PPG" title={ppgTitle}>
                     PPG{getSortIndicator('ppg')}
                   </th>
                 </>
