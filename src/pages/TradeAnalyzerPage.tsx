@@ -866,6 +866,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               className={styles.copy}
               onClick={copyTradeLink}
               aria-live="polite"
+              // The URL already carries the #trade= hash, but nothing on the
+              // button says what the link contains — keep the why attached
+              // to the button itself for tooltips and assistive tech.
+              title="Copies a link with this trade's players and teams — league context stays in the URL"
             >
               {copyStatus === 'copied' ? 'Copied ✓' : copyStatus === 'failed' ? 'Copy failed' : 'Copy trade link'}
             </button>
