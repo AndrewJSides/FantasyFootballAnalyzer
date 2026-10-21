@@ -370,6 +370,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
           <input
             className={styles.search}
             aria-label="Search players"
+            title="Search players"
             placeholder="Search players..."
             enterKeyHint="search"
             // Player names are proper nouns — keep the browser's own
