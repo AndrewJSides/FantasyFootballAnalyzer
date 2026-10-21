@@ -43,6 +43,13 @@ describe('consensusAvg', () => {
     expect(consensusAvg(p)).toBe(11); // (10+14+12+8)/4
   });
 
+  it('defaults to PPR, the app\'s default scoring', () => {
+    // No scoring arg: the PPR Sleeper variant is used — (10+14+6)/3 = 10 —
+    // matching the dropdowns that all lead with PPR.
+    const p = player({ overallRank: 10, espnAdp: 14, sleeperAdp: 12, sleeperAdpPpr: 6 });
+    expect(consensusAvg(p)).toBe(10);
+  });
+
   it('drops Yahoo in superflex, like ESPN, since its board is 1QB-only', () => {
     const qb = player({
       pos: 'QB', overallRank: 30, overallRankSF: 4,

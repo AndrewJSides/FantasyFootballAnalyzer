@@ -64,7 +64,10 @@ export function marketAdp(
 
 export function consensusAvg(
   player: PoolPlayer,
-  scoring: ScoringType = 'half_ppr',
+  // PPR is the app's default scoring (Andrew's league is full PPR, and the
+  // dropdowns all lead with it). The default only matters for callers that
+  // omit scoring.
+  scoring: ScoringType = 'ppr',
   superflex = false,
 ): number {
   // In superflex the only QB-aware signals are FantasyPros' superflex rank and
@@ -95,7 +98,8 @@ export interface PlatformRankSource {
 
 export function platformRankSource(
   platform: Platform,
-  scoring: ScoringType = 'half_ppr',
+  // PPR is the app's default scoring (matches consensusAvg's default).
+  scoring: ScoringType = 'ppr',
   superflex = false,
 ): PlatformRankSource {
   switch (platform) {
@@ -136,7 +140,8 @@ export function platformRankSource(
 export function platformDelta(
   player: PoolPlayer,
   source: PlatformRankSource,
-  scoring: ScoringType = 'half_ppr',
+  // PPR is the app's default scoring (matches consensusAvg's default).
+  scoring: ScoringType = 'ppr',
   superflex = false,
 ): number | undefined {
   const value = source.value(player);
