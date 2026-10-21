@@ -954,6 +954,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               className={styles.copyFallbackInput}
               value={failedCopyUrl}
               aria-label="Trade link — select and copy manually"
+              // The hint above already says what this is, but only for
+              // sighted readers — the title keeps the why attached to the
+              // control itself for tooltips and assistive tech, matching the
+              // Copy trade link button's title discipline above.
+              title="Trade link — select and copy manually"
               onFocus={e => e.currentTarget.select()}
               onClick={e => e.currentTarget.select()}
             />
