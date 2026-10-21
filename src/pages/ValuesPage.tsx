@@ -10,6 +10,7 @@ import { DataAsOf } from '@/components/DataAsOf';
 import { DEFAULT_ROSTER_SLOTS } from '@/hooks/useDraftRoom';
 import { useTargets } from '@/hooks/useTargets';
 import { consensusAvg, platformDelta, platformRankSource } from '@/utils/consensus';
+import { scoringLabel } from '@/utils/scoringLabel';
 import { FLEX_POSITIONS, labelForPos } from '@/data/rankingsVariants';
 import styles from './ValuesPage.module.css';
 
@@ -252,7 +253,7 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
               </select>
             </label>
           ) : (
-            <span className={styles.settingsItem}>{league.scoringType.replace('_', ' ')}</span>
+            <span className={styles.settingsItem}>{scoringLabel(league.scoringType)}</span>
           )}
           {superflex && <span className={styles.settingsItem}>Superflex</span>}
           <span className={styles.settingsSpacer} />

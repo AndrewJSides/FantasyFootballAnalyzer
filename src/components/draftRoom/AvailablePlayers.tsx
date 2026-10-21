@@ -9,6 +9,7 @@ import { inflateValue } from '@/utils/inflation';
 import { normalizeName } from '@/utils/playerNames';
 import { FLEX_POSITIONS } from '@/data/rankingsVariants';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
+import { scoringLabel } from '@/utils/scoringLabel';
 import styles from './AvailablePlayers.module.css';
 
 interface AvailablePlayersProps {
@@ -511,7 +512,7 @@ export function AvailablePlayers({
                 tabIndex={0}
                 onKeyDown={sortKeyDown('adp')}
                 aria-sort={ariaSortFor('adp')}
-                title={`Average draft position: the pick where real drafters take him. Sleeper ${scoring.replace('_', ' ')} drafts, ESPN as fallback.`}
+                title={`Average draft position: the pick where real drafters take him. Sleeper ${scoringLabel(scoring)} drafts, ESPN as fallback.`}
               >
                 ADP
               </th>

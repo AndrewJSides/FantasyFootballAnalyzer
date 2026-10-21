@@ -15,6 +15,7 @@ import { FLEX_POSITIONS, labelForPos } from '@/data/rankingsVariants';
 import { draftableSlotCount } from '@/utils/draftEngine';
 import { normalizeName } from '@/utils/playerNames';
 import { draftValues, vorConfigFor } from '@/utils/projectionValues';
+import { scoringLabel } from '@/utils/scoringLabel';
 import styles from './RankingsPage.module.css';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DST'];
@@ -322,7 +323,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               <span className={styles.settingsItem}>{valueLeague.teams} teams</span>
               {auctionView && <span className={styles.settingsItem}>${valueLeague.budget} budget</span>}
               <span className={styles.settingsItem}>{valueLeague.rounds} spots</span>
-              <span className={styles.settingsItem}>{league.scoringType.replace('_', ' ')}</span>
+              <span className={styles.settingsItem}>{scoringLabel(league.scoringType)}</span>
             </>
           )}
           <span className={styles.settingsSpacer} />
@@ -459,7 +460,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                       'SLPR ADP',
                       superflex
                         ? 'Sleeper superflex average draft position (the 2QB market where available)'
-                        : `Sleeper average draft position (${scoring.replace('_', ' ')} scoring)`,
+                        : `Sleeper average draft position (${scoringLabel(scoring)} scoring)`,
                     )}
                   </>
                 )}
