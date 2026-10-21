@@ -236,6 +236,13 @@ function SideBuilder(props: {
   const team = teams.find(t => t.id === teamId);
   const results = useMemo(() => searchPool(searchQuery), [searchQuery]);
 
+  // Add-button tooltip mirrors its aria-label: the added/on-other-side state
+  // only renders as visible text when the button is enabled, so keep the why
+  // attached to the button itself (matches the picked-player Remove button's
+  // title-mirrors-aria-label discipline).
+  const addLabel = (name: string, added: boolean, onOther: boolean) =>
+    added ? `${name} (already added)` : onOther ? `${name} (on ${otherSideName})` : `Add ${name}`;
+
   const addRosterPlayer = (p: Player) => {
     if (!entries.some(e => sameEntry(e, p))) {
       onAddSearch(p as unknown as PoolPlayer);
@@ -274,6 +281,7 @@ function SideBuilder(props: {
               const added = entries.some(e => sameEntry(e, p));
               const onOtherSide = !added && otherEntries.some(e => sameEntry(e, p));
               const unavailable = added || onOtherSide;
+              const addTip = addLabel(p.name, added, onOtherSide);
               return (
                 <li key={p.id}>
                   <button
@@ -281,7 +289,8 @@ function SideBuilder(props: {
                     className={styles.rosterBtn}
                     disabled={unavailable}
                     onClick={() => addRosterPlayer(p)}
-                    aria-label={added ? `${p.name} (already added)` : onOtherSide ? `${p.name} (on ${otherSideName})` : `Add ${p.name}`}
+                    aria-label={addTip}
+                    title={addTip}
                   >
                     <PosBadge pos={p.position} />
                     <span className={styles.pName}>{p.name}</span>
@@ -343,6 +352,7 @@ function SideBuilder(props: {
             const added = entries.some(e => sameEntry(e, p));
             const onOtherSide = !added && otherEntries.some(e => sameEntry(e, p));
             const unavailable = added || onOtherSide;
+            const addTip = addLabel(p.name, added, onOtherSide);
             return (
               <li key={p.id}>
                 <button
@@ -350,7 +360,8 @@ function SideBuilder(props: {
                   className={styles.rosterBtn}
                   disabled={unavailable}
                   onClick={() => { onAddSearch(p); onSearchChange(''); }}
-                  aria-label={added ? `${p.name} (already added)` : onOtherSide ? `${p.name} (on ${otherSideName})` : `Add ${p.name}`}
+                  aria-label={addTip}
+                  title={addTip}
                 >
                   <PosBadge pos={p.pos} />
                   <span className={styles.pName}>{p.name}</span>
