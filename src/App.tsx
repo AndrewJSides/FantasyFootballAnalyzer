@@ -860,6 +860,9 @@ function App() {
           {/* Prospective trade analyzer: works with a connected league
               (team pickers + roster-aware takes) or in manual mode for
               guests (search any player). */}
+          {/* Old short link (pre-Oct slug) — send it to the analyzer instead
+              of the 404 page. */}
+          <Route path="/trade" element={<Navigate to="/trade-analyzer" replace />} />
           <Route
             path="/trade-analyzer"
             element={
