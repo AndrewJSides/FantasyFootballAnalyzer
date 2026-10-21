@@ -32,9 +32,9 @@ interface DraftSetupProps {
 const SLOT_KEYS: Array<keyof RosterSlots> = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPERFLEX', 'K', 'DST', 'BENCH'];
 
 const SCORING_OPTIONS: Array<{ value: ScoringType; label: string }> = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'half_ppr', label: 'Half PPR' },
   { value: 'ppr', label: 'Full PPR' },
+  { value: 'half_ppr', label: 'Half PPR' },
+  { value: 'standard', label: 'Standard' },
 ];
 
 const LEAGUE_TYPE_OPTIONS: Array<{ value: 'redraft' | 'keeper' | 'dynasty'; label: string; title: string }> = [

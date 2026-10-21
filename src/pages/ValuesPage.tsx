@@ -247,9 +247,9 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
                 onChange={e => { onUpdateGuest!({ scoringType: e.target.value as GuestScoring }); }}
                 title="Scoring format. Changes each site's ADP and the consensus."
               >
-                <option value="standard">Standard</option>
-                <option value="half_ppr">Half PPR</option>
                 <option value="ppr">PPR</option>
+                <option value="half_ppr">Half PPR</option>
+                <option value="standard">Standard</option>
               </select>
             </label>
           ) : (
