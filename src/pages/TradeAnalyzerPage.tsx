@@ -260,6 +260,10 @@ function SideBuilder(props: {
             className={styles.select}
             value={teamId}
             onChange={e => onTeamChange(e.target.value)}
+            // The visible label just says "Team" — keep the which-side why
+            // attached to the control itself for tooltips and assistive tech,
+            // matching the rest of the builder's title-mirrors-label discipline.
+            title={`${title}: pick the team giving this side`}
           >
             <option value="">— pick a team —</option>
             {teams.map(t => (
@@ -314,6 +318,10 @@ function SideBuilder(props: {
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Type a name…"
+          // Title mirrors the visible label, like the team select above —
+          // the why stays attached to the field for tooltips and
+          // assistive tech.
+          title="Or search any player"
           // Player names are proper nouns — stop phone keyboards from
           // "correcting" them (e.g. Hurts -> Hurts' fine, but more often the
           // spacebar replaces the name mid-typing and breaks the search).
