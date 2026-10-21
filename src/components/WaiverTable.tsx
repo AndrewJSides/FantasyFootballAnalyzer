@@ -69,6 +69,9 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
     'How the player was acquired: waiver claim or free-agent pickup.';
   const gamesTitle = 'Games played since the pickup.';
   const ppgTitle = 'Average points per game since the pickup.';
+  const weekTitle = 'Week the pickup was made.';
+  const teamTitle = 'Fantasy team that made the pickup.';
+  const playerTitle = 'Player picked up.';
 
   // Flatten and consolidate waiver pickups (merge multiple pickups of same player by same team)
   const allPickups = useMemo(() => {
@@ -342,13 +345,13 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
         <table className={`table ${styles.table}`}>
           <thead>
             <tr>
-              <th onClick={() => handleSort('week')} onKeyDown={handleSortKeyDown('week')} tabIndex={0} aria-sort={ariaSortFor('week')} className={styles.sortable} role="button" aria-label="Sort by Week">
+              <th onClick={() => handleSort('week')} onKeyDown={handleSortKeyDown('week')} tabIndex={0} aria-sort={ariaSortFor('week')} className={styles.sortable} role="button" aria-label="Sort by Week" title={weekTitle}>
                 Week{getSortIndicator('week')}
               </th>
-              <th onClick={() => handleSort('team')} onKeyDown={handleSortKeyDown('team')} tabIndex={0} aria-sort={ariaSortFor('team')} className={styles.sortable} role="button" aria-label="Sort by Team">
+              <th onClick={() => handleSort('team')} onKeyDown={handleSortKeyDown('team')} tabIndex={0} aria-sort={ariaSortFor('team')} className={styles.sortable} role="button" aria-label="Sort by Team" title={teamTitle}>
                 Fantasy Team{getSortIndicator('team')}
               </th>
-              <th onClick={() => handleSort('player')} onKeyDown={handleSortKeyDown('player')} tabIndex={0} aria-sort={ariaSortFor('player')} className={styles.sortable} role="button" aria-label="Sort by Player">
+              <th onClick={() => handleSort('player')} onKeyDown={handleSortKeyDown('player')} tabIndex={0} aria-sort={ariaSortFor('player')} className={styles.sortable} role="button" aria-label="Sort by Player" title={playerTitle}>
                 Player{getSortIndicator('player')}
               </th>
               <th onClick={() => handleSort('type')} onKeyDown={handleSortKeyDown('type')} tabIndex={0} aria-sort={ariaSortFor('type')} className={styles.sortable} role="button" aria-label="Sort by Type" title={typeTitle}>
