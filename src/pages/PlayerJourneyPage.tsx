@@ -355,6 +355,7 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}
               aria-label="Search players"
+              title="Search players"
             />
           </div>
           <select
@@ -362,6 +363,7 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
             onChange={(e) => setPositionFilter(e.target.value)}
             className={styles.positionFilter}
             aria-label="Filter by position"
+            title="Filter by position"
           >
             <option value="all">All Positions</option>
             {positions.map(pos => (
