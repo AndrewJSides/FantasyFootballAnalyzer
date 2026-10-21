@@ -215,6 +215,11 @@ function matchPoolByName(name: string): PoolPlayer | null {
 function SideBuilder(props: {
   title: string;
   entries: Entry[];
+  // The other side's picks: a player already on the other side can't be added
+  // here — trading him against himself grades nothing real. The roster and
+  // search rows show the other-side state the same way they show "added".
+  otherEntries: Entry[];
+  otherSideName: string;
   onRemove: (idx: number) => void;
   teams: Team[];
   teamId: string;
@@ -225,8 +230,8 @@ function SideBuilder(props: {
   leagueLoaded: boolean;
 }) {
   const {
-    title, entries, onRemove, teams, teamId, onTeamChange,
-    searchQuery, onSearchChange, onAddSearch, leagueLoaded,
+    title, entries, otherEntries, otherSideName, onRemove, teams, teamId,
+    onTeamChange, searchQuery, onSearchChange, onAddSearch, leagueLoaded,
   } = props;
   const team = teams.find(t => t.id === teamId);
   const results = useMemo(() => searchPool(searchQuery), [searchQuery]);
@@ -264,21 +269,27 @@ function SideBuilder(props: {
             {(team.roster ?? []).map(p => {
               // Re-tapping an already-added player silently did nothing; now
               // the button shows its added state and won't accept the tap.
+              // Same for a player sitting on the other side: he can't be
+              // traded against himself, so the row names where he is.
               const added = entries.some(e => sameEntry(e, p));
+              const onOtherSide = !added && otherEntries.some(e => sameEntry(e, p));
+              const unavailable = added || onOtherSide;
               return (
                 <li key={p.id}>
                   <button
                     type="button"
                     className={styles.rosterBtn}
-                    disabled={added}
+                    disabled={unavailable}
                     onClick={() => addRosterPlayer(p)}
-                    aria-label={added ? `${p.name} (already added)` : `Add ${p.name}`}
+                    aria-label={added ? `${p.name} (already added)` : onOtherSide ? `${p.name} (on ${otherSideName})` : `Add ${p.name}`}
                   >
                     <PosBadge pos={p.position} />
                     <span className={styles.pName}>{p.name}</span>
                     {added
                       ? <span className={styles.pTeam}>✓ added</span>
-                      : <span className={styles.pTeam}>{p.team}</span>}
+                      : onOtherSide
+                        ? <span className={styles.pTeam}>on {otherSideName}</span>
+                        : <span className={styles.pTeam}>{p.team}</span>}
                   </button>
                 </li>
               );
@@ -327,21 +338,27 @@ function SideBuilder(props: {
           {results.map(p => {
             // Like the roster buttons above, show the added state instead of
             // silently no-op'ing when the search hit is already on this side.
+            // Same for hits already on the other side — they can't be traded
+            // against themselves.
             const added = entries.some(e => sameEntry(e, p));
+            const onOtherSide = !added && otherEntries.some(e => sameEntry(e, p));
+            const unavailable = added || onOtherSide;
             return (
               <li key={p.id}>
                 <button
                   type="button"
                   className={styles.rosterBtn}
-                  disabled={added}
+                  disabled={unavailable}
                   onClick={() => { onAddSearch(p); onSearchChange(''); }}
-                  aria-label={added ? `${p.name} (already added)` : `Add ${p.name}`}
+                  aria-label={added ? `${p.name} (already added)` : onOtherSide ? `${p.name} (on ${otherSideName})` : `Add ${p.name}`}
                 >
                   <PosBadge pos={p.pos} />
                   <span className={styles.pName}>{p.name}</span>
                   {added
                     ? <span className={styles.pTeam}>✓ added</span>
-                    : <span className={styles.pTeam}>{p.team} · {p.pos}</span>}
+                    : onOtherSide
+                      ? <span className={styles.pTeam}>on {otherSideName}</span>
+                      : <span className={styles.pTeam}>{p.team} · {p.pos}</span>}
                 </button>
               </li>
             );
@@ -476,8 +493,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     // the count in state — runAnalysis folds it back into the warnings on
     // every run (manual and auto) instead of wiping it on first render.
     let skipped = 0;
+    // One seen-set across both sides: a hand-made link naming the same player
+    // on both sides resolves him once (Side A wins the tie), matching the
+    // builder's cross-side guard — a trade can't grade a player against
+    // himself no matter how the sides were populated.
+    const seen = new Set<string>();
     const resolveSide = (names: string[]): Entry[] => {
-      const seen = new Set<string>();
       const out: Entry[] = [];
       for (const name of names) {
         const p = matchPoolByName(name);
@@ -535,10 +556,18 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // Editing a side (add/remove a player) invalidates the verdict on screen:
   // it was priced for the previous entries, so clear the stale result,
   // warnings, and URL hash — same discipline as changeTeam below.
-  const addTo = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
+  // otherEntries is the opposite side's picks at render time: a player
+  // already there can't be added here, so a trade can never grade him
+  // against himself. The roster/search buttons already disable for this;
+  // the guard here covers the Enter-key path, which bypasses the buttons.
+  const addTo = (
+    setter: React.Dispatch<React.SetStateAction<Entry[]>>,
+    otherEntries: Entry[],
+  ) =>
     (p: PoolPlayer) =>
       setter(prev => {
         if (prev.some(e => sameEntry(e, p))) return prev;
+        if (otherEntries.some(e => sameEntry(e, p))) return prev;
         setResult(null);
         setWarnings([]);
         setSkippedShared(0);
@@ -810,13 +839,15 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           <SideBuilder
             title="Side A gives"
             entries={sideA}
+            otherEntries={sideB}
+            otherSideName="Side B"
             onRemove={removeFrom(setSideA)}
             teams={teams}
             teamId={teamAId}
             onTeamChange={id => { touchedTeamAForRef.current = leagueKey; changeTeamA(id); }}
             searchQuery={queryA}
             onSearchChange={setQueryA}
-            onAddSearch={addTo(setSideA)}
+            onAddSearch={addTo(setSideA, sideB)}
             leagueLoaded={leagueLoaded}
           />
           <button
@@ -836,13 +867,15 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           <SideBuilder
             title="Side B gives"
             entries={sideB}
+            otherEntries={sideA}
+            otherSideName="Side A"
             onRemove={removeFrom(setSideB)}
             teams={teams}
             teamId={teamBId}
             onTeamChange={changeTeamB}
             searchQuery={queryB}
             onSearchChange={setQueryB}
-            onAddSearch={addTo(setSideB)}
+            onAddSearch={addTo(setSideB, sideA)}
             leagueLoaded={leagueLoaded}
           />
         </div>
