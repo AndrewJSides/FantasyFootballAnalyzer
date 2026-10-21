@@ -879,6 +879,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               type="button"
               className={styles.clear}
               onClick={clearBuilder}
+              // The last of the action buttons to get one: Swap, Analyze, and
+              // Copy trade link all carry title tooltips — keep the why
+              // attached to this one too, for tooltips and assistive tech.
+              title="Clear all players, teams, and results"
             >
               Clear
             </button>
