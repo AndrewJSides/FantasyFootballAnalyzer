@@ -784,7 +784,7 @@ export function DraftTable({
           <thead>
             <tr>
               {isAuction ? (
-                <th onClick={() => handleSort('cost')} onKeyDown={handleSortKeyDown('cost')} tabIndex={0} aria-sort={ariaSortFor('cost')} className={styles.sortable} role="button" aria-label="Sort by Cost">
+                <th onClick={() => handleSort('cost')} onKeyDown={handleSortKeyDown('cost')} tabIndex={0} aria-sort={ariaSortFor('cost')} className={styles.sortable} role="button" aria-label="Sort by Cost" title="Price paid at auction, in league dollars — the number the value column weighs against market price.">
                   Cost{getSortIndicator('cost')}
                 </th>
               ) : (
@@ -807,7 +807,7 @@ export function DraftTable({
                 Team{getSortIndicator('team')}
               </th>
               {hasResults ? (
-                <th onClick={() => handleSort('points')} onKeyDown={handleSortKeyDown('points')} tabIndex={0} aria-sort={ariaSortFor('points')} className={`${styles.sortable} ${styles.colPts}`} role="button" aria-label="Sort by Points">
+                <th onClick={() => handleSort('points')} onKeyDown={handleSortKeyDown('points')} tabIndex={0} aria-sort={ariaSortFor('points')} className={`${styles.sortable} ${styles.colPts}`} role="button" aria-label="Sort by Points" title="Points actually scored so far this season under this league's scoring. A result, not a projection.">
                   Pts{getSortIndicator('points')}
                 </th>
               ) : (
