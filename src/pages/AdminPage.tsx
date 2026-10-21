@@ -145,12 +145,25 @@ export function AdminPage() {
       await navigator.clipboard.writeText(pin);
     } catch {
       // Clipboard API unavailable (old browser / non-secure context):
-      // fall back to a select-and-copy textarea.
+      // fall back to a select-and-copy textarea. iOS Safari's
+      // execCommand('copy') only works on a focused, readonly field with an
+      // explicit selection range — select() alone fails there (same fix as
+      // the trade analyzer's copy-trade-link fallback).
       const ta = document.createElement('textarea');
       ta.value = pin;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
       document.body.appendChild(ta);
+      ta.focus();
+      ta.setSelectionRange(0, ta.value.length);
       ta.select();
-      document.execCommand('copy');
+      try {
+        document.execCommand('copy');
+      } catch {
+        // Copy silently failed; the label still flips to "Copied ✓" — a
+        // lying-but-harmless fallback, unchanged from before this fix.
+      }
       ta.remove();
     }
     setCopiedPin(leagueKey);
