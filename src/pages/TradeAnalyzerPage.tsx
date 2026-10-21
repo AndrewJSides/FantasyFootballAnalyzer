@@ -378,6 +378,7 @@ function SideBuilder(props: {
                 className={styles.remove}
                 onClick={() => onRemove(i)}
                 aria-label={`Remove ${entryLabel(e)}`}
+                title={`Remove ${entryLabel(e)}`}
               >
                 ✕
               </button>
