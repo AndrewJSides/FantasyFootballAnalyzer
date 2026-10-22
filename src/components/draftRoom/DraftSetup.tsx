@@ -868,6 +868,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                       onClick={() => removeTeam(i)}
                       disabled={config.teams.length <= 2}
                       aria-label={`Remove ${team.name}`}
+                      title={`Remove ${team.name}`}
                     >
                       ✕
                     </button>
