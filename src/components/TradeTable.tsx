@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import type { Trade, Team } from '@/types';
 import { NflTeamLabel } from './NflTeamLabel';
 import { PosBadge } from './PosBadge';
@@ -57,6 +58,33 @@ export function TradeTable({ trades, teams }: TradeTableProps) {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  // Deep-link a completed trade into the Trade Analyzer: its #trade= payload
+  // is the same shape the analyzer decodes ({a:[names],b:[names],ta,tb} —
+  // see TradeAnalyzerPage), so the link lands on the verdict, repriced for
+  // the league when the league context is in the URL. Only offered for
+  // two-team trades where every asset changing hands is a player: the
+  // analyzer prices players, not draft picks or FAAB, so a mixed trade
+  // would grade silently incomplete. The search string is preserved so the
+  // league context (?league= / ?pin=) survives the jump.
+  const analyzerUrl = (trade: Trade): string | null => {
+    if (trade.teams.length !== 2) return null;
+    const [sideA, sideB] = trade.teams;
+    const hasNonPlayerAssets = (side: (typeof trade.teams)[number]) =>
+      (side.draftPicksReceived?.length ?? 0) > 0 ||
+      (side.draftPicksSent?.length ?? 0) > 0 ||
+      (side.faabReceived ?? 0) > 0 ||
+      (side.faabSent ?? 0) > 0;
+    if (hasNonPlayerAssets(sideA) || hasNonPlayerAssets(sideB)) return null;
+    if (sideA.playersSent.length === 0 && sideB.playersSent.length === 0) return null;
+    const payload = {
+      a: sideA.playersSent.map(p => p.name),
+      b: sideB.playersSent.map(p => p.name),
+      ta: sideA.teamId,
+      tb: sideB.teamId,
+    };
+    return `/trade-analyzer${window.location.search}#trade=${encodeURIComponent(JSON.stringify(payload))}`;
   };
 
   // Grade thresholds adjusted for PAR (smaller values than raw points)
@@ -130,6 +158,18 @@ export function TradeTable({ trades, teams }: TradeTableProps) {
                   <span className={styles.marginTag} title={trade.verdictNote}>
                     no winner: picks/FAAB not valued
                   </span>
+                )}
+                {analyzerUrl(trade) && (
+                  <Link
+                    to={analyzerUrl(trade)!}
+                    className={styles.analyzerLink}
+                    // The link text is short header text; the title keeps the
+                    // why attached for tooltips and assistive tech, matching
+                    // the header's title discipline elsewhere.
+                    title="Re-grade this trade in the Trade Analyzer"
+                  >
+                    Re-grade in analyzer →
+                  </Link>
                 )}
               </div>
 

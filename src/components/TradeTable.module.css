@@ -466,3 +466,19 @@
   text-transform: uppercase;
   color: var(--bone-dim);
 }
+
+/* Deep link that opens a past trade in the Trade Analyzer, repriced for the
+   league. Reads as a quiet tag next to the margin note so the header stays
+   scannable; lime signals it's the interactive element in the row. */
+.analyzerLink {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lime);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.analyzerLink:hover {
+  color: var(--bone);
+}
