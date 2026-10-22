@@ -168,6 +168,13 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
                   onClick={() => handlePick(option)}
                   role="menuitem"
                   aria-current={isCurrent || undefined}
+                  // The button shows the year and its season status; the title
+                  // keeps the what-happens-on-click attached to the control
+                  // itself for tooltips and assistive tech, matching the
+                  // trigger and draft-prep option's title discipline.
+                  title={isCurrent
+                    ? `You're already viewing the ${option.year} season`
+                    : `Load the ${option.year} season (${STATUS_LABEL[option.status]})`}
                 >
                   <span className={styles.optionYear}>{option.year}</span>
                   <span className={`${styles.optionStatus} ${styles[`status_${option.status}`]}`}>
