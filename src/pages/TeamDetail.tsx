@@ -147,7 +147,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
 
   return (
     <div className={styles.detail}>
-      <button type="button" className={styles.backBtn} onClick={onBack}>
+      <button type="button" className={styles.backBtn} onClick={onBack} title="Back to all teams">
         ← All Teams
       </button>
 
