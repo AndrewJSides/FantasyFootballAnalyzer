@@ -46,7 +46,7 @@ export function HomePage({ onLoadPin, isLoading, error, progress }: HomePageProp
             <>
               <p className={styles.pinLabel}>Couldn't load the league.</p>
               <div className={styles.pinRow}>
-                <button type="button" onClick={retry} className={styles.pinButton}>
+                <button type="button" onClick={retry} className={styles.pinButton} title="Try again">
                   Try again
                 </button>
               </div>
