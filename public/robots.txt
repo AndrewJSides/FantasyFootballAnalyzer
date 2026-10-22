@@ -2,4 +2,8 @@
 User-agent: *
 Allow: /
 
+# The owner console is key-gated and not part of the public site — keep it
+# out of the index even if a crawler discovers the path.
+Disallow: /admin
+
 Sitemap: https://www.traderape.me/sitemap.xml
