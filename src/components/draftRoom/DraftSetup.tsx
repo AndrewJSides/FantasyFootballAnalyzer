@@ -525,6 +525,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     inputMode="numeric"
                     className={styles.input}
                     aria-label="Budget per team"
+                    title="Budget per team"
                     min={config.rounds}
                     value={config.budget}
                     onChange={e => updateConfig({ budget: Number(e.target.value) || 0 })}
@@ -666,6 +667,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     inputMode="numeric"
                     className={styles.input}
                     aria-label={`${key} roster slots`}
+                    title={`${key} roster slots`}
                     min={0}
                     value={config.rosterSlots[key]}
                     onChange={e => setSlot(key, Number(e.target.value) || 0)}
@@ -704,6 +706,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                         inputMode="numeric"
                         className={styles.input}
                         aria-label="Keepers per team"
+                        title="Keepers per team"
                         min={1}
                         max={config.rounds}
                         value={keepersPerTeam}
@@ -761,6 +764,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                                   <select
                                     className={styles.keeperSelect}
                                     aria-label={`Keeper ${i + 1} for ${team.name}`}
+                                    title={`Keeper ${i + 1} for ${team.name}`}
                                     value={selectedId}
                                     onChange={e => setTeamKeeperAt(team.id, i, e.target.value)}
                                   >
@@ -831,6 +835,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                   <input
                     className={styles.input}
                     aria-label={`Team ${i + 1} name`}
+                    title={`Team ${i + 1} name`}
                     // Team names are typed once per draft — the browser's
                     // saved-form dropdown over them is noise (matches the
                     // autoComplete=off on the other free-text name inputs).
@@ -892,6 +897,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
           <input
             className={styles.input}
             aria-label="Preset name"
+            title="Preset name"
             placeholder="Name this setup"
             // Same discipline as the team-name inputs above: preset names are
             // one-off labels, and the browser's saved-form dropdown over the
