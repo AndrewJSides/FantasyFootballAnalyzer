@@ -128,6 +128,10 @@ export function DraftSheet({
             type="button"
             className={styles.snapBtn}
             aria-label={snap === 'full' ? 'Shrink panel' : 'Expand panel'}
+            // The icon (⌄/⌃) alone says nothing on hover — mirror the
+            // aria-label as a title tooltip, matching the title discipline
+            // across the draft-room controls.
+            title={snap === 'full' ? 'Shrink panel' : 'Expand panel'}
             aria-expanded={snap !== 'peek'}
             onClick={() => setSnap(snap === 'peek' ? 'half' : snap === 'half' ? 'full' : 'half')}
           >
