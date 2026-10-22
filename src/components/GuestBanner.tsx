@@ -25,6 +25,11 @@ export function GuestBanner({ onConnect }: GuestBannerProps) {
           type="button"
           className={styles.connect}
           onClick={() => { onConnect(); }}
+          // The label says what it is — the title says what happens on
+          // click (clears guest mode and lands on the home loader, which
+          // auto-loads the single league), matching the title discipline.
+          title="Leave guest mode and load the league with real team names, grades, trades, and history"
+          aria-label="Load the league"
         >
           Load the league
         </button>
