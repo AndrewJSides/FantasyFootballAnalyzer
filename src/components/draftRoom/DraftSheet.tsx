@@ -119,6 +119,11 @@ export function DraftSheet({
               }`}
               aria-pressed={active === tab.key}
               aria-label={tab.ariaLabel}
+              // The gear tab's label is a glyph — mirror the aria-label as a
+              // hover title so it says its name on desktop too, matching the
+              // title discipline on the snap button and the rest of the
+              // draft-room controls. Worded tabs fall back to their label.
+              title={tab.ariaLabel ?? tab.label}
               onClick={() => selectTab(tab.key)}
             >
               {tab.label}
