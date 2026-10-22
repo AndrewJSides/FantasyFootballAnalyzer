@@ -384,8 +384,11 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
               {filteredPlayers.slice(0, visibleCount).map(p => (
                 <button
                   key={p.player.id}
+                  type="button"
                   className={`${styles.playerItem} ${selectedPlayerId === p.player.id ? styles.selected : ''}`}
                   onClick={() => setSelectedPlayerId(p.player.id)}
+                  title={`Show ${p.player.name}'s journey`}
+                  aria-label={`Show ${p.player.name}'s journey`}
                 >
                   <div className={styles.playerInfo}>
                     <span className={styles.playerName}>{p.player.name}</span>
