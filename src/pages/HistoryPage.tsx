@@ -308,6 +308,7 @@ export function HistoryPage({ league }: HistoryPageProps) {
                   onChange={(e) => setSelectedTeamId(e.target.value)}
                   className={styles.teamDropdown}
                   aria-label="Select team to view rivalries"
+                  title="Select team to view rivalries"
                 >
                   <option value="">Select a team...</option>
                   {teamOptions.map(team => (
@@ -341,6 +342,7 @@ export function HistoryPage({ league }: HistoryPageProps) {
                     type="button"
                     className="btn-secondary"
                     onClick={() => setRivalriesAttempt(n => n + 1)}
+                    title="Retry loading the head-to-head records"
                   >
                     Retry
                   </button>
