@@ -431,6 +431,9 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
           className={styles.unstartedToggle}
           onClick={() => setShowUnstarted(v => !v)}
           aria-expanded={showUnstarted}
+          title={showUnstarted
+            ? 'Hide pickups by players who have never started a game.'
+            : 'Show pickups by players who have never started a game.'}
         >
           {showUnstarted
             ? `Hide ${unstartedCount} never started`
