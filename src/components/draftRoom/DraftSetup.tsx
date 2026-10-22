@@ -856,10 +856,10 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     Me
                   </label>
                   <div className={styles.teamButtons}>
-                    <button type="button" className={styles.iconBtn} onClick={() => moveTeam(i, -1)} aria-label={`Move ${team.name} up`}>
+                    <button type="button" className={styles.iconBtn} onClick={() => moveTeam(i, -1)} aria-label={`Move ${team.name} up`} title={`Move ${team.name} up`}>
                       ▲
                     </button>
-                    <button type="button" className={styles.iconBtn} onClick={() => moveTeam(i, 1)} aria-label={`Move ${team.name} down`}>
+                    <button type="button" className={styles.iconBtn} onClick={() => moveTeam(i, 1)} aria-label={`Move ${team.name} down`} title={`Move ${team.name} down`}>
                       ▼
                     </button>
                     <button
