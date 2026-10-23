@@ -80,6 +80,11 @@ export function AdminPage() {
   const [synced, setSynced] = useState<SyncedLeagueInfo[]>([]);
   const [syncedLoading, setSyncedLoading] = useState(false);
   const [copiedPin, setCopiedPin] = useState<string | null>(null);
+  // Auto-copy can fail silently (old browser / non-secure context / mobile
+  // webview). When it does, the PIN shows as selectable text next to the
+  // button instead of a dead "Copied" label — same fallback discipline as
+  // the trade analyzer's copy-trade-link button.
+  const [copyFailedFor, setCopyFailedFor] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,14 +146,18 @@ export function AdminPage() {
   // Copy a share PIN to the clipboard; resets the "Copied" feedback after
   // a moment so it reads honestly again on the next click.
   const copyPin = useCallback(async (pin: string, leagueKey: string) => {
+    let ok = false;
     try {
       await navigator.clipboard.writeText(pin);
+      ok = true;
     } catch {
       // Clipboard API unavailable (old browser / non-secure context):
       // fall back to a select-and-copy textarea. iOS Safari's
       // execCommand('copy') only works on a focused, readonly field with an
       // explicit selection range — select() alone fails there (same fix as
-      // the trade analyzer's copy-trade-link fallback).
+      // the trade analyzer's copy-trade-link fallback). execCommand returns
+      // false when the copy silently fails, so only confirm on true success —
+      // a failed copy shows the PIN as selectable text instead of lying.
       const ta = document.createElement('textarea');
       ta.value = pin;
       ta.style.position = 'fixed';
@@ -159,17 +168,22 @@ export function AdminPage() {
       ta.setSelectionRange(0, ta.value.length);
       ta.select();
       try {
-        document.execCommand('copy');
+        ok = document.execCommand('copy');
       } catch {
-        // Copy silently failed; the label still flips to "Copied ✓" — a
-        // lying-but-harmless fallback, unchanged from before this fix.
+        ok = false;
       }
       ta.remove();
     }
-    setCopiedPin(leagueKey);
-    window.setTimeout(() => {
-      setCopiedPin(prev => (prev === leagueKey ? null : prev));
-    }, 2000);
+    if (ok) {
+      setCopyFailedFor(prev => (prev === leagueKey ? null : prev));
+      setCopiedPin(leagueKey);
+      window.setTimeout(() => {
+        setCopiedPin(prev => (prev === leagueKey ? null : prev));
+      }, 2000);
+    } else {
+      setCopiedPin(null);
+      setCopyFailedFor(leagueKey);
+    }
   }, []);
 
   const loadYahooLeagues = useCallback(async () => {
@@ -279,8 +293,27 @@ export function AdminPage() {
                           title="Copy this league's share PIN to the clipboard"
                           style={{ marginLeft: '0.5rem', padding: '0.25rem 0.6rem', fontSize: '0.85rem' }}
                         >
-                          {copiedPin === l.leagueKey ? 'Copied ✓' : 'Copy'}
+                          {copiedPin === l.leagueKey
+                            ? 'Copied ✓'
+                            : copyFailedFor === l.leagueKey
+                              ? 'Copy failed'
+                              : 'Copy'}
                         </button>
+                        {copyFailedFor === l.leagueKey && (
+                          <input
+                            type="text"
+                            readOnly
+                            value={l.pin}
+                            aria-label={`Share PIN for ${l.name} — auto-copy failed, select and copy manually`}
+                            // The button already says copy failed in visible
+                            // text; the title keeps the why attached to the
+                            // control itself for tooltips and assistive tech.
+                            title="Auto-copy isn't available here — select the PIN and copy it by hand"
+                            onFocus={e => e.currentTarget.select()}
+                            onClick={e => e.currentTarget.select()}
+                            style={{ marginLeft: '0.5rem', fontSize: '1rem', letterSpacing: '0.2em', width: '8em' }}
+                          />
+                        )}
                       </>
                     ) : (
                       <span style={{ color: '#999' }}>none</span>
