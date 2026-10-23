@@ -42,6 +42,7 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
           type="button"
           className={styles.submit}
           disabled={!selected}
+          title={selected ? `Nominate ${selected.name} for bidding` : 'Nominate the selected player for bidding'}
           onClick={() => {
             if (selected) {
               sim.nominate(selected);
@@ -135,6 +136,7 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
             type="button"
             className={styles.submit}
             disabled={iAmHigh || myCap < nextBid}
+            title={`Place a $${nextBid} bid on ${player.name}`}
             onClick={() => {
               sim.placeBid(nextBid);
             }}
@@ -145,6 +147,7 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
             type="button"
             className={styles.submit}
             disabled={iAmHigh || myCap < highBid + 5}
+            title={`Raise the bid to $${highBid + 5} on ${player.name}`}
             onClick={() => {
               sim.placeBid(highBid + 5);
             }}
@@ -203,6 +206,7 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
         <button
           type="button"
           className={styles.submit}
+          title="Submit your max bid and let the AI teams bid against you"
           onClick={() => submit(Math.min(Number(maxBid) || 0, myCap))}
         >
           Run Bidding

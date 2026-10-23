@@ -31,10 +31,10 @@ interface DraftSetupProps {
 
 const SLOT_KEYS: Array<keyof RosterSlots> = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPERFLEX', 'K', 'DST', 'BENCH'];
 
-const SCORING_OPTIONS: Array<{ value: ScoringType; label: string }> = [
-  { value: 'ppr', label: 'Full PPR' },
-  { value: 'half_ppr', label: 'Half PPR' },
-  { value: 'standard', label: 'Standard' },
+const SCORING_OPTIONS: Array<{ value: ScoringType; label: string; title: string }> = [
+  { value: 'ppr', label: 'Full PPR', title: '1 point per reception' },
+  { value: 'half_ppr', label: 'Half PPR', title: 'Half a point per reception' },
+  { value: 'standard', label: 'Standard', title: 'No points per reception' },
 ];
 
 const LEAGUE_TYPE_OPTIONS: Array<{ value: 'redraft' | 'keeper' | 'dynasty'; label: string; title: string }> = [
@@ -92,6 +92,7 @@ function CollapsibleSection({
           type="button"
           className={styles.sectionToggle}
           aria-expanded={open}
+          title={open ? `Collapse the ${title} section` : `Expand the ${title} section`}
           onClick={() => setOpen(o => !o)}
         >
           <span className={styles.sectionName}>
@@ -636,6 +637,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     key={opt.value}
                     type="button"
                     className={config.scoring === opt.value ? styles.toggleOn : styles.toggleOff}
+                    title={opt.title}
                     onClick={() => updateConfig({ scoring: opt.value })}
                   >
                     {opt.label}
@@ -892,7 +894,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                 </div>
               ))}
             </div>
-            <button type="button" className={styles.btn} onClick={addTeam}>
+            <button type="button" className={styles.btn} onClick={addTeam} title="Add another team to the draft">
               + Add Team
             </button>
           </CollapsibleSection>
@@ -928,7 +930,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
               if (e.key === 'Enter') saveCurrentPreset();
             }}
           />
-          <button type="button" className={styles.btn} onClick={saveCurrentPreset} disabled={!presetName.trim()}>
+          <button type="button" className={styles.btn} onClick={saveCurrentPreset} disabled={!presetName.trim()} title="Save the current setup as a named preset">
             Save
           </button>
         </div>
@@ -938,7 +940,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
               <div key={preset.name} className={styles.teamRow}>
                 <span className={styles.archiveLabel}>{preset.name}</span>
                 <div className={styles.teamButtons}>
-                  <button type="button" className={styles.btn} onClick={() => applyPreset(preset)}>
+                  <button type="button" className={styles.btn} onClick={() => applyPreset(preset)} title={`Load the ${preset.name} preset`}>
                     Load
                   </button>
                   <button
@@ -1026,6 +1028,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
           className={styles.btnPrimary}
           onClick={start}
           disabled={startBlocked !== null}
+          title={`Start the ${config.mode === 'mock' ? 'mock draft' : 'draft'} with this setup`}
         >
           Start {config.mode === 'mock' ? 'Mock ' : ''}Draft
         </button>

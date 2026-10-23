@@ -95,7 +95,7 @@ export function DraftRecap({ room }: DraftRecapProps) {
                   </span>
                 )}
               </div>
-              <button type="button" className={styles.btn} onClick={copyRoster}>
+              <button type="button" className={styles.btn} onClick={copyRoster} title="Copy your roster as plain text">
                 {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy Roster'}
               </button>
             </div>
