@@ -116,6 +116,14 @@ export class RouteErrorBoundary extends Component<Props, State> {
             onClick={() =>
               chunkFailure ? window.location.reload() : this.setState({ hasError: false, error: null, diagnosis: null })
             }
+            // The label says what it is, the title says what happens on click —
+            // matching the title discipline the rest of the app carries.
+            aria-label={chunkFailure ? 'Reload the page' : 'Try loading this page again'}
+            title={
+              chunkFailure
+                ? 'Reload the page to pick up the latest version of TraderApe'
+                : 'Dismiss this error and try loading the page again'
+            }
             style={{
               padding: '0.7rem 1.4rem',
               border: '2px solid var(--lime)',
