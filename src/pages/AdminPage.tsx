@@ -269,6 +269,7 @@ export function AdminPage() {
                         <code style={{ fontSize: '1.1rem', letterSpacing: '0.2em' }}>{l.pin}</code>
                         <button
                           onClick={() => void copyPin(l.pin ?? '', l.leagueKey)}
+                          title="Copy this league's share PIN to the clipboard"
                           style={{ marginLeft: '0.5rem', padding: '0.25rem 0.6rem', fontSize: '0.85rem' }}
                         >
                           {copiedPin === l.leagueKey ? 'Copied ✓' : 'Copy'}
