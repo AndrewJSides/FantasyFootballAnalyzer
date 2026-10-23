@@ -84,7 +84,15 @@ function ListCard({
       <div className={styles.cardHead}>
         <h4 className={styles.cardTitle}>{shareListTitle(lists, listKey)}</h4>
         {!empty && (
-          <button type="button" className={styles.copyBtn} onClick={() => onCopy(listKey)}>
+          <button
+            type="button"
+            className={styles.copyBtn}
+            onClick={() => onCopy(listKey)}
+            // The visible label just says "Copy" — keep what the click does
+            // attached to the button itself for tooltips and assistive tech,
+            // matching the title discipline elsewhere in the app.
+            title={`Copy the ${shareListTitle(lists, listKey)} list as plain text`}
+          >
             {copied ? 'Copied' : failed ? 'Copy failed' : 'Copy'}
           </button>
         )}
@@ -183,7 +191,14 @@ export function RecapShare({ config, recaps }: RecapShareProps) {
           />
         ))}
       </div>
-      <button type="button" className={styles.copyAll} onClick={() => copy('all')}>
+      <button
+        type="button"
+        className={styles.copyAll}
+        onClick={() => copy('all')}
+        // The label says what it is; the title says what it copies —
+        // same discipline as the per-list Copy buttons above.
+        title="Copy all four recap lists as one block of plain text"
+      >
         {copiedKey === 'all' ? 'Copied' : failedKey === 'all' ? 'Copy failed' : 'Copy everything'}
       </button>
     </div>
