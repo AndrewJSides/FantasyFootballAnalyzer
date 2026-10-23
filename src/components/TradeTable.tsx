@@ -116,6 +116,10 @@ export function TradeTable({ trades, teams }: TradeTableProps) {
             className="input"
             value={selectedTeam}
             onChange={(e) => setSelectedTeam(e.target.value)}
+            // The visible label just says "Team" — keep the what-it-does
+            // attached to the control itself for tooltips and assistive tech,
+            // matching the filter controls' title discipline elsewhere.
+            title="Show only trades involving this team"
           >
             <option value="all">All Teams</option>
             {teams.map(team => (
