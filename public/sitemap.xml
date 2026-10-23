@@ -3,7 +3,9 @@
      missing from public/, so crawlers got a 404. Only public, guest-usable
      routes are listed — admin is disallowed in robots.txt, and the league-data
      pages (/draft, /trades, /waivers, /teams, /history, /awards, /luck,
-     /players) require a connected league and bounce guests to /rankings. -->
+     /players) require a connected league and bounce guests to /rankings. The
+     per-position rankings landings (/rankings/qb …) are prerendered too,
+     so they are listed here as well. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.traderape.me/</loc>
@@ -39,5 +41,40 @@
     <loc>https://www.traderape.me/draft-grades</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/qb</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/rb</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/wr</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/te</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/flex</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/k</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.traderape.me/rankings/dst</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>
