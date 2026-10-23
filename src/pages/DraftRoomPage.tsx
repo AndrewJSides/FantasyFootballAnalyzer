@@ -981,6 +981,11 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                           className={liveSync.enabled ? styles.syncBtnOn : styles.syncBtn}
                           onClick={liveSync.toggle}
                           disabled={liveSync.enabled && liveSync.status === 'connecting'}
+                          // The label shows the sync state; the title says what
+                          // happens on click, matching the title discipline.
+                          title={liveSync.enabled
+                            ? 'Stop following this draft live'
+                            : 'Follow this draft live, pick by pick, as it happens'}
                         >
                           {liveSync.enabled
                             ? liveSync.status === 'syncing'

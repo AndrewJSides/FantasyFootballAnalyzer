@@ -411,6 +411,9 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                   type="button"
                   className={styles.moreResults}
                   onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                  // The label says what it is; the title says what happens on
+                  // click, matching the player-list buttons' title discipline.
+                  title={`Load the next ${Math.min(PAGE_SIZE, filteredPlayers.length - visibleCount)} players in the list`}
                 >
                   Show {Math.min(PAGE_SIZE, filteredPlayers.length - visibleCount)} more
                   {' '}({filteredPlayers.length - visibleCount} remaining)

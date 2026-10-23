@@ -227,7 +227,14 @@ export function AdminPage() {
           style={{ width: '100%', padding: '0.6rem', fontSize: '1rem' }}
         />
         {keyError && <p style={{ color: '#c0392b' }}>{keyError}</p>}
-        <button onClick={unlock} disabled={!adminKey} style={{ marginTop: '0.75rem', padding: '0.6rem 1.2rem' }}>
+        <button
+          onClick={unlock}
+          disabled={!adminKey}
+          style={{ marginTop: '0.75rem', padding: '0.6rem 1.2rem' }}
+          // The label says what it is; the title says what happens on click,
+          // matching the owner console's other button title discipline.
+          title="Verify the admin key and open the owner console"
+        >
           Unlock
         </button>
       </div>
@@ -243,9 +250,9 @@ export function AdminPage() {
       <section style={{ marginBottom: '2rem' }}>
         <h2>1. Yahoo connection</h2>
         {yahooConnected ? (
-          <p>Connected to Yahoo. <button onClick={loadYahooLeagues}>Refresh league list</button></p>
+          <p>Connected to Yahoo. <button onClick={loadYahooLeagues} title="Reload your Yahoo fantasy leagues from Yahoo">Refresh league list</button></p>
         ) : (
-          <button onClick={connectYahoo}>Connect Yahoo</button>
+          <button onClick={connectYahoo} title="Sign in with Yahoo so leagues can be synced to the database">Connect Yahoo</button>
         )}
       </section>
 
