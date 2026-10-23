@@ -30,6 +30,11 @@ export function DraftPrepBanner({ draftSeason, leagueSeason, onOpen }: DraftPrep
           type="button"
           className={styles.open}
           disabled={busy}
+          title={
+            busy
+              ? `Loading the ${draftSeason} draft room…`
+              : `Leave this season's league view and open the ${draftSeason} draft room for mock drafts and draft-day prep`
+          }
           onClick={async () => {
             setBusy(true);
             try {
