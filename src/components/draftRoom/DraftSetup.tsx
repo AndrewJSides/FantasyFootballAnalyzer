@@ -509,6 +509,10 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     className={config.draftType === 'auction' ? styles.toggleOn : styles.toggleOff}
                     aria-pressed={config.draftType === 'auction'}
                     onClick={() => setDraftType('auction')}
+                    // The label says what it is, the title says what picking
+                    // it means — matching the Dynasty Startup/Rookie buttons'
+                    // title discipline above.
+                    title="Bid on each player with an auction budget"
                   >
                     Auction
                   </button>
@@ -517,6 +521,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     className={config.draftType === 'snake' ? styles.toggleOn : styles.toggleOff}
                     aria-pressed={config.draftType === 'snake'}
                     onClick={() => setDraftType('snake')}
+                    title="Pick in a snaking draft order"
                   >
                     Snake
                   </button>
