@@ -941,6 +941,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     className={styles.iconBtn}
                     onClick={() => removePreset(preset.name)}
                     aria-label={`Delete preset ${preset.name}`}
+                    title={`Delete preset ${preset.name}`}
                   >
                     ✕
                   </button>
@@ -999,6 +1000,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                       setArchive(loadDraftArchive(leagueKeyFor(league)));
                     }}
                     aria-label="Delete this archived draft"
+                    title="Delete this archived draft"
                   >
                     ✕
                   </button>
