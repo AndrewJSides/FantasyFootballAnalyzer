@@ -52,6 +52,12 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             onClick={() => window.location.reload()}
+            // The last-resort UI: the label says what it is, the title says
+            // what happens on click — matching the title discipline the rest
+            // of the app carries. Keyboard users landing here need no
+            // guesswork either.
+            aria-label="Reload the page and try loading TraderApe again"
+            title="Reload the page and try loading TraderApe again"
             style={{
               padding: '0.7rem 1.4rem',
               border: '2px solid var(--lime)',
