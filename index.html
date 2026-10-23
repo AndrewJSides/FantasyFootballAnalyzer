@@ -95,6 +95,33 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- No-JS fallback: the critical style above keeps #root at opacity 0 until
+         the app boots, which never happens without JavaScript — reveal any
+         prerendered content and say plainly what the interactive tools need. -->
+    <noscript>
+      <style>
+        #root { opacity: 1 !important; }
+        .noscript-note {
+          max-width: 52ch;
+          margin: 2rem auto;
+          padding: 1rem 1.25rem;
+          border: 2px solid #f1ece1;
+          box-shadow: 4px 4px 0 #d6ff2e;
+          background: #0a0a0a;
+          color: #f1ece1;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 0.85rem;
+          line-height: 1.5;
+          text-align: left;
+        }
+        .noscript-note strong { color: #d6ff2e; }
+      </style>
+      <p class="noscript-note">
+        <strong>🦍 TraderApe needs JavaScript.</strong> The rankings and articles
+        above are readable, but the trade analyzer, draft room, and league tools
+        need JavaScript enabled to run.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Safety net for the opacity-0 #root fade-in: if the bundle never mounts
          (failed JS load), still reveal #root so the prerendered content shows
