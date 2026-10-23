@@ -294,7 +294,14 @@ export function AdminPage() {
             <li key={l.id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: 8 }}>
               <strong>{l.name}</strong>
               <div style={{ marginTop: '0.5rem' }}>
-                <button onClick={() => syncLeague(l.id)} disabled={syncing !== null}>
+                <button
+                  onClick={() => syncLeague(l.id)}
+                  disabled={syncing !== null}
+                  // The label says what it is; the title says what happens on
+                  // click (and what the "Last synced" line below will show),
+                  // matching the admin page's Copy-button title discipline.
+                  title="Pull the latest league data from the platform and update its last-synced time"
+                >
                   {syncing === l.id ? 'Syncing…' : 'Sync to database'}
                 </button>
                 {pins[l.id] && (
