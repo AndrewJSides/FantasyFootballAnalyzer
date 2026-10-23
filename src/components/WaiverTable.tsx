@@ -293,6 +293,7 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
           <select
             id="teamFilter"
             className="input"
+            title="Show only waiver pickups by this team"
             value={selectedTeam}
             onChange={(e) => setSelectedTeam(e.target.value)}
           >
@@ -312,6 +313,7 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
           <select
             id="positionFilter"
             className="input"
+            title="Show only waiver pickups at this position"
             value={selectedPosition}
             onChange={(e) => setSelectedPosition(e.target.value)}
           >

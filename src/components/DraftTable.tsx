@@ -667,6 +667,7 @@ export function DraftTable({
           <select
             id="teamFilter"
             className="input"
+            title="Show only draft picks by this team"
             value={selectedTeam}
             onChange={(e) => handleTeamFilter(e.target.value)}
           >
@@ -686,6 +687,7 @@ export function DraftTable({
           <select
             id="positionFilter"
             className="input"
+            title="Show only draft picks at this position"
             value={selectedPosition}
             onChange={(e) => handlePositionFilter(e.target.value)}
           >
