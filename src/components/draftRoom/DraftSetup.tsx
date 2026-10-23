@@ -425,7 +425,12 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
             </span>
           </div>
           <div className={styles.resumeActions}>
-            <button type="button" className={styles.btnPrimary} onClick={resume}>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={resume}
+              title="Pick up the saved draft where you left off"
+            >
               Resume Draft
             </button>
             {/* Sits right next to Resume at the same weight, and clearing the
@@ -433,6 +438,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
             <button
               type="button"
               className={styles.btn}
+              title="Discard the saved draft — this cannot be undone"
               onClick={() => {
                 if (
                   window.confirm(
