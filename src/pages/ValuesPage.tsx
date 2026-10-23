@@ -301,6 +301,10 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
               className={posFilter === pos ? styles.chipOn : styles.chip}
               aria-pressed={posFilter === pos}
               onClick={() => { setPosFilter(pos); }}
+              // The visible label just says "QB"/"All" — keep what the click
+              // does attached to the button itself for tooltips and assistive
+              // tech, matching the tab buttons' title discipline above.
+              title={pos === 'ALL' ? 'Show all positions' : `Show ${labelForPos(pos)}s only`}
             >
               {pos === 'ALL' ? 'All' : labelForPos(pos)}
             </button>
