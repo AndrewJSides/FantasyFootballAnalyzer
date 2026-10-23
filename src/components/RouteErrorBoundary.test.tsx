@@ -53,7 +53,9 @@ describe('RouteErrorBoundary chunk-failure detection', () => {
 
   it('shows a retryable error for a normal render crash', () => {
     renderWithError('Cannot read properties of undefined (reading "id")');
-    expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy();
+    // The accessible name is the aria-label, not the visible "Try Again"
+    // text (c8d1065) — match it, not the label.
+    expect(screen.getByRole('button', { name: /try loading this page again/i })).toBeTruthy();
     expect(screen.queryByText(/part of the app did not load/i)).toBeNull();
   });
 });
