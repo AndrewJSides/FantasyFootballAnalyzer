@@ -29,9 +29,17 @@ export function SeasonLoadingOverlay({ season, progress, title }: SeasonLoadingO
                 {progress.stage}
                 {progress.detail ? `: ${progress.detail}` : ''}
               </span>
-              <div className={styles.bar} aria-hidden="true">
+              <div
+                className={styles.bar}
+                role="progressbar"
+                aria-label={progress.stage}
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={Math.min(progress.current, progress.total)}
+              >
                 <div
                   className={styles.fill}
+                  aria-hidden="true"
                   style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
               </div>
