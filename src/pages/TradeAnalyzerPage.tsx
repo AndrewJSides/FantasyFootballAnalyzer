@@ -260,9 +260,12 @@ function SideBuilder(props: {
             className={styles.select}
             value={teamId}
             onChange={e => onTeamChange(e.target.value)}
-            // The visible label just says "Team" — keep the which-side why
-            // attached to the control itself for tooltips and assistive tech,
-            // matching the rest of the builder's title-mirrors-label discipline.
+            // The visible label just says "Team" on both sides, so a screen
+            // reader hears the same name twice with no clue which side each
+            // select belongs to; name it after the side, matching the
+            // draft-room 'Me' radios' discipline. The title keeps the same
+            // string for tooltips.
+            aria-label={`${title}: pick the team giving this side`}
             title={`${title}: pick the team giving this side`}
           >
             <option value="">— pick a team —</option>
