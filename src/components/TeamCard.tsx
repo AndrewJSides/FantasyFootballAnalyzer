@@ -86,6 +86,7 @@ export function TeamCard({ league, team, onClick, luckMetrics }: TeamCardProps) 
       className={styles.card}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
+      aria-label={onClick ? `View ${team.name}` : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={
         onClick
