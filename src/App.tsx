@@ -75,7 +75,10 @@ function GuestAutoEnter({ onEnter }: { onEnter: (settings: GuestSettings) => voi
   }, [onEnter]);
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-      <div className="spinner" />
+      {/* The rest of the app gives loading spinners role="status" with an
+          accessible label — these bare route/guest fallbacks were the last
+          ones a screen reader heard nothing from. */}
+      <div className="spinner" role="status" aria-label="Loading" />
     </div>
   );
 }
@@ -701,7 +704,7 @@ function App() {
     if (shareLoadPending) {
       return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-          <div className="spinner" />
+          <div className="spinner" role="status" aria-label="Loading" />
         </div>
       );
     }
@@ -769,7 +772,7 @@ function App() {
           />
         )}
         <RouteErrorBoundary resetKey={location.pathname}>
-        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><div className="spinner" /></div>}>
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><div className="spinner" role="status" aria-label="Loading" /></div>}>
         {/* Keyed on pathname so each route swap gets a fresh entrance fade
             (pageIn, in index.css). Entrance-only - no exit orchestration. */}
         <div key={location.pathname} className="page-in">
@@ -866,7 +869,7 @@ function App() {
           <Route
             path="/trade-analyzer"
             element={
-              <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><div className="spinner" /></div>}>
+              <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><div className="spinner" role="status" aria-label="Loading" /></div>}>
                 <TradeAnalyzerPage league={league && !league.isGuest ? league : null} />
               </Suspense>
             }

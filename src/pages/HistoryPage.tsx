@@ -318,7 +318,7 @@ export function HistoryPage({ league }: HistoryPageProps) {
               </div>
 
               {rivalriesLoading && (
-                <div className={styles.rivalriesLoading}>
+                <div className={styles.rivalriesLoading} role="status">
                   <div className="spinner"></div>
                   <p>Loading head-to-head records...</p>
                 </div>
