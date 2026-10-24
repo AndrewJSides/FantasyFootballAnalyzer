@@ -760,7 +760,7 @@ function App() {
         <SeasonFallbackNotice message={incompleteNotice} onDismiss={() => setDismissedIncomplete(incompleteNotice)} />
       )}
 
-      <main id="main-content" style={{ flex: 1, position: 'relative' }}>
+      <main id="main-content" tabIndex={-1} style={{ flex: 1, position: 'relative' }}>
         {isLoading && league && (
           <SeasonLoadingOverlay
             season={
