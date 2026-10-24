@@ -486,6 +486,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('rank')}
+                aria-label="Sort by Rank"
                 aria-sort={ariaSortFor('rank')}
                 title="FantasyPros expert consensus rank (ECR): the average of every expert's overall rank for this scoring format. The board's default order."
               >
@@ -511,6 +512,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('adp')}
+                aria-label="Sort by ADP"
                 aria-sort={ariaSortFor('adp')}
                 title={`Average draft position: the pick where real drafters take him. Sleeper ${scoringLabel(scoring)} drafts, ESPN as fallback.`}
               >
@@ -523,6 +525,7 @@ export function AvailablePlayers({
                   role="button"
                   tabIndex={0}
                   onKeyDown={sortKeyDown('adpDelta')}
+                  aria-label="Sort by ADP Delta"
                   aria-sort={ariaSortFor('adpDelta')}
                   title="ADP minus expert rank. Positive: rooms usually take him later than experts rank him, a discount."
                 >
@@ -537,6 +540,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('value')}
+                aria-label="Sort by FantasyPros Value"
                 aria-sort={ariaSortFor('value')}
                     title="FantasyPros value, scaled to this league's budget and size"
                   >
@@ -548,6 +552,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('adj')}
+                aria-label="Sort by Adjusted Value"
                 aria-sort={ariaSortFor('adj')}
                     title="FP $ corrected for this room's live inflation: what he should actually cost right now"
                   >
@@ -559,6 +564,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('espn')}
+                aria-label="Sort by ESPN Price"
                 aria-sort={ariaSortFor('espn')}
                     title="Live ESPN auction market price (ESPN default league, unscaled)"
                   >
@@ -571,6 +577,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('yahoo')}
+                aria-label="Sort by Yahoo Price"
                 aria-sort={ariaSortFor('yahoo')}
                       title="Average price in real Yahoo auction drafts (unscaled)"
                     >
@@ -583,6 +590,7 @@ export function AvailablePlayers({
                 role="button"
                 tabIndex={0}
                 onKeyDown={sortKeyDown('delta')}
+                aria-label="Sort by Value Delta"
                 aria-sort={ariaSortFor('delta')}
                     title={`ADJ $ minus the market price (${showYahoo ? 'Yahoo when present, else ESPN' : 'ESPN'}). Positive: the market usually pays less than he's worth, a value buy.`}
                   >
