@@ -87,6 +87,19 @@ describe('YearSelector draft prep entry', () => {
     expect(trigger.textContent).not.toContain('2025');
   });
 
+  it('names the trigger for assistive tech with the currently shown season', () => {
+    render(
+      <MemoryRouter>
+        <YearSelector league={league} credentials={credentials} onPick={() => {}} />
+      </MemoryRouter>,
+    );
+    // The trigger shows only the year plus a caret icon, so the accessible
+    // name carries the control's identity and what's currently shown.
+    expect(
+      screen.getByRole('button', { name: 'Season selector, currently viewing the 2025 season' }),
+    ).toBeTruthy();
+  });
+
   it('returns to the season view when picking the loaded season from the draft room', async () => {
     render(
       <MemoryRouter initialEntries={['/draft-room']}>

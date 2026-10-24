@@ -120,6 +120,12 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}
+        // The trigger shows only the year plus a caret icon, so give
+        // assistive tech the control's identity and what's currently
+        // shown; the title keeps the what-happens-on-click tooltip.
+        aria-label={inDraftRoom
+          ? `Season selector, currently viewing ${draftYear} draft prep`
+          : `Season selector, currently viewing the ${league.season} season`}
         title="Switch season"
       >
         <span className={styles.year}>{inDraftRoom ? draftYear : league.season}</span>
