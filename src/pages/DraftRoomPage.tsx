@@ -952,6 +952,10 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                             inputMode="url"
                             className={watchBad ? styles.watchInputBad : styles.watchInput}
                             placeholder="Mock draft URL (optional)"
+                            // The header-strip twin carries this aria-label; the
+                            // settings-panel copy had only a placeholder, so
+                            // screen readers heard nothing for this field.
+                            aria-label="Sleeper mock draft URL to follow (optional)"
                             // URLs are not words — stop phone keyboards from
                             // "correcting" pasted links (matches the search
                             // inputs on Rankings/Values/Player Journey/Trade
