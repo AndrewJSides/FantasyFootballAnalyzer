@@ -429,6 +429,7 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
                             ? 'Avoiding. Click again to clear.'
                             : 'Click to target.'
                       }
+                      aria-label={`Toggle target status for ${r.player.name}`}
                     >
                       {starred.has(r.player.id) ? '★' : avoided.has(r.player.id) ? '✕' : '☆'}
                     </button>
