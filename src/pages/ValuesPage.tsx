@@ -203,12 +203,18 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
   const setSort = (key: SortKey) => { setSortBy(key); };
   const setDir = (d: Direction) => { setDirection(d); };
 
-  const sortableTh = (key: SortKey, label: string, title: string) => (
+  // The headers show only abbreviations (CONS, SLPR, SPREAD), so screen
+  // readers would hear cryptic names; they now expose 'Sort by ...'
+  // accessible names, matching the label discipline used on the
+  // RankingsPage, DraftTable, WaiverTable, and AvailablePlayers sortable
+  // headers. Visible text and tooltips unchanged.
+  const sortableTh = (key: SortKey, label: string, title: string, sortName?: string) => (
     <th
       key={key}
       className={`${styles.num} ${styles.sortable} ${sortBy === key ? styles.sorted : ''}`}
       onClick={() => setSort(key)}
       title={title}
+      aria-label={`Sort by ${sortName ?? label}`}
       aria-sort={sortBy === key ? 'descending' : 'none'}
     >
       {label}
@@ -397,14 +403,16 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
                   superflex
                     ? 'Consensus average of the FantasyPros superflex rank and Sleeper superflex ADP'
                     : 'Consensus average of FantasyPros rank, ESPN ADP (when under 160), Yahoo ADP rank (top 125 only), and Sleeper ADP',
+                  'Consensus',
                 )}
                 {SITES.map(site =>
-                  sortableTh(site, SITE_LABEL[site].toUpperCase(), sources[site].describe),
+                  sortableTh(site, SITE_LABEL[site].toUpperCase(), sources[site].describe, SITE_LABEL[site]),
                 )}
                 {sortableTh(
                   'spread',
                   'SPREAD',
                   'Widest gap between any two sites. A big spread means which site you draft on matters more than the player does.',
+                  'Spread',
                 )}
               </tr>
             </thead>
