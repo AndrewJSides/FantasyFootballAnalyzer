@@ -868,6 +868,11 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     <input
                       type="radio"
                       name={meGroup}
+                      // The visible label just says "Me" on every row, so a
+                      // screen reader hears the same name N times with no
+                      // clue which team each radio belongs to; name it after
+                      // the team, matching the move/remove buttons' discipline.
+                      aria-label={`Mark ${team.name} as my team`}
                       checked={config.myTeamId === team.id}
                       onChange={() => updateConfig({ myTeamId: team.id })}
                     />
