@@ -23,8 +23,8 @@ export function ConnectedBanner({ onDismiss }: ConnectedBannerProps) {
         type="button"
         className={styles.close}
         onClick={onDismiss}
-        title="Dismiss"
-        aria-label="Dismiss"
+        title="Dismiss the connection banner"
+        aria-label="Dismiss the connection banner"
       >
         ×
       </button>

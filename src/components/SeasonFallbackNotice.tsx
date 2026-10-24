@@ -17,8 +17,8 @@ export function SeasonFallbackNotice({ message, onDismiss }: SeasonFallbackNotic
           type="button"
           className={styles.close}
           onClick={onDismiss}
-          title="Dismiss"
-          aria-label="Dismiss"
+          title="Dismiss the season data notice"
+          aria-label="Dismiss the season data notice"
         >
           ×
         </button>
