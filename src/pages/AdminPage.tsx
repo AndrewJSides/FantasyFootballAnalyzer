@@ -233,6 +233,7 @@ export function AdminPage() {
           onChange={e => setAdminKey(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && unlock()}
           placeholder="Admin key"
+          aria-label="Admin key"
           title="Admin key"
           autoComplete="off"
           // Phones: Enter unlocks, so label the keyboard's action key "go"
