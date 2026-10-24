@@ -224,7 +224,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
 
   const visible = rows.slice(0, MAX_ROWS);
 
-  const sortableTh = (key: SortKey, label: string, title: string) => {
+  const sortableTh = (key: SortKey, label: string, title: string, sortName?: string) => {
     const active = sortBy === key;
     const desc = DESC_FIRST.includes(key) !== sortRev;
     return (
@@ -240,6 +240,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
         role="button"
         tabIndex={0}
         title={`${title}. ${active ? 'Click to reverse the order.' : 'Click to sort.'}`}
+        aria-label={`Sort by ${sortName ?? label}`}
         aria-sort={active ? (desc ? 'descending' : 'ascending') : 'none'}
       >
         {label}
@@ -430,14 +431,16 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                   superflex
                     ? 'Consensus average of the FantasyPros superflex rank and Sleeper superflex ADP'
                     : 'Consensus average of FantasyPros rank, ESPN ADP (when under 160), Yahoo ADP rank (top 125 only), and Sleeper ADP',
+                  'Consensus average',
                 )}
-                {sortableTh('delta', `Δ ${source.label}`, source.describe)}
+                {sortableTh('delta', `Δ ${source.label}`, source.describe, 'Rank delta')}
                 {sortableTh(
                   'rank',
                   'FP RK',
                   superflex
                     ? 'FantasyPros superflex (2QB) consensus rank'
                     : 'FantasyPros expert consensus rank',
+                  'FantasyPros rank',
                 )}
                 <th
                   className={`${styles.num} ${styles.tierCol}`}
@@ -455,13 +458,14 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 </th>
                 {!auctionView && (
                   <>
-                    {sortableTh('espnAdp', 'ESPN ADP', 'ESPN average draft position')}
+                    {sortableTh('espnAdp', 'ESPN ADP', 'ESPN average draft position', 'ESPN ADP')}
                     {sortableTh(
                       'sleeperAdp',
                       'SLPR ADP',
                       superflex
                         ? 'Sleeper superflex average draft position (the 2QB market where available)'
                         : `Sleeper average draft position (${scoringLabel(scoring)} scoring)`,
+                      'Sleeper ADP',
                     )}
                   </>
                 )}
@@ -471,11 +475,13 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                       'fpValue',
                       'FP $',
                       "FantasyPros value, scaled to this league's budget and size",
+                      'FantasyPros value',
                     )}
                     {sortableTh(
                       'espnValue',
                       'ESPN $',
                       'Live ESPN auction market price (ESPN default league, unscaled)',
+                      'ESPN value',
                     )}
                     {sortableTh(
                       'yahooValue',
@@ -483,6 +489,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                       yahoo.status === 'ready'
                         ? 'Average price in real Yahoo auction drafts (unscaled)'
                         : 'Average price in real Yahoo auction drafts. Connect Yahoo in the header to load.',
+                      'Yahoo value',
                     )}
                   </>
                 )}
