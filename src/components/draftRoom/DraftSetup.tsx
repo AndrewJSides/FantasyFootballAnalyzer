@@ -468,6 +468,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                       key={opt.value}
                       type="button"
                       className={leagueType === opt.value ? styles.toggleOn : styles.toggleOff}
+                      aria-pressed={leagueType === opt.value}
                       onClick={() => setLeagueType(opt.value)}
                       title={opt.title}
                     >
@@ -637,6 +638,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
                     key={opt.value}
                     type="button"
                     className={config.scoring === opt.value ? styles.toggleOn : styles.toggleOff}
+                    aria-pressed={config.scoring === opt.value}
                     title={opt.title}
                     onClick={() => updateConfig({ scoring: opt.value })}
                   >
