@@ -32,16 +32,16 @@ export function KeeperValuePanel({ rows }: KeeperValuePanelProps) {
               <th>Team</th>
               <th>Keeper</th>
               <th>Pos</th>
-              <th className="text-center" title="Where the FantasyPros consensus ranks him overall">
+              <th className="text-center" title="Where the FantasyPros consensus ranks him overall" aria-label="FantasyPros consensus rank">
                 FP#
               </th>
-              <th className="text-center" title="The round his consensus rank corresponds to: what he is worth on the board">
+              <th className="text-center" title="The round his consensus rank corresponds to: what he is worth on the board" aria-label="Asset round">
                 Asset
               </th>
-              <th className="text-center" title="The round the keeper actually cost">
+              <th className="text-center" title="The round the keeper actually cost" aria-label="Cost round">
                 Cost
               </th>
-              <th className="text-right" title="Curve value of the player, minus the value of the pick surrendered">
+              <th className="text-right" title="Curve value of the player, minus the value of the pick surrendered" aria-label="Surplus value">
                 Surplus
               </th>
             </tr>
