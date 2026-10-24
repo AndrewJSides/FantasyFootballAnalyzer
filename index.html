@@ -2,20 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- GitHub Pages SPA redirect decode (pairs with public/404.html). Restores
-         the real path from the ?/ query the 404 shim produced, before
-         BrowserRouter reads the URL. No-op on normal loads. -->
-    <script>
-      (function () {
-        var l = window.location;
-        if (l.search[1] === '/') {
-          var decoded = l.search.slice(1).split('&').map(function (s) {
-            return s.replace(/~and~/g, '&');
-          }).join('?');
-          window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
-        }
-      })();
-    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
