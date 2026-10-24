@@ -291,6 +291,9 @@ export function AdminPage() {
                         <button
                           onClick={() => void copyPin(l.pin ?? '', l.leagueKey)}
                           title="Copy this league's share PIN to the clipboard"
+                          // The label flips to "Copied ✓"/"Copy failed" —
+                          // announce the outcome so screen-reader users hear it too.
+                          aria-live="polite"
                           style={{ marginLeft: '0.5rem', padding: '0.25rem 0.6rem', fontSize: '0.85rem' }}
                         >
                           {copiedPin === l.leagueKey

@@ -136,6 +136,9 @@ export function AwardsPage({ league }: AwardsPageProps) {
               onClick={copyImage}
               title="Every award as one image for the group chat"
               aria-label={shareState === null ? 'Copy awards image' : undefined}
+              // The label flips to "Copied!"/"Saved PNG"/"Couldn't export" —
+              // announce the outcome so screen-reader users hear it too.
+              aria-live="polite"
             >
               {shareState === 'busy' && '…'}
               {shareState === 'copied' && 'Copied!'}

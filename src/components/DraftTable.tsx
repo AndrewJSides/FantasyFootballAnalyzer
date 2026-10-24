@@ -731,6 +731,9 @@ export function DraftTable({
               aria-busy={state === 'busy'}
               title={hint}
               aria-label={state === null ? aria : undefined}
+              // The label flips to "Copied!"/"Saved PNG"/"Couldn't export" —
+              // announce the outcome so screen-reader users hear it too.
+              aria-live="polite"
               onClick={async () => {
                 if (shareState?.state === 'busy') return;
                 setShareState({ which, state: 'busy' });

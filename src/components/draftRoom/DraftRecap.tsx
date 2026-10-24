@@ -95,7 +95,15 @@ export function DraftRecap({ room }: DraftRecapProps) {
                   </span>
                 )}
               </div>
-              <button type="button" className={styles.btn} onClick={copyRoster} title="Copy your roster as plain text">
+              <button
+                type="button"
+                className={styles.btn}
+                onClick={copyRoster}
+                title="Copy your roster as plain text"
+                // The label flips to "Copied"/"Copy failed" — announce the
+                // outcome so screen-reader users hear the confirmation too.
+                aria-live="polite"
+              >
                 {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy Roster'}
               </button>
             </div>

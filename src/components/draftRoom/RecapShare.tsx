@@ -92,6 +92,9 @@ function ListCard({
             // attached to the button itself for tooltips and assistive tech,
             // matching the title discipline elsewhere in the app.
             title={`Copy the ${shareListTitle(lists, listKey)} list as plain text`}
+            // The label flips to "Copied"/"Copy failed" — announce the
+            // outcome so screen-reader users hear the confirmation too.
+            aria-live="polite"
           >
             {copied ? 'Copied' : failed ? 'Copy failed' : 'Copy'}
           </button>
@@ -198,6 +201,9 @@ export function RecapShare({ config, recaps }: RecapShareProps) {
         // The label says what it is; the title says what it copies —
         // same discipline as the per-list Copy buttons above.
         title="Copy all four recap lists as one block of plain text"
+        // The label flips to "Copied"/"Copy failed" — announce the
+        // outcome so screen-reader users hear the confirmation too.
+        aria-live="polite"
       >
         {copiedKey === 'all' ? 'Copied' : failedKey === 'all' ? 'Copy failed' : 'Copy everything'}
       </button>
