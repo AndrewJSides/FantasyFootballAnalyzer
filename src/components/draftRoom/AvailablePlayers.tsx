@@ -474,7 +474,7 @@ export function AvailablePlayers({
         </>
       ) : (
       <div className={`${styles.tableWrapper} scroll-x-hint`}>
-        <table className={styles.table}>
+        <table className={styles.table} aria-label="Available players">
           <thead>
             <tr>
               {onQuickDraft && <th aria-label="Quick draft" />}
