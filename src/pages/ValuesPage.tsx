@@ -389,7 +389,10 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
         </div>
 
         <div className={`${styles.tableWrapper} scroll-x-hint`}>
-          <table className={styles.table}>
+          <table
+            className={styles.table}
+            aria-label={posFilter !== 'ALL' ? `${labelForPos(posFilter)} site values` : 'Player site values'}
+          >
             <thead>
               <tr>
                 <th aria-label="Target or avoid" />
