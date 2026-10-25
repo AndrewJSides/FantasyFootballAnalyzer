@@ -392,7 +392,7 @@ export function LuckPage({ league }: LuckPageProps) {
               in progress counts once the injury report has him out.
             </p>
             <div className={`${styles.table} scroll-x-hint`}>
-              <table>
+              <table aria-label="Injury luck">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
