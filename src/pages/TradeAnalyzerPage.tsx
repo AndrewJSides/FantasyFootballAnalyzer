@@ -354,7 +354,11 @@ function SideBuilder(props: {
         />
       </label>
       {results.length > 0 && (
-        <ul className={styles.searchResults}>
+        // The roster list above is introduced by its visible "Tap a player
+        // to add" label, but this list appears with no heading — name it
+        // after the side, matching the team select's side-specific naming,
+        // so a screen reader hears which side's results these are.
+        <ul className={styles.searchResults} aria-label={`${title} search results`}>
           {results.map(p => {
             // Like the roster buttons above, show the added state instead of
             // silently no-op'ing when the search hit is already on this side.
