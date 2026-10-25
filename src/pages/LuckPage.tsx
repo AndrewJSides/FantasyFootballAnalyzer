@@ -289,7 +289,7 @@ export function LuckPage({ league }: LuckPageProps) {
               schedule. Head-to-head games only.
             </p>
             <div className={`${styles.table} scroll-x-hint`}>
-              <table>
+              <table aria-label="Schedule swap">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
