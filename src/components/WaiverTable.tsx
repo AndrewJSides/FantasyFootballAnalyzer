@@ -344,7 +344,10 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
       </div>
 
       <div className={`${styles.tableWrapper} scroll-x-hint`}>
-        <table className={`table ${styles.table}`}>
+        {/* The table had no name of its own beyond the page heading, so
+            screen readers heard an anonymous table; the name mirrors the
+            heading's waiver-wire discipline. */}
+        <table className={`table ${styles.table}`} aria-label="Waiver wire pickups">
           <thead>
             <tr>
               <th onClick={() => handleSort('week')} onKeyDown={handleSortKeyDown('week')} tabIndex={0} aria-sort={ariaSortFor('week')} className={styles.sortable} role="button" aria-label="Sort by Week" title={weekTitle}>
