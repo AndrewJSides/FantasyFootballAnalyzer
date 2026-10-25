@@ -214,7 +214,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
         {gradedPicks.length > 0 && (
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>Draft</h3>
-            <ul className={styles.list}>
+            <ul className={styles.list} aria-label={`${team.name} draft picks`}>
               {gradedPicks.map(pick => (
                 <li key={`${pick.pickNumber}-${pick.player.id}`} className={styles.listRow}>
                   <PosBadge pos={pick.player.position} />
