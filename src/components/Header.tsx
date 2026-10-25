@@ -166,7 +166,7 @@ export function Header({
         >
           <div className={styles.logoSection}>
             {league && !isGuest && (
-              <button
+              <button type="button"
                 onClick={handleChangeLeague}
                 className={styles.backButton}
                 title="Change League"
@@ -233,7 +233,7 @@ export function Header({
                   the explanation of what a connection buys. Home has no banner,
                   so the header owns the CTA. */}
               {location.pathname === '/' && (
-                <button
+                <button type="button"
                   onClick={handleChangeLeague}
                   className={styles.connectCta}
                   title="Load our league — no account needed."
@@ -374,7 +374,7 @@ export function Header({
             >
               Players
             </Link>
-            <button
+            <button type="button"
               onClick={handleExportPdf}
               disabled={isExporting}
               aria-busy={isExporting}
@@ -394,7 +394,7 @@ export function Header({
               </>
             )}
             {onYahooConnect && onYahooDisconnect && (
-              <button
+              <button type="button"
                 onClick={() => {
                   if (yahooConnected) onYahooDisconnect();
                   else onYahooConnect();

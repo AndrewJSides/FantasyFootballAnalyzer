@@ -242,7 +242,7 @@ export function AdminPage() {
           style={{ width: '100%', padding: '0.6rem', fontSize: '1rem' }}
         />
         {keyError && <p style={{ color: '#c0392b' }}>{keyError}</p>}
-        <button
+        <button type="button"
           onClick={unlock}
           disabled={!adminKey}
           style={{ marginTop: '0.75rem', padding: '0.6rem 1.2rem' }}
@@ -265,9 +265,9 @@ export function AdminPage() {
       <section style={{ marginBottom: '2rem' }}>
         <h2>1. Yahoo connection</h2>
         {yahooConnected ? (
-          <p>Connected to Yahoo. <button onClick={loadYahooLeagues} title="Reload your Yahoo fantasy leagues from Yahoo">Refresh league list</button></p>
+          <p>Connected to Yahoo. <button type="button" onClick={loadYahooLeagues} title="Reload your Yahoo fantasy leagues from Yahoo">Refresh league list</button></p>
         ) : (
-          <button onClick={connectYahoo} title="Sign in with Yahoo so leagues can be synced to the database">Connect Yahoo</button>
+          <button type="button" onClick={connectYahoo} title="Sign in with Yahoo so leagues can be synced to the database">Connect Yahoo</button>
         )}
       </section>
 
@@ -289,7 +289,7 @@ export function AdminPage() {
                     PIN: {l.pin ? (
                       <>
                         <code style={{ fontSize: '1.1rem', letterSpacing: '0.2em' }}>{l.pin}</code>
-                        <button
+                        <button type="button"
                           onClick={() => void copyPin(l.pin ?? '', l.leagueKey)}
                           title="Copy this league's share PIN to the clipboard"
                           // The label flips to "Copied ✓"/"Copy failed" —
@@ -338,7 +338,7 @@ export function AdminPage() {
             <li key={l.id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: 8 }}>
               <strong>{l.name}</strong>
               <div style={{ marginTop: '0.5rem' }}>
-                <button
+                <button type="button"
                   onClick={() => syncLeague(l.id)}
                   disabled={syncing !== null}
                   // The label says what it is; the title says what happens on

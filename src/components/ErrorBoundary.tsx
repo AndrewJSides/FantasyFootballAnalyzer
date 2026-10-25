@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p style={{ color: 'var(--bone-dim)', fontStyle: 'italic', marginBottom: '1.5rem', maxWidth: '500px' }}>
             {this.state.error?.message || 'An unexpected error occurred.'}
           </p>
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             // The last-resort UI: the label says what it is, the title says
             // what happens on click — matching the title discipline the rest
