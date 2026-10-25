@@ -560,6 +560,7 @@ export function DraftTable({
                 type="button"
                 className={`${styles.leaderboardRow} ${selectedTeam === row.teamId ? styles.leaderboardRowOn : ''}`}
                 onClick={() => handleTeamFilter(selectedTeam === row.teamId ? 'all' : row.teamId)}
+                aria-pressed={selectedTeam === row.teamId}
                 title="Filter the table to this team's picks"
               >
                 <span className={styles.lbRank}>{i + 1}</span>
@@ -633,6 +634,7 @@ export function DraftTable({
                 type="button"
                 className={`${styles.leaderboardRow} ${selectedTeam === row.teamId ? styles.leaderboardRowOn : ''}`}
                 onClick={() => handleTeamFilter(selectedTeam === row.teamId ? 'all' : row.teamId)}
+                aria-pressed={selectedTeam === row.teamId}
                 title="Filter the table to this team's picks"
               >
                 <span className={styles.lbRank}>{i + 1}</span>
