@@ -154,7 +154,7 @@ export function LuckPage({ league }: LuckPageProps) {
             Luck is actual wins minus that.
           </p>
           <div className={`${styles.table} scroll-x-hint`}>
-            <table>
+            <table aria-label="Luck table">
               <thead>
                 <tr>
                   <th scope="col">Team</th>
