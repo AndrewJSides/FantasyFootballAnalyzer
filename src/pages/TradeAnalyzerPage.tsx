@@ -1106,7 +1106,7 @@ function PlayerBreakdown({
   return (
     <div className={styles.breakdown}>
       <h3>{title}</h3>
-      <ul>
+      <ul aria-label={`${title} player values`}>
         {players.map(({ player, vor }) => (
           <li key={player.id} className={styles.vorRow}>
             <PosBadge pos={player.pos} />
