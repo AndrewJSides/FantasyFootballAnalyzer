@@ -365,7 +365,10 @@ export function HistoryPage({ league }: HistoryPageProps) {
                 </span>
               </h2>
               <div className={`${styles.tableWrapper} scroll-x-hint`}>
-                <table className="table">
+                {/* The table had no name of its own beyond the page heading, so
+                    screen readers heard an anonymous table; the name mirrors
+                    the section's all-time leaderboard discipline. */}
+                <table className="table" aria-label="Leaderboard">
                   <thead>
                     <tr>
                       <th>Rank</th>
