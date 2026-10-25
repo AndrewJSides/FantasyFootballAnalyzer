@@ -222,7 +222,7 @@ export function LuckPage({ league }: LuckPageProps) {
             scored against you than they did on average all season.
           </p>
           <div className={`${styles.table} scroll-x-hint`}>
-            <table>
+            <table aria-label="Points against">
               <thead>
                 <tr>
                   <th scope="col">Team</th>
