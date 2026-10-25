@@ -408,7 +408,13 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
         </div>
 
         <div className={`${styles.tableWrapper} scroll-x-hint`}>
-          <table className={styles.table}>
+          {/* The table had no name of its own beyond the page heading, so
+              screen readers heard an anonymous table; the name mirrors the
+              heading's position-filter discipline. */}
+          <table
+            className={styles.table}
+            aria-label={posFilter !== 'ALL' ? `${labelForPos(posFilter)} rankings` : 'Player rankings'}
+          >
             <thead>
               <tr>
                 <th
