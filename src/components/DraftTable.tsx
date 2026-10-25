@@ -787,7 +787,7 @@ export function DraftTable({
       </div>
 
       <div className={`${styles.tableWrapper} scroll-x-hint`}>
-        <table className={`table ${styles.table}`}>
+        <table className={`table ${styles.table}`} aria-label="Draft picks">
           <thead>
             <tr>
               {isAuction ? (
