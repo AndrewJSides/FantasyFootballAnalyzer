@@ -1135,7 +1135,10 @@ function TeamImpact({
       <h3>
         {impact.teamName} <span className={styles.sideTag}>(Side {side})</span>
       </h3>
-      <ul>
+      {/* The list had no name of its own beyond the heading, so screen
+          readers heard an anonymous list; the name mirrors the heading
+          plus the page's roster-takes discipline. */}
+      <ul aria-label={`${impact.teamName} (Side ${side}) roster takes`}>
         {impact.takes.map((t, i) => (
           <li key={i}>{t}</li>
         ))}
