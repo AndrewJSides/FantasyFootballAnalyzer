@@ -393,7 +393,10 @@ function SideBuilder(props: {
       )}
 
       {entries.length > 0 && (
-        <ul className={styles.picked}>
+        // Like the search-results list above, this list appears with no
+        // heading — name it after the side, so a screen reader hears which
+        // side's picked players these are.
+        <ul className={styles.picked} aria-label={`${title} picked players`}>
           {entries.map((e, i) => (
             <li key={`${entryLabel(e)}-${i}`} className={styles.pick}>
               <PosBadge pos={entryPos(e)} />
