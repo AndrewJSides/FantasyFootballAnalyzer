@@ -26,7 +26,7 @@ export function KeeperValuePanel({ rows }: KeeperValuePanelProps) {
       </h3>
 
       <div className={`${styles.tableWrap} scroll-x-hint`}>
-        <table className={`table ${styles.table}`}>
+        <table className={`table ${styles.table}`} aria-label="Who got the best keeper?">
           <thead>
             <tr>
               <th>Team</th>
