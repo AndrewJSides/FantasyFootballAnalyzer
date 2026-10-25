@@ -346,7 +346,7 @@ export function LuckPage({ league }: LuckPageProps) {
                 diagonal is what actually happened.
               </p>
               <div className={`${styles.table} scroll-x-hint`}>
-                <table>
+                <table aria-label="Full schedule-swap grid">
                   <thead>
                     <tr>
                       <th scope="col">Team ↓ / Schedule →</th>
