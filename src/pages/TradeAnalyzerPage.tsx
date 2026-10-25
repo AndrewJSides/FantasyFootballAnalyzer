@@ -279,7 +279,11 @@ function SideBuilder(props: {
       {team && (
         <div className={styles.rosterList}>
           <span className={styles.label}>Tap a player to add</span>
-          <ul>
+          {/* The list had no name of its own beyond the "Tap a player to
+              add" label, so screen readers heard an anonymous list; the
+              name mirrors the label plus the side's roster-takes
+              discipline ('<team> (Side A) players to add'). */}
+          <ul aria-label={`${team.name} (${title}) players to add`}>
             {(team.roster ?? []).map(p => {
               // Re-tapping an already-added player silently did nothing; now
               // the button shows its added state and won't accept the tap.
