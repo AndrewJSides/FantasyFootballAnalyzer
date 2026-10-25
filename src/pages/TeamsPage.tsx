@@ -198,7 +198,7 @@ export function TeamsPage({ league }: TeamsPageProps) {
             <h2 className={styles.sectionTitle}>Head-to-Head Grid</h2>
             <p className={styles.sectionHint}>Season records, row vs column.</p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix}>
+              <table className={styles.matrix} aria-label="Head-to-head grid">
                 <thead>
                   <tr>
                     <th />
