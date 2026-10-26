@@ -263,7 +263,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           {pickups.length > 0 && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>Best Pickups</h3>
-              <ul className={styles.list}>
+              <ul className={styles.list} aria-label={`${team.name} best pickups`}>
                 {pickups.map(({ tx, player }) => (
                   <li key={`${tx.id}-${player.id}`} className={styles.listRow}>
                     <PosBadge pos={player.position} />
