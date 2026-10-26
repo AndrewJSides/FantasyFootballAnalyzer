@@ -282,7 +282,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           {trades.length > 0 && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>Trades</h3>
-              <ul className={styles.list}>
+              <ul className={styles.list} aria-label={`${team.name} trades`}>
                 {trades.map(trade => {
                   const side = trade.teams.find(s => s.teamId === team.id)!;
                   const net = side.netPAR ?? side.netValue ?? 0;
