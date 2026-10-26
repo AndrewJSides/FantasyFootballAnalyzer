@@ -15,7 +15,7 @@ export function LeagueNeeds({ room, layout }: LeagueNeedsProps) {
   return (
     <div className={styles.panel}>
       <h3 className={styles.panelTitle}>League Needs</h3>
-      <ul className={layout === 'row' ? styles.listRow : styles.list}>
+      <ul aria-label="League Needs" className={layout === 'row' ? styles.listRow : styles.list}>
         {STARTER_POSITIONS.map(pos => {
           if (config.rosterSlots[pos] === 0) return null;
           const needCount = derived.positionalDemand[pos];
