@@ -204,7 +204,7 @@ export function TeamCard({ league, team, onClick, luckMetrics }: TeamCardProps) 
         {topScorers.length > 0 && (
           <div className={styles.statSection}>
             <h4 className={styles.sectionTitle}>Top Scorers</h4>
-            <ul className={styles.topScorers}>
+            <ul className={styles.topScorers} aria-label={`${team.name} top scorers`}>
               {topScorers.map(player => (
                 <li key={player.id} className={styles.topScorer}>
                   <span className={styles.topScorerName}>{player.name}</span>
