@@ -56,7 +56,7 @@ export function RosterSummary({ state, rosterSlots, reserved, listClassName, sho
 
   return (
     <>
-      <ul className={listClassName ?? styles.list}>
+      <ul className={listClassName ?? styles.list} aria-label="Lineup">
         {lineup.map(({ key, label, pick }) => (
           // A slot's row starts empty ("open") and only ever fills in, never
           // reverts, so the class flips once per row: no exit orchestration
