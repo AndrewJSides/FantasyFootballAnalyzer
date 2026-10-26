@@ -215,7 +215,7 @@ export function AwardsPage({ league }: AwardsPageProps) {
         {timeline.length > 0 && (
           <section className={styles.category}>
             <h2 className={styles.categoryTitle}>Season Story</h2>
-            <ol className={styles.timeline}>
+            <ol className={styles.timeline} aria-label="Season Story">
               {timeline.map((entry, i) => (
                 <li key={`${entry.week}-${i}`} className={styles.timelineEntry}>
                   <span className={styles.timelineWeek}>W{entry.week}</span>
