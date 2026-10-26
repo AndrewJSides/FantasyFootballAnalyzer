@@ -104,7 +104,7 @@ export function TeamBoard({ room }: TeamBoardProps) {
               {(state.picks.length > 0 || reserved.length > 0) && (
                 <details className={styles.roster}>
                   <summary className={styles.rosterSummary}>Roster</summary>
-                  <ul className={styles.rosterList}>
+                  <ul className={styles.rosterList} aria-label={`${team.name} roster`}>
                     {state.picks.map(({ player, event }) => (
                       <li key={player.id}>
                         <span className={styles.rosterPos}>{player.pos}</span> {player.name}
