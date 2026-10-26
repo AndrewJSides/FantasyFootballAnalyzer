@@ -54,7 +54,7 @@ export function QueuePanel({ room, queue, onSelect }: QueuePanelProps) {
           Queue players with the + button on the board. Auto-pick drafts from here first.
         </p>
       ) : (
-        <ul className={panels.list}>
+        <ul className={panels.list} aria-label="Queue">
           {players.map((p, i) => (
             <li key={p.id} className={styles.queueRow}>
               <span className={styles.order}>{i + 1}</span>
