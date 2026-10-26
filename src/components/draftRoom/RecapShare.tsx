@@ -34,9 +34,9 @@ function emptyNote(key: ShareListKey, auction: boolean): string {
   }
 }
 
-function MoveRows({ moves, auction }: { moves: ShareMove[]; auction: boolean }) {
+function MoveRows({ moves, auction, label }: { moves: ShareMove[]; auction: boolean; label: string }) {
   return (
-    <ol className={styles.rows}>
+    <ol className={styles.rows} aria-label={label}>
       {moves.map((m, i) => (
         <li key={m.player.id} className={styles.row}>
           <span className={styles.rowRank}>{String(i + 1).padStart(2, '0')}</span>
@@ -103,9 +103,9 @@ function ListCard({
       {empty ? (
         <p className={styles.emptyNote}>{emptyNote(listKey, auction)}</p>
       ) : listKey === 'values' || listKey === 'reaches' ? (
-        <MoveRows moves={lists[listKey]} auction={auction} />
+        <MoveRows moves={lists[listKey]} auction={auction} label={shareListTitle(lists, listKey)} />
       ) : listKey === 'scoreboard' ? (
-        <ol className={styles.rows}>
+        <ol className={styles.rows} aria-label={shareListTitle(lists, listKey)}>
           {lists.scoreboard.map(row => (
             <li key={row.rank} className={styles.row}>
               <span className={styles.rowRank}>{String(row.rank).padStart(2, '0')}</span>
@@ -124,7 +124,7 @@ function ListCard({
           ))}
         </ol>
       ) : (
-        <ul className={styles.rows}>
+        <ul className={styles.rows} aria-label={shareListTitle(lists, listKey)}>
           {lists.byes.map(row => (
             <li key={row.teamId} className={styles.row}>
               <span className={styles.rowMain}>
