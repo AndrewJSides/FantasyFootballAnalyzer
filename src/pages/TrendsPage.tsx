@@ -239,7 +239,7 @@ export function TrendsPage({ league }: TrendsPageProps) {
                         {fmtDate(w.trends!.baselineDate)}.
                       </p>
                     ) : (
-                      <ol className={styles.list}>
+                      <ol className={styles.list} aria-label={col.title}>
                         {col.rows.map(({ mover, player }) => (
                           <MoverRow
                             key={mover.id}
