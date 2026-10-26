@@ -243,7 +243,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           {h2h.length > 0 && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>Vs The League</h3>
-              <ul className={styles.list}>
+              <ul className={styles.list} aria-label={`${team.name} head-to-head records`}>
                 {h2h.map(rec => (
                   <li key={rec.oppId} className={styles.listRow}>
                     <span className={styles.listName}>{rec.oppName}</span>
