@@ -325,10 +325,12 @@ function SideBuilder(props: {
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Type a name…"
-          // Title mirrors the visible label, like the team select above —
-          // the why stays attached to the field for tooltips and
-          // assistive tech.
-          title="Or search any player"
+          // The visible label just says "Or search any player" on both
+          // sides, so a screen reader hears the same name twice with no
+          // clue which side each search belongs to; name it after the
+          // side, matching the team select above.
+          aria-label={`${title}: search any player`}
+          title={`${title}: search any player`}
           // Player names are proper nouns — stop phone keyboards from
           // "correcting" them (e.g. Hurts -> Hurts' fine, but more often the
           // spacebar replaces the name mid-typing and breaks the search).
