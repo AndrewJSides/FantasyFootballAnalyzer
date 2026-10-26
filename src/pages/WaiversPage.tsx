@@ -48,7 +48,7 @@ export function WaiversPage({ league }: WaiversPageProps) {
               Transaction data could not be loaded for this league.
               This might happen if:
             </p>
-            <ul>
+            <ul aria-label="No transaction data available">
               <li>No waiver claims or free agent pickups have been made yet</li>
               <li>This is a new league with no activity</li>
             </ul>
