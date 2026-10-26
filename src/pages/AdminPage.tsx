@@ -333,7 +333,7 @@ export function AdminPage() {
       <section>
         <h2>3. Sync a league &amp; get its PIN</h2>
         {leagues.length === 0 && <p>{yahooConnected ? 'Loading leagues…' : 'Connect Yahoo first.'}</p>}
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul style={{ listStyle: 'none', padding: 0 }} aria-label="Sync a league & get its PIN">
           {leagues.map(l => (
             <li key={l.id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: 8 }}>
               <strong>{l.name}</strong>
