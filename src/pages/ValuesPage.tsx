@@ -336,7 +336,10 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
                       : `${SITE_LABEL[site]} reaches on nobody here.`}
                 </p>
               ) : (
-                <ol className={styles.cardList}>
+                <ol
+                  className={styles.cardList}
+                  aria-label={`${SITE_LABEL[site]} ${direction === 'values' ? 'biggest values' : 'biggest reaches'}`}
+                >
                   {top.map((r, i) => (
                     <li key={r.player.id} className={styles.cardRow}>
                       <span className={styles.cardRank} aria-hidden="true">{i + 1}</span>
