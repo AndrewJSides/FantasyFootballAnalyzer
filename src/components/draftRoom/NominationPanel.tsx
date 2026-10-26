@@ -37,7 +37,7 @@ export function NominationPanel({ room, onSelect }: NominationPanelProps) {
           ? 'Budgets are drained: nominate who you want.'
           : 'Bait: make the room spend where you already are set.'}
       </p>
-      <ul className={styles.list}>
+      <ul className={styles.list} aria-label="Nomination Ideas">
         {suggestions.map(({ player, reasons }) => (
           <li key={player.id}>
             <button
