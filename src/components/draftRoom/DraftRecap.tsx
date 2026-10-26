@@ -107,7 +107,7 @@ export function DraftRecap({ room }: DraftRecapProps) {
                 {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy Roster'}
               </button>
             </div>
-            <ul className={styles.mineRoster}>
+            <ul className={styles.mineRoster} aria-label="Your Draft">
               {mine.picks.map(line => (
                 <li key={line.pick.player.id} className={styles.mineRosterRow}>
                   <PosBadge pos={line.pick.player.pos} />
