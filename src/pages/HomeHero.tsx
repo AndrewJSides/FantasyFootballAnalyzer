@@ -48,7 +48,7 @@ export function HomeHero() {
           <span className={styles.boardKicker}>
             ▌ Top of the {POOL_SEASON} board
           </span>
-          <ol className={styles.boardList}>
+          <ol className={styles.boardList} aria-label={`Top of the ${POOL_SEASON} draft board`}>
             {TOP_OF_BOARD.map(p => {
               // Team logo with a text fallback (unknown team, or the img
               // fails to load and the browser shows the alt text).
