@@ -372,7 +372,7 @@ export function AvailablePlayers({
       </div>
       {isPhone ? (
         <>
-          <ul className={styles.mList}>
+          <ul className={styles.mList} aria-label="Available players">
             {visible.map((p, i) => (
               <Fragment key={p.id}>
                 {i === cutoffAt && (
