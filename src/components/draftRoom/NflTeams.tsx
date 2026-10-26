@@ -95,7 +95,7 @@ export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
                   {left} of {players.length} left
                 </span>
               </div>
-              <ul className={styles.list}>
+              <ul className={styles.list} aria-label={`${info?.name ?? (team || 'FA')} players`}>
                 {players.map(p => {
                   const owner = ownerById.get(p.id);
                   const kept = derived.reservedPlayerIds.has(p.id);
