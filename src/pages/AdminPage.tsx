@@ -278,7 +278,7 @@ export function AdminPage() {
           <p style={{ color: '#666' }}>Nothing in the database yet — sync a league below.</p>
         )}
         {!syncedLoading && synced.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+          <ul style={{ listStyle: 'none', padding: 0 }} aria-label="Synced leagues">
             {synced.map(l => (
               <li key={l.leagueKey} style={{ marginBottom: '0.75rem', padding: '0.75rem 1rem', border: '1px solid #ddd', borderRadius: 8 }}>
                 <strong>{l.name}</strong>
