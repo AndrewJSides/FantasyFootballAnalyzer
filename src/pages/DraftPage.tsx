@@ -154,7 +154,7 @@ export function DraftPage({ league }: DraftPageProps) {
               Draft data could not be loaded for this league.
               This might happen if:
             </p>
-            <ul>
+            <ul aria-label="No draft data available">
               <li>The draft hasn't completed yet</li>
               <li>The league is from a previous season without accessible draft history</li>
               <li>The platform doesn't provide draft data for this league type</li>
