@@ -46,7 +46,7 @@ export function ToolLanding({ content }: { content: ToolLandingContent }) {
           </nav>
         </header>
 
-        <ul className={styles.points}>
+        <ul className={styles.points} aria-label={content.heading}>
           {content.points.map(pt => (
             <li key={pt.h} className={styles.point}>
               <h2 className={styles.pointTitle}>{pt.h}</h2>
