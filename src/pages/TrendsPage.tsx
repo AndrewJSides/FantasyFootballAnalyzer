@@ -211,6 +211,21 @@ export function TrendsPage({ league }: TrendsPageProps) {
           </span>
         </div>
 
+        {/* The scoring-format chips swap the risers/fallers lists in place
+            with no navigation, so screen readers heard nothing change; this
+            announces the updated counts for the active format. Visible text
+            unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {`${FORMAT_LABEL[format]}: ${windows
+            .map(w => {
+              if (!w.trends) return `${w.label}: no movement yet`;
+              const risers = w.columns.find(c => c.key === 'risers')?.rows.length ?? 0;
+              const fallers = w.columns.find(c => c.key === 'fallers')?.rows.length ?? 0;
+              return `${w.label}: ${risers} risers, ${fallers} fallers`;
+            })
+            .join('. ')}`}
+        </div>
+
         {windows.map(w =>
           !w.trends ? (
             <section key={w.days} className={styles.window}>
