@@ -982,7 +982,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         )}
 
         {sameTeam && (
-          <p className={styles.warning}>
+          // The builder warnings live outside the results live region, so a
+          // screen reader user picking the same team for both sides would
+          // otherwise never hear this blocking warning. role="alert" makes
+          // it announce the moment it appears. Visible text unchanged.
+          <p className={styles.warning} role="alert">
             Side A and Side B are the same team — pick two different teams to grade a trade.
           </p>
         )}
