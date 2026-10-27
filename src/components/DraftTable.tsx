@@ -662,6 +662,16 @@ export function DraftTable({
       {/* Filters and the share buttons sit right on top of the table they act on;
           the leaderboards above are league-wide and ignore them (owner, 2026-09-02). */}
       <div className={styles.filters}>
+        {/* The team/position selects and the leaderboard rows swap the table
+            in place with no navigation, so screen readers heard nothing
+            change; this announces the shown pick count for the active
+            filters. The sort headers already carry aria-sort, so the order
+            is announced there. Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {displayPicks.length === 0
+            ? 'No draft picks match the selected filters.'
+            : `Showing ${displayPicks.length} of ${gradedPicks.length} draft picks${selectedTeam !== 'all' ? ` for ${teams.find(t => t.id === selectedTeam)?.name ?? 'the selected team'}` : ''}${selectedPosition !== 'all' ? ` at ${selectedPosition}` : ''}.`}
+        </div>
         <div className={`${styles.filter} ${styles.teamFilter}`}>
           <label htmlFor="teamFilter" className={styles.filterLabel}>
             Team
