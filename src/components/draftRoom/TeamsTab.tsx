@@ -84,6 +84,13 @@ export function TeamsTab({ room, viewTeamId, onViewTeam }: TeamsTabProps) {
 
   return (
     <div className={`${styles.wrap} ${isMe ? styles.wrapMine : ''}`}>
+      {/* The arrows and jump dropdown swap the whole team board in
+          place with no navigation, so screen readers heard nothing
+          change; a visually-hidden aria-live region announces the
+          viewed team. Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {`Viewing team: ${team.name}`}
+      </div>
       <div className={styles.nav}>
         <button
           type="button"
