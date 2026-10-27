@@ -113,6 +113,15 @@ export function YearSelector({ league, credentials, onPick, disabled }: YearSele
 
   return (
     <div ref={rootRef} className={styles.root}>
+      {/* Picking a season swaps the whole app's season data in place
+          with no navigation, so screen readers heard nothing change;
+          a visually-hidden aria-live region announces the viewed
+          season. Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {inDraftRoom
+          ? `Viewing ${draftYear} draft prep`
+          : `Viewing the ${league.season} season`}
+      </div>
       <button
         type="button"
         className={styles.trigger}
