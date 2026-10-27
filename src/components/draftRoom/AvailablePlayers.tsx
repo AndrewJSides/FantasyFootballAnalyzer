@@ -370,6 +370,17 @@ export function AvailablePlayers({
           })}
         </div>
       </div>
+      {/* The position chips and search swap the player list in place
+          with no navigation, so screen readers heard nothing change;
+          this announces the updated shown count for the active
+          position filter. Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {rows.length === 0
+          ? 'No available players match.'
+          : posFilter === 'ALL'
+            ? `Showing ${visible.length} of ${rows.length} available players`
+            : `Showing ${visible.length} of ${rows.length} ${posFilter} players`}
+      </div>
       {isPhone ? (
         <>
           <ul className={styles.mList} aria-label="Available players">
