@@ -606,8 +606,13 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               )}
             </tbody>
           </table>
+          {/* Position chips and search swap the table rows in place
+              with no navigation, so screen readers hear nothing
+              change; the truncated-count summary is the compact
+              thing worth announcing, and polite keeps it from
+              interrupting the control. */}
           {rows.length > MAX_ROWS && (
-            <div className={styles.truncated}>
+            <div className={styles.truncated} aria-live="polite">
               Showing {MAX_ROWS} of {rows.length}. Search or filter to narrow.
             </div>
           )}
