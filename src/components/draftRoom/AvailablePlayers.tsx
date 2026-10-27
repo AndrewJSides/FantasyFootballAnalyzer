@@ -157,6 +157,18 @@ export function AvailablePlayers({
   };
 
   // Sorts here are fixed-direction (rank/ADP ascending, money descending).
+  // The live region below names the active sort so a re-sort (which
+  // reorders the rows in place) is announced, not just the count.
+  const sortLabel: Record<typeof sortBy, string> = {
+    rank: 'Rank',
+    value: 'FantasyPros Value',
+    adj: 'Adjusted Value',
+    espn: 'ESPN Price',
+    yahoo: 'Yahoo Price',
+    adp: 'ADP',
+    delta: 'Value Delta',
+    adpDelta: 'ADP Delta',
+  };
   const ariaSortFor = (key: typeof sortBy): 'ascending' | 'descending' | 'none' =>
     sortBy === key ? (key === 'rank' || key === 'adp' ? 'ascending' : 'descending') : 'none';
 
@@ -370,16 +382,17 @@ export function AvailablePlayers({
           })}
         </div>
       </div>
-      {/* The position chips and search swap the player list in place
-          with no navigation, so screen readers heard nothing change;
-          this announces the updated shown count for the active
-          position filter. Visible text unchanged. */}
+      {/* The position chips, search, and sort headers swap or reorder the
+          player list in place with no navigation, so screen readers heard
+          nothing change; this announces the updated shown count for the
+          active position filter and the active sort. Visible text
+          unchanged. */}
       <div aria-live="polite" className="visually-hidden">
         {rows.length === 0
           ? 'No available players match.'
           : posFilter === 'ALL'
-            ? `Showing ${visible.length} of ${rows.length} available players`
-            : `Showing ${visible.length} of ${rows.length} ${posFilter} players`}
+            ? `Showing ${visible.length} of ${rows.length} available players, sorted by ${sortLabel[sortBy]}`
+            : `Showing ${visible.length} of ${rows.length} ${posFilter} players, sorted by ${sortLabel[sortBy]}`}
       </div>
       {isPhone ? (
         <>
