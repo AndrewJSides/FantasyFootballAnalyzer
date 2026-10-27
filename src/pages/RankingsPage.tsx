@@ -366,6 +366,13 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             </span>
           )}
         </div>
+        {/* Switching views swaps the whole table in place with no
+            navigation, so screen readers heard nothing change; a
+            visually-hidden aria-live region announces the active view.
+            Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {`Rankings view: ${viewTab === 'auction' ? 'Auction' : 'Snake'}`}
+        </div>
 
         <div className={styles.controls}>
           <input
