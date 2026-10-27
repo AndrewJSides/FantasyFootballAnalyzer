@@ -120,6 +120,12 @@ export function TeamsPage({ league }: TeamsPageProps) {
     return (
       <div className={styles.page}>
         <div className="container">
+          {/* Clicking a team card swaps the whole page to that team's hub
+              in place with no navigation, so screen readers heard nothing
+              change; this announces the opened team. Visible text unchanged. */}
+          <div aria-live="polite" className="visually-hidden">
+            {`${detailTeam.name} team hub open.`}
+          </div>
           <TeamDetail league={league} team={detailTeam} onBack={() => openTeam(null)} />
         </div>
       </div>
@@ -129,6 +135,12 @@ export function TeamsPage({ league }: TeamsPageProps) {
   return (
     <div className={styles.page}>
       <div className="container">
+        {/* Closing a team hub swaps back to the team list in place with no
+            navigation, so screen readers heard nothing change; this
+            announces the return to the list. Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {`Team list, ${league.teams.length} teams.`}
+        </div>
         <div className={styles.header}>
           <h1 className={styles.title}>Team Overview</h1>
           <p className={styles.subtitle}>
