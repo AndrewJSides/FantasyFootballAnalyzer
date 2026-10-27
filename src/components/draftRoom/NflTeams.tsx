@@ -33,6 +33,8 @@ export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
     return owners;
   }, [config.teams, derived.teams]);
 
+  const totalTeams = useMemo(() => new Set(pool.players.map(p => p.team)).size, [pool.players]);
+
   const cards = useMemo(() => {
     const byTeam = new Map<string, PoolPlayer[]>();
     for (const p of pool.players) {
@@ -72,6 +74,14 @@ export function NflTeams({ room, selectedId, onSelect }: NflTeamsProps) {
         value={query}
         onChange={e => setQuery(e.target.value)}
       />
+      {/* The search swaps the team cards in place with no navigation, so
+          screen readers heard nothing change; this announces the updated
+          shown team count. Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {cards.length === 0
+          ? 'No NFL team or player matches.'
+          : `Showing ${cards.length} of ${totalTeams} NFL teams`}
+      </div>
       <div className={styles.grid}>
         {cards.map(({ team, players, bye }) => {
           const left = players.filter(
