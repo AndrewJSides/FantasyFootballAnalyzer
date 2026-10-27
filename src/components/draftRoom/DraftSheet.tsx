@@ -144,6 +144,13 @@ export function DraftSheet({
           </button>
         </div>
       </div>
+      {/* Switching sheet tabs swaps the whole pane in place with no
+          navigation, so screen readers heard nothing change; a
+          visually-hidden aria-live region announces the active tab.
+          Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {`Sheet tab: ${tabs.find(t => t.key === active)?.ariaLabel ?? tabs.find(t => t.key === active)?.label ?? 'Players'}`}
+      </div>
       {/* draft-sheet-body is a global hook: inner panes cap their own height
           against the page viewport, which must relax inside the sheet (the
           sheet body is the scroller here). See index.css. The inner div is
