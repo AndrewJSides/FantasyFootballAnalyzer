@@ -210,7 +210,7 @@ export function Header({
                         ? `Refresh league data (updated ${new Date(league.loadedAt).toLocaleString()})`
                         : 'Refresh league data'
                     }
-                    aria-label="Refresh league data"
+                    aria-label={isRefreshing ? 'Refreshing league data' : 'Refresh league data'}
                     disabled={isRefreshing}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`${styles.refreshIcon} ${isRefreshing ? styles.refreshIconSpinning : ''}`} aria-hidden="true">
