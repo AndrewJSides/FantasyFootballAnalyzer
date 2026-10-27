@@ -1000,7 +1000,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         )}
 
         {warnings.map((w, i) => (
-          <p key={i} className={styles.warning}>{w}</p>
+          // The analysis warnings live outside the results live region, so a
+          // screen reader user would otherwise hear the verdict but never
+          // the caveat that some players were left out of the math.
+          // role="alert" announces each warning the moment it appears,
+          // matching the same-team warning's discipline above.
+          <p key={i} className={styles.warning} role="alert">{w}</p>
         ))}
 
         {/* Always mounted: the live region must exist before the verdict
