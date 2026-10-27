@@ -130,7 +130,11 @@ export function TradeTable({ trades, teams }: TradeTableProps) {
           </select>
         </div>
 
-        <div className={styles.stats}>
+        {/* The team filter swaps the trade cards in place with no
+            navigation, so screen readers hear nothing change; the stats
+            summary is the compact thing worth announcing, and polite keeps
+            it from interrupting the control. */}
+        <div className={styles.stats} aria-live="polite">
           <div className={styles.stat}>
             <span className={styles.statLabel}>Total Trades</span>
             <span className={styles.statValue}>{displayTrades.length}</span>
