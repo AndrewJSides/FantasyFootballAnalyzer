@@ -380,6 +380,17 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                 {filteredPlayers.length} Players
               </span>
             </div>
+            {/* The position filter and search swap the player list in
+                place with no navigation, so screen readers heard nothing
+                change; this announces the updated shown count for the
+                active position filter. Visible text unchanged. */}
+            <div aria-live="polite" className="visually-hidden">
+              {filteredPlayers.length === 0
+                ? 'No players found matching your search.'
+                : positionFilter === 'all'
+                  ? `Showing ${Math.min(visibleCount, filteredPlayers.length)} of ${filteredPlayers.length} players`
+                  : `Showing ${Math.min(visibleCount, filteredPlayers.length)} of ${filteredPlayers.length} ${positionFilter} players`}
+            </div>
             <div className={styles.listItems}>
               {filteredPlayers.slice(0, visibleCount).map(p => (
                 <button
