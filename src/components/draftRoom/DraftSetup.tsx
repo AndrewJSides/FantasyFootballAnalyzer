@@ -116,6 +116,7 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
   const [archive, setArchive] = useState(() => loadDraftArchive(leagueKeyFor(league)));
   const [presets, setPresets] = useState<DraftPreset[]>(() => loadPresets());
   const [presetName, setPresetName] = useState('');
+  const [presetAnnouncement, setPresetAnnouncement] = useState('');
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const sectionOpen = !isMobile;
   // For the archived-drafts stale check below.
@@ -330,7 +331,10 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
     setPresets(savePreset(presetName, settingsFromConfig(config)));
     setPresetName('');
   };
-  const applyPreset = (preset: DraftPreset) => updateConfig(preset.settings);
+  const applyPreset = (preset: DraftPreset) => {
+    updateConfig(preset.settings);
+    setPresetAnnouncement(`Preset ${preset.name} loaded.`);
+  };
   const removePreset = (name: string) => setPresets(deletePreset(name));
 
   // A one-line confirmation of the headline settings, so the user can see at a
@@ -909,6 +913,13 @@ export function DraftSetup({ room, league }: DraftSetupProps) {
       </div>
 
       <CollapsibleSection title="Presets" count={presets.length || undefined} defaultOpen={sectionOpen}>
+        {/* Loading a preset swaps the whole setup form in place with no
+            navigation, so screen readers heard nothing change; a
+            visually-hidden aria-live region announces the loaded preset.
+            Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {presetAnnouncement}
+        </div>
         <p className={styles.hint}>
           Save these settings (scoring, roster, format, budget) to reuse on any league or mock.
           Teams and keepers are not stored.
