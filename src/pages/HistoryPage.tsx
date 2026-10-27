@@ -317,6 +317,18 @@ export function HistoryPage({ league }: HistoryPageProps) {
                 </select>
               </div>
 
+              {/* The team selector swaps the rivalry cards in place with no
+                  navigation, so screen readers heard nothing change; this
+                  announces the loaded results for the selected team.
+                  Visible text unchanged. */}
+              <div aria-live="polite" className="visually-hidden">
+                {!rivalriesLoading && selectedTeamId && !rivalriesError
+                  ? rivalries.length > 0
+                    ? `Head-to-head records for ${teamOptions.find(t => t.id === selectedTeamId)?.name ?? 'selected team'}: ${rivalries.length} opponent${rivalries.length === 1 ? '' : 's'}`
+                    : `No head-to-head records found for ${teamOptions.find(t => t.id === selectedTeamId)?.name ?? 'selected team'}`
+                  : ''}
+              </div>
+
               {rivalriesLoading && (
                 <div className={styles.rivalriesLoading} role="status">
                   <div className="spinner"></div>
