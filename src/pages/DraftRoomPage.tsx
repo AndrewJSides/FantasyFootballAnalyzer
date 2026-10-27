@@ -1044,6 +1044,13 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                         </button>
                       ))}
                     </div>
+                    {/* Switching tabs swaps the whole main pane in place with
+                        no navigation, so screen readers heard nothing change;
+                        a visually-hidden aria-live region announces the
+                        active tab. Visible text unchanged. */}
+                    <div aria-live="polite" className="visually-hidden">
+                      {`Board tab: ${BOARD_TABS.find(t => t.key === boardTab)?.label ?? 'Board'}`}
+                    </div>
                     {/* Keyed on the tab so switching remounts the pane and
                         replays the fade-in instead of only fading in once. */}
                     <div key={boardTab} className={styles.tabPane}>
