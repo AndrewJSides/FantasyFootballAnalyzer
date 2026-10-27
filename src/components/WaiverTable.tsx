@@ -327,7 +327,11 @@ export function WaiverTable({ teams, pointsBasis }: WaiverTableProps) {
           </select>
         </div>
 
-        <div className={styles.stats}>
+        {/* Team/position filters and the unstarted toggle swap the table
+            rows in place with no navigation, so screen readers hear
+            nothing change; the stats summary is the compact thing worth
+            announcing, and polite keeps it from interrupting the control. */}
+        <div className={styles.stats} aria-live="polite">
           <div className={styles.stat}>
             <span className={styles.statLabel}>Total Pickups</span>
             <span className={styles.statValue}>{displayPickups.length}</span>
