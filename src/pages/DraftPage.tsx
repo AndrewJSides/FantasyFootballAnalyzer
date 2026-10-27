@@ -91,7 +91,16 @@ export function DraftPage({ league }: DraftPageProps) {
         </div>
 
         {showToggle && (
-          <div className={styles.sourceToggle} role="group" aria-label="Draft data source">
+          <>
+            {/* Toggling the source swaps the whole draft table in place with
+                no navigation, so screen readers heard nothing change; this
+                announces the active source. Visible text unchanged. */}
+            <div aria-live="polite" className="visually-hidden">
+              {active === 'live'
+                ? `Showing live-logged draft for ${liveData?.season}.`
+                : `Showing platform draft for ${league.season}.`}
+            </div>
+            <div className={styles.sourceToggle} role="group" aria-label="Draft data source">
             <button
               type="button"
               className={active === 'platform' ? styles.sourceOn : styles.sourceOff}
@@ -110,7 +119,8 @@ export function DraftPage({ league }: DraftPageProps) {
             >
               Live log ({liveData?.season})
             </button>
-          </div>
+            </div>
+          </>
         )}
 
         {hasData && !boardReady ? (
