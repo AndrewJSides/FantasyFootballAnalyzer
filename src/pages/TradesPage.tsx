@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import { DataAsOf } from '@/components/DataAsOf';
 import { TradeTable } from '@/components/TradeTable';
 import type { League } from '@/types';
@@ -13,11 +14,11 @@ export function TradesPage({ league }: TradesPageProps) {
   const tradeCount = league.trades?.length ?? 0;
   // Tab shows the trade count so the Trades tab reads at a glance and stays
   // tellable apart from the other league tabs (matches the Draft/Values
-  // title pattern). Leaving the page restores the page title.
+  // title pattern). Leaving the page restores the site title.
   useEffect(() => {
     document.title = tradeCount > 0 ? `Trades (${tradeCount}) · TraderApe` : 'Trades · TraderApe';
     return () => {
-      document.title = 'Trades · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [tradeCount]);
   const hasTrades = league.trades && league.trades.length > 0;

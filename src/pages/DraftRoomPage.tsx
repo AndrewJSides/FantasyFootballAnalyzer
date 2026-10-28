@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import { Link } from 'react-router-dom';
 import type { League } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
@@ -144,14 +145,14 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
   // while a draft is running, so a tabbed-away live room stays tellable at
   // a glance (matches the Trades count / Draft source / analyzer verdict
   // title pattern). Setup and recap keep the plain route title; leaving
-  // the page restores it.
+  // the page restores the site title.
   useEffect(() => {
     document.title =
       phase === 'drafting' && derived.totalPicks > 0
         ? `Pick ${Math.min(derived.pickCount + 1, derived.totalPicks)}/${derived.totalPicks} · Draft Room · TraderApe`
         : 'Draft Room · TraderApe';
     return () => {
-      document.title = 'Draft Room · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [phase, derived.pickCount, derived.totalPicks]);
 

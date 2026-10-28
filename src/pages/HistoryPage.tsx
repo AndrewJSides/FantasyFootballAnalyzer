@@ -7,6 +7,7 @@ import { RivalryCard } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { AWARD_ICONS } from '@/utils/awardIcons';
 import { logger } from '@/utils/logger';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import { loadESPNCredentials } from '@/utils/espnCredentials';
 import styles from './HistoryPage.module.css';
 
@@ -40,8 +41,9 @@ export function HistoryPage({ league }: HistoryPageProps) {
   }, [league.id]);
 
   // Tab title shows the selected rivalry team's name (e.g. 'Motha Puka
-  // History · TraderApe'); clearing the selection or leaving restores the
-  // page title (matches the Teams/Rankings/Player Journey title pattern).
+  // History · TraderApe'); clearing the selection restores the page
+  // title and leaving restores the site title (matches the Teams/
+  // Rankings/Player Journey title pattern).
   // App's per-page effect only fires on pathname change, and picking a
   // rivalry team never changes the pathname, so this owns the title while
   // a team is selected.
@@ -51,7 +53,7 @@ export function HistoryPage({ league }: HistoryPageProps) {
       : undefined;
     document.title = teamName ? `${teamName} History · TraderApe` : 'History · TraderApe';
     return () => {
-      document.title = 'History · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [selectedTeamId, league.teams]);
 

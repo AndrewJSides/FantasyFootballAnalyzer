@@ -1,6 +1,7 @@
 import { Fragment, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { POOL } from '@/data/draftPool';
 import { formatBuildDate } from '@/utils/formatBuildDate';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { League, Platform } from '@/types';
@@ -68,13 +69,13 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   const [query, setQuery] = useState('');
   const [posFilter, setPosFilter] = useState(landingPos ?? 'ALL');
   // Tab title mirrors the heading: the filtered position when one is active
-  // (matches the Teams/Player Journey title pattern). Clearing the filter or
-  // leaving the page restores the page title.
+  // (matches the Teams/Player Journey title pattern). Clearing the filter
+  // restores the page title; leaving the page restores the site title.
   useEffect(() => {
     document.title =
       posFilter === 'ALL' ? 'Rankings · TraderApe' : `${labelForPos(posFilter)} Rankings · TraderApe`;
     return () => {
-      document.title = 'Rankings · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [posFilter]);
   const [sortBy, setSortBy] = useState<SortKey>('avg');

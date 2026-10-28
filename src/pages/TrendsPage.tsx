@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { POOL } from '@/data/draftPool';
 import { formatBuildDate } from '@/utils/formatBuildDate';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import { ADP_HISTORY } from '@/data/adpHistory';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -116,12 +117,12 @@ function MoverRow({
 export function TrendsPage({ league }: TrendsPageProps) {
   // Tab title shows the active scoring-format tab (matches the Rankings page's
   // position-filter title). Switching tabs updates it; leaving the page
-  // restores the page title.
+  // restores the site title.
   const [format, setFormat] = useState<TrendFormat>(() => defaultFormat(league));
   useEffect(() => {
     document.title = `${FORMAT_LABEL[format]} Trends · TraderApe`;
     return () => {
-      document.title = 'Trends · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [format]);
   const byId = useMemo(() => new Map(POOL.players.map(p => [p.id, p])), []);

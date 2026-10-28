@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { POOL } from '@/data/draftPool';
 import { formatBuildDate } from '@/utils/formatBuildDate';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { League, Platform } from '@/types';
@@ -85,13 +86,13 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
   const [query, setQuery] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
   // Tab title shows the active position filter (e.g. 'QB Site Values ·
-  // TraderApe'); clearing the filter or leaving restores the page title
-  // (matches the Rankings page's position-filter title).
+  // TraderApe'); clearing the filter restores the page title and leaving
+  // restores the site title (matches the Rankings page's position-filter title).
   useEffect(() => {
     document.title =
       posFilter === 'ALL' ? 'Site Values · TraderApe' : `${labelForPos(posFilter)} Site Values · TraderApe`;
     return () => {
-      document.title = 'Site Values · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [posFilter]);
   const [direction, setDirection] = useState<Direction>('values');
