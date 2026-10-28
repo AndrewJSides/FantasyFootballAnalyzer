@@ -1098,6 +1098,13 @@ export function DraftRoomPage({ league, justConnected }: DraftRoomPageProps) {
                         Log
                       </button>
                     </div>
+                    {/* Switching side tabs swaps the whole side pane in place
+                        with no navigation, so screen readers heard nothing
+                        change; a visually-hidden aria-live region announces
+                        the active tab. Visible text unchanged. */}
+                    <div aria-live="polite" className="visually-hidden">
+                      {`Side tab: ${activeSideTab === 'roster' ? 'Roster' : activeSideTab === 'queue' ? 'Queue' : 'Log'}`}
+                    </div>
                     {activeSideTab === 'roster' && <MyTeamPanel room={room} />}
                     {activeSideTab === 'queue' && phase === 'drafting' && (
                       <>
