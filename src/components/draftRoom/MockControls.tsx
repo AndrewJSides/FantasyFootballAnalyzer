@@ -64,6 +64,16 @@ export function MockControls({ sim, isSnake }: MockControlsProps) {
           Auto-pick me
         </label>
       )}
+
+      {/* Pausing/resuming swaps the sim state in place with no
+          navigation and no pick to log, so screen readers heard
+          nothing change when the Pause button's label flipped; a
+          visually-hidden aria-live region announces the sim state.
+          Speed buttons already carry aria-pressed. Visible text
+          unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {sim.paused ? 'Simulation paused.' : 'Simulation running.'}
+      </div>
     </div>
   );
 }
