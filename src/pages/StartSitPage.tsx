@@ -18,6 +18,7 @@ import {
 } from '@/utils/weeklyProjection';
 import {
   getMatchupRating,
+  leagueAvgAllowed,
   matchupDataWeeks,
   matchupLabel,
   matchupShort,
@@ -122,7 +123,18 @@ export function StartSitPage({ league }: StartSitPageProps) {
         last3Entries.length > 0
           ? round1(last3Entries.reduce((s, e) => s + e.pts, 0) / last3Entries.length)
           : null;
-      const projection = projectWeeklyPoints(completed, gpCompleted);
+      // Matchup context for the numeric projection blend: the opponent's
+      // allowed-vs-position and the league-wide average, so the model nudges
+      // the projection up for soft matchups and down for tough ones. Same
+      // rating object also feeds the Matchup column, so the number and the
+      // display never disagree.
+      const matchup = getMatchupRating(rosterPlayer.team, rosterPlayer.position, currentWeek);
+      const leagueAvg = leagueAvgAllowed(rosterPlayer.position);
+      const matchupContext =
+        matchup !== null && leagueAvg !== null
+          ? { avgAllowed: matchup.avgAllowed, leagueAverage: leagueAvg }
+          : null;
+      const projection = projectWeeklyPoints(completed, gpCompleted, matchupContext);
       const bye = resolvePoolPlayer(rosterPlayer, poolIndex)?.bye ?? null;
       return {
         id: rosterPlayer.id,
@@ -139,7 +151,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
         projection,
         bye,
         onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
-        matchup: getMatchupRating(rosterPlayer.team, rosterPlayer.position, currentWeek),
+        matchup,
       };
     });
   }, [team, league.playerWeeklyPoints, league.gamesPlayed, league.season, currentWeek]);
@@ -184,7 +196,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
 
   const starterReason = (s: ScoredPlayer, slot: string): string => {
     const base = slotReason(slot);
-    if (s.projection) return `${base}. ${projectionReason(s.projection)}`;
+    if (s.projection) return `${base}. ${projectionReason(s.projection, s.matchup?.opponent)}`;
     return `${base}${trendLabel(s.ppg, s.last3)}.`;
   };
 

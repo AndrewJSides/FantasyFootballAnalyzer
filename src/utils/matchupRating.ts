@@ -120,3 +120,18 @@ export function matchupShort(rating: MatchupRating): string {
 export function matchupDataWeeks(): [number, number] {
   return ALLOWED.weeks;
 }
+
+/**
+ * League-wide average fantasy points per game allowed to a skill position
+ * (mean of the per-team averages), the reference point for the numeric
+ * matchup blend in weeklyProjection.ts. Null when the position has no data.
+ */
+export function leagueAvgAllowed(position: string | null | undefined): number | null {
+  const pos = normalizePosition(position);
+  if (pos === null) return null;
+  const avgs = Object.values(ALLOWED.teams)
+    .map(team => team[pos]?.avg)
+    .filter((a): a is number => Number.isFinite(a));
+  if (avgs.length === 0) return null;
+  return Math.round((avgs.reduce((s, a) => s + a, 0) / avgs.length) * 100) / 100;
+}

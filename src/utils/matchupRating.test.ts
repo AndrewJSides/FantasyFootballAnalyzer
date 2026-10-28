@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getMatchupRating,
+  leagueAvgAllowed,
   matchupLabel,
   matchupShort,
   type AllowedFile,
@@ -80,5 +81,21 @@ describe('labels', () => {
   it('renders the compact cell text', () => {
     const r = getMatchupRating('BUF', 'QB', 8, schedule, allowed)!;
     expect(matchupShort(r)).toBe('vs BAL · Tough');
+  });
+});
+
+describe('leagueAvgAllowed', () => {
+  it('returns a finite league average for each skill position', () => {
+    for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+      const avg = leagueAvgAllowed(pos);
+      expect(avg).toBeGreaterThan(0);
+      expect(Number.isFinite(avg)).toBe(true);
+    }
+  });
+
+  it('returns null for non-skill or missing positions', () => {
+    expect(leagueAvgAllowed('K')).toBeNull();
+    expect(leagueAvgAllowed(null)).toBeNull();
+    expect(leagueAvgAllowed(undefined)).toBeNull();
   });
 });
