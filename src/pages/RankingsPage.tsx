@@ -366,12 +366,17 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             </span>
           )}
         </div>
-        {/* Switching views swaps the whole table in place with no
-            navigation, so screen readers heard nothing change; a
-            visually-hidden aria-live region announces the active view.
-            Visible text unchanged. */}
+        {/* The view tabs, position chips, and search swap the table in
+            place with no navigation, so screen readers heard nothing
+            change; a visually-hidden aria-live region announces the
+            shown count for the active position filter and the active
+            view (the view toggle alone often leaves the count
+            unchanged). Sort headers already carry aria-sort. Visible
+            text unchanged. */}
         <div aria-live="polite" className="visually-hidden">
-          {`Rankings view: ${viewTab === 'auction' ? 'Auction' : 'Snake'}`}
+          {posFilter === 'ALL'
+            ? `Showing ${visible.length} player rankings, ${viewTab === 'auction' ? 'Auction' : 'Snake'} view`
+            : `Showing ${visible.length} ${labelForPos(posFilter)} rankings, ${viewTab === 'auction' ? 'Auction' : 'Snake'} view`}
         </div>
 
         <div className={styles.controls}>
