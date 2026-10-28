@@ -253,8 +253,9 @@ export function Header({
             {!showLeagueNav ? (
               /* Draft prep is its own focused mode: just the draft-state
                  tabs, no season-analysis noise. It is also the fallback for
-                 anyone without a connected league, since these three are the
-                 only routes that work without one. */
+                 anyone without a connected league — Start/Sit works there
+                 too on a manually entered roster (Sleeper's public weekly
+                 stats), the only other route that works without one. */
               <>
                 <Link
                   to="/draft-room"
@@ -287,6 +288,14 @@ export function Header({
                   aria-current={isTrends ? 'page' : undefined}
                 >
                   Trends
+                </Link>
+                <Link
+                  to="/start-sit"
+                  className={`${styles.navLink} ${location.pathname === '/start-sit' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/start-sit' ? 'page' : undefined}
+                >
+                  Start/Sit
                 </Link>
               </>
             ) : (

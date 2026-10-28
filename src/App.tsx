@@ -883,7 +883,13 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/trades" element={dataRoute(l => <TradesPage league={l} />)} />
           <Route path="/waivers" element={dataRoute(l => <WaiversPage league={l} />)} />
-          <Route path="/start-sit" element={dataRoute(l => <StartSitPage league={l} />)} />
+          {/* Start/Sit works in guest mode on a manually entered roster
+              (Sleeper's public weekly stats, no auth), so guests aren't
+              bounced to Rankings like the other data pages. */}
+          <Route
+            path="/start-sit"
+            element={league ? <StartSitPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
+          />
           <Route path="/teams" element={dataRoute(l => <TeamsPage league={l} />)} />
           <Route path="/history" element={dataRoute(l => <HistoryPage league={l} />)} />
           <Route path="/awards" element={dataRoute(l => <AwardsPage league={l} />)} />
