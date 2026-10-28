@@ -277,6 +277,16 @@ function SideBuilder(props: {
         </label>
       )}
 
+      {/* Picking a team swaps the roster list below in place with no
+          navigation, so screen readers heard nothing change beyond the
+          select's own value; the visually-hidden aria-live region
+          announces the picked team and its roster size. Always mounted:
+          the region must exist before the first pick so the preselect
+          (and every later pick) announces. Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {team ? `${title}: ${team.name}, ${(team.roster ?? []).length} players to add.` : ''}
+      </div>
+
       {team && (
         <div className={styles.rosterList}>
           <span className={styles.label}>Tap a player to add</span>
