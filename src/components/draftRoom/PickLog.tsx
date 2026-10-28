@@ -112,6 +112,17 @@ export function PickLog({ room }: PickLogProps) {
           </button>
         </div>
       </div>
+      {/* Logging or undoing a pick swaps the log list in place with no
+          navigation, so screen readers heard nothing change; this announces
+          the latest logged pick (or that the log is empty). Visible text
+          unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {rows.length === 0
+          ? 'No picks logged yet'
+          : `Latest pick: ${rows[rows.length - 1].playerName} to ${rows[rows.length - 1].team}${
+              rows[rows.length - 1].price !== null ? ` for $${rows[rows.length - 1].price}` : ''
+            }`}
+      </div>
       <ol className={styles.list} aria-label="Picks logged so far, newest first">
         {[...rows].reverse().map(row => {
           const delta = row.price !== null && row.expected !== null ? row.price - row.expected : null;
