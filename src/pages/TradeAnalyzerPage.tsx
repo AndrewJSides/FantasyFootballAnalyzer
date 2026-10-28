@@ -5,6 +5,7 @@ import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { PosBadge } from '@/components/PosBadge';
 import { DataAsOf } from '@/components/DataAsOf';
+import { SITE_TITLE } from '../utils/siteTitle';
 import {
   analyzeTrade,
   resolveTradeSide,
@@ -446,13 +447,14 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // history entries for different trades stay tellable apart, and a shared
   // #trade= link's recipient sees the verdict in their tab too. App.tsx's
   // per-page title effect only fires on pathname change, so this owns the
-  // title while the analyzer is mounted; leaving the page restores it.
+  // title while the analyzer is mounted; leaving the page restores the
+  // site title (matches the Admin/Awards/Luck/Waivers discipline).
   useEffect(() => {
     if (!result) return;
     const { label, margin } = verdictCopy(result);
     document.title = margin ? `${label} by ${margin} · TraderApe` : `${label} · TraderApe`;
     return () => {
-      document.title = 'Trade Analyzer · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [result]);
   // Players a shared #trade= link named that the consensus pool couldn't
