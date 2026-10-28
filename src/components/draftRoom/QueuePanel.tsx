@@ -36,6 +36,15 @@ export function QueuePanel({ room, queue, onSelect }: QueuePanelProps) {
     <div className={panels.panel}>
       <div className={styles.header}>
         <h3 className={panels.panelTitle}>Queue</h3>
+        {/* Queuing, removing, clearing, or auto-drafting a player swaps
+            the queue list in place with no navigation, so screen readers
+            heard nothing change; this announces the queue state (count
+            plus who's next up, or that it's empty). Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {players.length === 0
+            ? 'Queue is empty'
+            : `Queue: ${players.length} player${players.length === 1 ? '' : 's'}, next up ${players[0].name}`}
+        </div>
         {players.length > 1 && (
           <button
             type="button"
