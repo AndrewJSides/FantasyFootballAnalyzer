@@ -98,6 +98,16 @@ export function MockBidPanel({ room, sim, selected, onLogged }: MockBidPanelProp
       <div className={styles.logger}>
         <h2 className={styles.title}>On The Block</h2>
         <SelectedPlayerCard player={player} detail={`Nominated by ${nominatorName}`} />
+        {/* The high bid swaps in place as AI teams bid, with no
+            navigation, so screen readers heard nothing change — and
+            being outbid is exactly what the Bid buttons react to; a
+            visually-hidden aria-live region announces the current high
+            bid and bidder. Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          {highBid > 0
+            ? `High bid $${highBid} by ${iAmHigh ? 'you' : bidderName}.`
+            : `No bids yet on ${player.name}. Opening bid $${nextBid}.`}
+        </div>
         <div className={iAmHigh ? styles.clockMine : styles.clock}>
           <div className={styles.liveTopRow}>
             <span className={styles.livePrice}>${highBid > 0 ? highBid : nextBid}</span>
