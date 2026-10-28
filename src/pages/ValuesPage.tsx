@@ -391,14 +391,16 @@ export function ValuesPage({ league, onUpdateGuest }: ValuesPageProps) {
           )}
         </div>
 
-        {/* The position chips and search swap the table rows in place
-            with no navigation, so screen readers heard nothing
-            change; this announces the updated shown count for the
-            active position filter. Visible text unchanged. */}
+        {/* The position chips, search, and Values/Reaches toggle swap
+            the table rows and cards in place with no navigation, so
+            screen readers heard nothing change; this announces the
+            updated shown count for the active position filter and the
+            active direction view (the toggle alone often leaves the
+            count unchanged). Visible text unchanged. */}
         <div aria-live="polite" className="visually-hidden">
           {posFilter === 'ALL'
-            ? `Showing ${visible.length} site values`
-            : `Showing ${visible.length} ${labelForPos(posFilter)} site values`}
+            ? `Showing ${visible.length} site values, biggest ${direction} view`
+            : `Showing ${visible.length} ${labelForPos(posFilter)} site values, biggest ${direction} view`}
         </div>
 
         <div className={`${styles.tableWrapper} scroll-x-hint`}>
