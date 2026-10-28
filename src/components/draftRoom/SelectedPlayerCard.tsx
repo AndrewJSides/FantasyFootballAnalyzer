@@ -22,6 +22,13 @@ export function SelectedPlayerCard({ player, detail }: SelectedPlayerCardProps) 
       <div className={styles.clock}>
         <span className={styles.clockKicker}>No player selected</span>
         <span className={styles.clockTeam}>Pick a player from the board</span>
+        {/* Selecting a player swaps this whole card in place with no
+            navigation, so screen readers heard nothing change; a
+            visually-hidden aria-live region announces the selection.
+            Visible text unchanged. */}
+        <div aria-live="polite" className="visually-hidden">
+          No player selected
+        </div>
       </div>
     );
   }
@@ -30,6 +37,14 @@ export function SelectedPlayerCard({ player, detail }: SelectedPlayerCardProps) 
 
   return (
     <div className={`${styles.clockMine} ${styles.playerCard}`}>
+      {/* Selecting a player swaps this whole card in place with no
+          navigation, so screen readers heard nothing change; a
+          visually-hidden aria-live region announces the selected player
+          (name plus position and team, for the two-players-named-Lamb
+          problem). Visible text unchanged. */}
+      <div aria-live="polite" className="visually-hidden">
+        {`Selected player: ${player.name} (${player.pos}, ${player.team})`}
+      </div>
       {headshot && !imgFailed && (
         <img
           src={headshot}
