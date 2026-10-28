@@ -331,6 +331,14 @@ export function Header({
               Waivers
             </Link>
             <Link
+              to="/start-sit"
+              className={`${styles.navLink} ${location.pathname === '/start-sit' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/start-sit' ? 'page' : undefined}
+            >
+              Start/Sit
+            </Link>
+            <Link
               to="/teams"
               className={`${styles.navLink} ${location.pathname === '/teams' ? styles.active : ''}`}
               onClick={handleNavClick}

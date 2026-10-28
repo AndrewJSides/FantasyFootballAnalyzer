@@ -1,0 +1,124 @@
+/* GRIDIRON · Start/Sit Optimizer */
+
+.page { padding: 3rem 0 5rem; }
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.subtitle::before { content: '◆ '; }
+
+.teamPicker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--bone);
+}
+.teamPicker select {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: normal;
+  background: var(--ink);
+  color: var(--bone);
+  border: 1px solid var(--bone-dim);
+  padding: 0.4rem 0.6rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 2rem 0 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-display);
+  color: var(--bone);
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--bone-dim);
+}
+.table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--bone-dim);
+}
+.table tbody th {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.emptySlot { font-style: italic; color: var(--bone-dim); }
+
+.byeWarning {
+  padding: 0.9rem 1rem;
+  background: var(--ink);
+  border-left: 3px solid var(--lime);
+  color: var(--bone);
+  font-family: var(--font-display);
+  margin-bottom: 1rem;
+}
+
+.note {
+  margin-top: 2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--bone-dim);
+}
+
+.empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--ink);
+  border: 2px dashed var(--bone-dim);
+}
+.empty h2 {
+  font-family: var(--font-headline);
+  font-size: 1.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  color: var(--bone);
+}
+.empty p {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--bone-dim);
+}
