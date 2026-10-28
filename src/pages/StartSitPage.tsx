@@ -11,26 +11,33 @@ import {
   slotEligiblePositions,
   type OptimalLineupPlayer,
 } from '@/utils/optimalLineup';
+import {
+  projectWeeklyPoints,
+  projectionReason,
+  type WeeklyProjection,
+} from '@/utils/weeklyProjection';
 import styles from './StartSitPage.module.css';
 
 interface StartSitPageProps {
   league: League;
 }
 
-// Start/Sit optimizer (backlog item 1, first slice): the optimal starting
-// lineup for a picked team from its current roster, ranked by what players
-// have actually scored this season — points per game, with a last-3-weeks
-// form line — not by preseason projections, which go stale the moment the
-// season starts. Players on bye in the league's current week are benched
-// regardless of average: they score zero that week. A weekly projection
-// feed and a guest-mode manual roster are the queued remainder, not this
-// slice: the app has no weekly projection source to rank on.
+// Start/Sit optimizer (backlog item 1): the optimal starting lineup for a
+// picked team from its current roster, ranked by projected points for the
+// coming week — recency-weighted last-4 form blended with the season
+// baseline, so one big week can't over-swing it — not by preseason
+// projections, which go stale the moment the season starts. Players on bye
+// in the league's current week are benched regardless of projection: they
+// score zero that week. A matchup term (opponent points allowed vs position)
+// is the queued remainder: the app has no NFL schedule source to derive it
+// from yet. Guest-mode manual roster entry is also still queued.
 
 interface ScoredPlayer extends OptimalLineupPlayer {
   player: Player;
   nflTeam: string;
   ppg: number | null;
   last3: number | null;
+  projection: WeeklyProjection | null;
   bye: number | null;
   onBye: boolean;
 }
@@ -105,16 +112,21 @@ export function StartSitPage({ league }: StartSitPageProps) {
         last3Entries.length > 0
           ? round1(last3Entries.reduce((s, e) => s + e.pts, 0) / last3Entries.length)
           : null;
+      const projection = projectWeeklyPoints(completed, gpCompleted);
       const bye = resolvePoolPlayer(rosterPlayer, poolIndex)?.bye ?? null;
       return {
         id: rosterPlayer.id,
         name: rosterPlayer.name,
         position: rosterPlayer.position,
-        score: ppg ?? 0,
+        // Rank on the projection where one exists; fall back to the season
+        // average (or zero with no data at all) so guest/no-data rosters
+        // still get a lineup instead of an empty one.
+        score: projection?.projection ?? ppg ?? 0,
         player: rosterPlayer,
         nflTeam: rosterPlayer.team,
         ppg,
         last3,
+        projection,
         bye,
         onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
       };
@@ -140,15 +152,29 @@ export function StartSitPage({ league }: StartSitPageProps) {
   );
 
   const benchReason = (s: ScoredPlayer): string => {
-    if (s.onBye) return `On bye in week ${currentWeek} — sits regardless of average.`;
+    if (s.onBye) return `On bye in week ${currentWeek} — sits regardless of projection.`;
     const pos = normalizeLineupPos(s.position);
     // The lowest starter this player could have displaced, if any.
     const displaced = lineup.starters
       .filter(a => a.player && slotEligiblePositions(a.slot).includes(pos))
-      .map(a => a.player!)
+      .map(a => a.player as ScoredPlayer)
       .sort((a, b) => a.score - b.score)[0];
-    if (!displaced || s.ppg === null) return 'No starting slot at this position.';
-    return `${round1(displaced.score - (s.ppg ?? 0))} pts/game behind the ${starterById.get(displaced.id)} starter.`;
+    const sScore = s.projection?.projection ?? s.ppg;
+    if (!displaced || sScore === null || sScore === undefined)
+      return 'No starting slot at this position.';
+    // Compare on the same basis: projected vs projected, else season average
+    // vs season average, so the gap is never a mixed-unit number.
+    const displacedScore = s.projection
+      ? displaced.score
+      : (displaced.ppg ?? displaced.score);
+    const unit = s.projection ? 'projected pts' : 'pts/game';
+    return `${round1(displacedScore - sScore)} ${unit} behind the ${starterById.get(displaced.id)} starter.`;
+  };
+
+  const starterReason = (s: ScoredPlayer, slot: string): string => {
+    const base = slotReason(slot);
+    if (s.projection) return `${base}. ${projectionReason(s.projection)}`;
+    return `${base}${trendLabel(s.ppg, s.last3)}.`;
   };
 
   const slotReason = (slot: string): string => {
@@ -170,8 +196,8 @@ export function StartSitPage({ league }: StartSitPageProps) {
           <DataAsOf syncedAt={league.pinSyncedAt} />
           <p className={styles.subtitle}>
             {currentWeek !== undefined
-              ? `Optimal lineup for week ${currentWeek}, ranked by actual points per game this season.`
-              : 'Optimal lineup from this roster, ranked by actual points per game this season.'}
+              ? `Optimal lineup for week ${currentWeek}, ranked by projected points — recent form blended with season average.`
+              : 'Optimal lineup from this roster, ranked by projected points — recent form blended with season average.'}
           </p>
         </div>
 
@@ -194,7 +220,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
             Analyzer in-place swap pattern). Always mounted. */}
         <div aria-live="polite" className="visually-hidden">
           {team
-            ? `${team.name}: optimal lineup averages ${lineup.totalScore} points per game.`
+            ? `${team.name}: optimal lineup projects ${lineup.totalScore} points.`
             : ''}
         </div>
 
@@ -212,13 +238,14 @@ export function StartSitPage({ league }: StartSitPageProps) {
               </p>
             )}
             <h2 className={styles.sectionTitle}>
-              Optimal starters · {lineup.totalScore} pts/game combined average
+              Optimal starters · {lineup.totalScore} projected points combined
             </h2>
             <table className={styles.table} aria-label={`Optimal starters for ${team.name}`}>
               <thead>
                 <tr>
                   <th scope="col">Slot</th>
                   <th scope="col">Player</th>
+                  <th scope="col">Proj.</th>
                   <th scope="col">Pts/game</th>
                   <th scope="col">Last 3</th>
                   <th scope="col">Why they start</th>
@@ -240,10 +267,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           <span className={styles.emptySlot}>Empty — no eligible player</span>
                         )}
                       </td>
+                      <td>{s?.projection?.projection ?? '—'}</td>
                       <td>{s?.ppg ?? '—'}</td>
                       <td>{s?.last3 ?? '—'}</td>
                       <td>
-                        {s ? `${slotReason(a.slot)}${trendLabel(s.ppg, s.last3)}.` : '—'}
+                        {s ? starterReason(s, a.slot) : '—'}
                       </td>
                     </tr>
                   );
@@ -258,6 +286,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <thead>
                     <tr>
                       <th scope="col">Player</th>
+                      <th scope="col">Proj.</th>
                       <th scope="col">Pts/game</th>
                       <th scope="col">Last 3</th>
                       <th scope="col">Why they sit</th>
@@ -270,6 +299,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           {s.name} <PosBadge pos={s.position} />{' '}
                           <NflTeamLabel team={s.nflTeam} />
                         </td>
+                        <td>{s.projection?.projection ?? '—'}</td>
                         <td>{s.ppg ?? '—'}</td>
                         <td>{s.last3 ?? '—'}</td>
                         <td>{benchReason(s)}</td>
@@ -280,9 +310,10 @@ export function StartSitPage({ league }: StartSitPageProps) {
               </>
             )}
             <p className={styles.note}>
-              Ranked on actual scoring so far, not preseason projections — a
-              player&apos;s average moves with every week played. This does not
-              see matchups, injuries, or news, so check those before lock.
+              Projected from each player&apos;s last-4-week form blended with
+              their season average, so one big week can&apos;t over-swing it.
+              This does not yet see matchups, injuries, or news, so check
+              those before lock.
             </p>
           </>
         )}
