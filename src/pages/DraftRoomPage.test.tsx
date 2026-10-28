@@ -186,7 +186,11 @@ describe('DraftRoomPage phone auction nomination', () => {
     return row;
   }
 
-  it('routes a Nomination Ideas tap into the Log tab with the sale logger up', () => {
+  // This test renders a full live auction twice over and takes ~3.3s even
+  // alone, so under full-suite load it trips vitest's 5s default timeout
+  // (failed Oct 28 with "Test timed out in 5000ms" while passing alone).
+  // The timeout is the flake, not the flow — give it room.
+  it('routes a Nomination Ideas tap into the Log tab with the sale logger up', { timeout: 20000 }, () => {
     // Two teams so the nomination rotation returns to me after one
     // opponent sale; bait ideas need a filled position and my turn.
     startLiveAuctionOnPhone({
