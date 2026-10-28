@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { TeamLink } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { logger } from '@/utils/logger';
+import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './AwardsPage.module.css';
 
 interface AwardsPageProps {
@@ -23,7 +24,7 @@ export function AwardsPage({ league }: AwardsPageProps) {
   useEffect(() => {
     document.title = 'Season Awards · TraderApe';
     return () => {
-      document.title = 'Season Awards · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, []);
   // Calculate luck metrics from matchup data

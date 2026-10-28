@@ -12,6 +12,7 @@ import {
 import { TeamLink, LuckIcon } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { leagueInjuryLuck } from '@/utils/leagueInjuryLuck';
+import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './LuckPage.module.css';
 
 interface LuckPageProps {
@@ -27,7 +28,7 @@ export function LuckPage({ league }: LuckPageProps) {
   useEffect(() => {
     document.title = 'Luck · TraderApe';
     return () => {
-      document.title = 'Luck · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, []);
   const done = useMemo(() => completedMatchups(league), [league]);
