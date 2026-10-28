@@ -440,6 +440,16 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
 
           {/* Player Detail */}
           <div className={styles.playerDetail}>
+            {/* Selecting a player swaps the journey detail in place
+                with no navigation, so screen readers heard nothing
+                change; this announces the selected player (name plus
+                position and team, and how many journey events follow).
+                Visible text unchanged. */}
+            {selectedPlayer && (
+              <div aria-live="polite" className="visually-hidden">
+                {`${selectedPlayer.player.name}, ${selectedPlayer.player.position}, ${selectedPlayer.player.team}: ${selectedPlayer.events.length} journey event${selectedPlayer.events.length === 1 ? '' : 's'}`}
+              </div>
+            )}
             {selectedPlayer ? (
               <>
                 <div
