@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getMatchupRating,
+  currentWeekEstimate,
   leagueAvgAllowed,
   matchupLabel,
   matchupShort,
@@ -97,5 +98,12 @@ describe('leagueAvgAllowed', () => {
     expect(leagueAvgAllowed('K')).toBeNull();
     expect(leagueAvgAllowed(null)).toBeNull();
     expect(leagueAvgAllowed(undefined)).toBeNull();
+  });
+});
+
+describe('currentWeekEstimate', () => {
+  it('returns one past the last completed week in the bundled data', () => {
+    // Bundled data: weeks [1, 7] complete in Oct 2026 → week 8 estimate.
+    expect(currentWeekEstimate()).toBe(8);
   });
 });

@@ -587,3 +587,27 @@
 .method a {
   color: var(--lime);
 }
+
+/* Weekly matchup chips on the picked-player rows and the verdict rows
+   (backlog item 2): opponent points-allowed vs position, same data the
+   Start/Sit page's Matchup column shows. Colors mirror the verdict
+   discipline — lime for the side that benefits, signal red for the tough
+   draw — with the full "allows X pts/game (Nth-most)" line on hover. */
+.muFav,
+.muTough,
+.muNeutral {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.muFav {
+  color: var(--lime);
+}
+
+.muTough {
+  color: var(--blood-text);
+}
+
+.muNeutral {
+  color: var(--bone-dim);
+}

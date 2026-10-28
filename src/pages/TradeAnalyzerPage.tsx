@@ -12,6 +12,13 @@ import {
   valueLeagueFor,
   type FullTradeAnalysis,
 } from '@/utils/tradeAnalysis';
+import {
+  currentWeekEstimate,
+  getMatchupRating,
+  matchupDataWeeks,
+  matchupLabel,
+  matchupShort,
+} from '@/utils/matchupRating';
 import styles from './TradeAnalyzerPage.module.css';
 
 interface TradeAnalyzerPageProps {
@@ -56,6 +63,27 @@ function entryPos(e: Entry): string {
 // show the same identity line the roster/search buttons do (name · team).
 function entryTeam(e: Entry): string {
   return e.team ?? '';
+}
+
+// Weekly matchup difficulty chip for a player row (backlog item 2): the
+// opponent's points allowed vs the player's position from completed weeks,
+// via the same matchupRating module the Start/Sit page uses. Renders
+// nothing when the rating is unavailable (bye week, K/DST, unknown week),
+// so manual-mode rows degrade gracefully instead of showing a dead chip.
+function MatchupChip({ team, pos, week }: { team: string; pos: string; week: number }) {
+  const rating = getMatchupRating(team, pos, week);
+  if (!rating) return null;
+  const cls =
+    rating.label === 'favorable'
+      ? styles.muFav
+      : rating.label === 'tough'
+        ? styles.muTough
+        : styles.muNeutral;
+  return (
+    <span className={cls} title={matchupLabel(rating, pos)}>
+      {matchupShort(rating)}
+    </span>
+  );
 }
 
 // Two entries are the same player when their ids match, or when their names
@@ -229,10 +257,13 @@ function SideBuilder(props: {
   onSearchChange: (q: string) => void;
   onAddSearch: (p: PoolPlayer) => void;
   leagueLoaded: boolean;
+  // The week the matchup chips price against: the league's current week,
+  // or the estimate when no league is loaded (manual mode / shared links).
+  week: number;
 }) {
   const {
     title, entries, otherEntries, otherSideName, onRemove, teams, teamId,
-    onTeamChange, searchQuery, onSearchChange, onAddSearch, leagueLoaded,
+    onTeamChange, searchQuery, onSearchChange, onAddSearch, leagueLoaded, week,
   } = props;
   const team = teams.find(t => t.id === teamId);
   const results = useMemo(() => searchPool(searchQuery), [searchQuery]);
@@ -419,6 +450,7 @@ function SideBuilder(props: {
               <PosBadge pos={entryPos(e)} />
               <span className={styles.pName}>{entryLabel(e)}</span>
               <span className={styles.pTeam}>{entryTeam(e)}</span>
+              <MatchupChip team={entryTeam(e)} pos={entryPos(e)} week={week} />
               <button
                 type="button"
                 className={styles.remove}
@@ -443,6 +475,10 @@ function SideBuilder(props: {
 export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const leagueLoaded = !!league && !league.isGuest;
   const teams = leagueLoaded ? league.teams : [];
+  // The week matchup chips price against: the league's current week when
+  // loaded, else the estimate from the completed-weeks range in the bundled
+  // matchup data (manual mode / shared links).
+  const week = league?.currentWeek ?? currentWeekEstimate();
 
   const [teamAId, setTeamAId] = useState('');
   const [teamBId, setTeamBId] = useState('');
@@ -897,6 +933,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onSearchChange={setQueryA}
             onAddSearch={addTo(setSideA, sideB)}
             leagueLoaded={leagueLoaded}
+            week={week}
           />
           <button
             type="button"
@@ -925,6 +962,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onSearchChange={setQueryB}
             onAddSearch={addTo(setSideB, sideA)}
             leagueLoaded={leagueLoaded}
+            week={week}
           />
         </div>
 
@@ -1024,7 +1062,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             appears so screen readers announce it. Announcing only the
             verdict, not the builder/search chatter, keeps it noise-free. */}
         <div ref={resultsRef} aria-live="polite">
-          {result && <Results result={result} leagueLoaded={leagueLoaded} />}
+          {result && <Results result={result} leagueLoaded={leagueLoaded} week={week} />}
         </div>
       </div>
     </div>
@@ -1055,7 +1093,15 @@ function verdictCopy(result: FullTradeAnalysis): { label: string; margin: string
   return { label, margin };
 }
 
-function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLoaded: boolean }) {
+function Results({
+  result,
+  leagueLoaded,
+  week,
+}: {
+  result: FullTradeAnalysis;
+  leagueLoaded: boolean;
+  week: number;
+}) {
   const teamAName = result.teamAImpact?.teamName ?? '';
   const teamBName = result.teamBImpact?.teamName ?? '';
   const { label: verdict, margin } = verdictCopy(result);
@@ -1081,8 +1127,8 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
       </div>
 
       <div className={styles.breakdowns}>
-        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} />
-        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} />
+        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} week={week} />
+        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} week={week} />
       </div>
 
       {(result.teamAImpact || result.teamBImpact) && (
@@ -1110,6 +1156,10 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
             each team.
           </>
         )}
+        {' '}The matchup chip on each player is the week-{week} opponent's
+        points allowed vs his position, from completed weeks{' '}
+        {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]} — the same rating the
+        Start/Sit page shows.
       </p>
     </section>
   );
@@ -1118,9 +1168,11 @@ function Results({ result, leagueLoaded }: { result: FullTradeAnalysis; leagueLo
 function PlayerBreakdown({
   title,
   players,
+  week,
 }: {
   title: string;
   players: FullTradeAnalysis['sideA'];
+  week: number;
 }) {
   if (players.length === 0) {
     return (
@@ -1141,6 +1193,7 @@ function PlayerBreakdown({
             {/* NFL team identity line, matching the picked-player rows —
                 the verdict section is the one place picks lose their team. */}
             <span className={styles.pTeam}>{player.team}</span>
+            <MatchupChip team={player.team} pos={player.pos} week={week} />
             <span className={styles.vor}>{vor.toFixed(1)}</span>
           </li>
         ))}

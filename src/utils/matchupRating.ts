@@ -122,6 +122,21 @@ export function matchupDataWeeks(): [number, number] {
 }
 
 /**
+ * Best guess at the current NFL week when no league is loaded: the week
+ * after the last completed week that fed the allowed averages, clamped into
+ * the bundled schedule's range. Lets manual-mode pages (trade analyzer,
+ * shared links) show matchup chips without a league's currentWeek.
+ */
+export function currentWeekEstimate(): number {
+  const [, lastCompleted] = ALLOWED.weeks;
+  const scheduleWeeks = Object.keys(SCHEDULE.weeks)
+    .map(Number)
+    .filter(n => Number.isFinite(n));
+  const maxWeek = scheduleWeeks.length > 0 ? Math.max(...scheduleWeeks) : 18;
+  return Math.min(Math.max(lastCompleted + 1, 1), maxWeek);
+}
+
+/**
  * League-wide average fantasy points per game allowed to a skill position
  * (mean of the per-team averages), the reference point for the numeric
  * matchup blend in weeklyProjection.ts. Null when the position has no data.
