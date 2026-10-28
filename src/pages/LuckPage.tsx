@@ -24,7 +24,8 @@ const fmtRecord = (r: ScheduleRecord) => `${r.wins}-${r.losses}${r.ties > 0 ? `-
 
 export function LuckPage({ league }: LuckPageProps) {
   // Tab title tells the Luck tab apart from the other league tabs (matches
-  // the Teams/Trades/Rankings page titles). Leaving restores the page title.
+  // the Teams/Trades/Rankings page titles). Leaving restores the site title
+  // (matches the Admin/Awards/Waivers discipline).
   useEffect(() => {
     document.title = 'Luck · TraderApe';
     return () => {

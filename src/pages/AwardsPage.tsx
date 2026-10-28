@@ -20,7 +20,7 @@ interface AwardsPageProps {
 export function AwardsPage({ league }: AwardsPageProps) {
   // Tab title tells the Awards tab apart from the other league tabs
   // (matches the Teams/Trades/Rankings/Luck page titles). Leaving restores
-  // the page title.
+  // the site title (matches the Admin/Waivers/Luck discipline).
   useEffect(() => {
     document.title = 'Season Awards · TraderApe';
     return () => {
