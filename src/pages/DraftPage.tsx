@@ -8,6 +8,7 @@ import { POOL } from '@/data/draftPool';
 import { leagueKeyFor } from '@/hooks/useDraftRoom';
 import { loadCompletedLiveDraft } from '@/utils/draftRoomCache';
 import { liveDraftToTeams } from '@/utils/liveDraftToTeams';
+import { SITE_TITLE } from '@/utils/siteTitle';
 import styles from './DraftPage.module.css';
 
 interface DraftPageProps {
@@ -47,14 +48,15 @@ export function DraftPage({ league }: DraftPageProps) {
   // Tab title mirrors the source toggle: the live-logged draft reads
   // "Draft Analysis · Live Log" so the tab is tellable apart from the
   // platform draft (matches the Rankings/Values/Trends/History title
-  // pattern). Leaving the page restores the page title.
+  // pattern). Leaving the page restores the site title, matching the
+  // Admin/Awards/Luck/Waivers discipline.
   useEffect(() => {
     document.title =
       active === 'live'
         ? 'Draft Analysis · Live Log · TraderApe'
         : 'Draft Analysis · TraderApe';
     return () => {
-      document.title = 'Draft Analysis · TraderApe';
+      document.title = SITE_TITLE;
     };
   }, [active]);
 
