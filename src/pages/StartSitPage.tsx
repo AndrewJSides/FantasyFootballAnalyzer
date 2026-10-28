@@ -16,6 +16,13 @@ import {
   projectionReason,
   type WeeklyProjection,
 } from '@/utils/weeklyProjection';
+import {
+  getMatchupRating,
+  matchupDataWeeks,
+  matchupLabel,
+  matchupShort,
+  type MatchupRating,
+} from '@/utils/matchupRating';
 import styles from './StartSitPage.module.css';
 
 interface StartSitPageProps {
@@ -28,9 +35,11 @@ interface StartSitPageProps {
 // baseline, so one big week can't over-swing it — not by preseason
 // projections, which go stale the moment the season starts. Players on bye
 // in the league's current week are benched regardless of projection: they
-// score zero that week. A matchup term (opponent points allowed vs position)
-// is the queued remainder: the app has no NFL schedule source to derive it
-// from yet. Guest-mode manual roster entry is also still queued.
+// score zero that week. The Matchup column shows the week's opponent and
+// how many fantasy points that defense allows to the player's position
+// (from completed weeks); the numeric matchup blend into the projection
+// model itself is the remaining queued step. Guest-mode manual roster entry
+// is also still queued.
 
 interface ScoredPlayer extends OptimalLineupPlayer {
   player: Player;
@@ -40,6 +49,7 @@ interface ScoredPlayer extends OptimalLineupPlayer {
   projection: WeeklyProjection | null;
   bye: number | null;
   onBye: boolean;
+  matchup: MatchupRating | null;
 }
 
 function round1(n: number): number {
@@ -129,6 +139,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
         projection,
         bye,
         onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
+        matchup: getMatchupRating(rosterPlayer.team, rosterPlayer.position, currentWeek),
       };
     });
   }, [team, league.playerWeeklyPoints, league.gamesPlayed, league.season, currentWeek]);
@@ -197,7 +208,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
           <p className={styles.subtitle}>
             {currentWeek !== undefined
               ? `Optimal lineup for week ${currentWeek}, ranked by projected points — recent form blended with season average.`
-              : 'Optimal lineup from this roster, ranked by projected points — recent form blended with season average.'}
+              : 'Optimal lineup from this roster, ranked by projected points — recent form blended with season average.'}{' '}
+            Matchup ratings use the opponent&apos;s points allowed vs position from
+            completed weeks {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}.
           </p>
         </div>
 
@@ -248,6 +261,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Proj.</th>
                   <th scope="col">Pts/game</th>
                   <th scope="col">Last 3</th>
+                  <th scope="col">Matchup</th>
                   <th scope="col">Why they start</th>
                 </tr>
               </thead>
@@ -271,6 +285,15 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <td>{s?.ppg ?? '—'}</td>
                       <td>{s?.last3 ?? '—'}</td>
                       <td>
+                        {s?.matchup ? (
+                          <span title={matchupLabel(s.matchup, s.position)}>
+                            {matchupShort(s.matchup)}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>
                         {s ? starterReason(s, a.slot) : '—'}
                       </td>
                     </tr>
@@ -289,6 +312,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <th scope="col">Proj.</th>
                       <th scope="col">Pts/game</th>
                       <th scope="col">Last 3</th>
+                      <th scope="col">Matchup</th>
                       <th scope="col">Why they sit</th>
                     </tr>
                   </thead>
@@ -302,6 +326,15 @@ export function StartSitPage({ league }: StartSitPageProps) {
                         <td>{s.projection?.projection ?? '—'}</td>
                         <td>{s.ppg ?? '—'}</td>
                         <td>{s.last3 ?? '—'}</td>
+                        <td>
+                          {s.matchup ? (
+                            <span title={matchupLabel(s.matchup, s.position)}>
+                              {matchupShort(s.matchup)}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
                         <td>{benchReason(s)}</td>
                       </tr>
                     ))}

@@ -2,13 +2,16 @@
 // remainder (a)). Ranks players on what they are likely to score this week,
 // not just what they have averaged: a recency-weighted last-4-weeks form
 // blended with the player's season baseline, so one big week can't
-// over-swing the number. No matchup term yet: the app has no NFL schedule
-// or opponent data to derive points-allowed-vs-position from, so that term
-// stays queued until a schedule source lands. Injuries and news are also
+// over-swing the number. Matchup difficulty is shown on the Start/Sit page
+// via matchupRating.ts (schedule + opponent points-allowed-vs-position from
+// `npm run fetch:matchups`); blending a numeric matchup term into this
+// projection is the remaining queued step. Injuries and news are also
 // out of scope — the page says so.
 //
 // Inputs are completed weeks only; the caller filters out the current and
-// future weeks before passing them in.
+// future weeks before passing them in. The matchup display on the Start/Sit
+// page (see matchupRating.ts) is fed by `npm run fetch:matchups`; blending
+// a numeric matchup term into this model is the remaining queued step.
 
 export interface WeekPoints {
   week: number;
