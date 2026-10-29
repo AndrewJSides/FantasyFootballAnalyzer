@@ -227,3 +227,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+.alertList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.alertRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  border: 2px solid var(--rule);
+  background: var(--ink-2);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.alertHole {
+  border-color: var(--blood);
+}
+
+.alertIcon {
+  flex-shrink: 0;
+}
+
+.alertFillers {
+  color: var(--bone-dim);
+  font-size: 0.8rem;
+}
+
+.alertFootnote {
+  color: var(--bone-dim);
+  font-size: 0.75rem;
+  margin: 0;
+}

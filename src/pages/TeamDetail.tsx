@@ -9,12 +9,54 @@ import { calculateAllAwards } from '@/utils/awards';
 import { calculateLuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { isPlaceholderPlayer } from '@/utils/placeholders';
+import { alertWeeks, teamRosterAlerts, type RosterAlert } from '@/utils/rosterAlerts';
 import styles from './TeamDetail.module.css';
 
 interface TeamDetailProps {
   league: League;
   team: Team;
   onBack: () => void;
+}
+
+function AlertRow({ alert }: { alert: RosterAlert }) {
+  const slotLabel =
+    alert.slots.length > 1 ? `${alert.slots[0]} ×${alert.slots.length}` : alert.slots[0];
+  const onByeNames = alert.onBye.map(p => p.name).join(', ');
+  const fillersText =
+    alert.fillers.length > 0
+      ? `Waiver options: ${alert.fillers.map(p => `${p.name} (${p.projPtsPpr?.toFixed(0)} proj)`).join(', ')}.`
+      : 'Nothing worth adding at this spot on waivers.';
+  const hole = alert.severity === 'hole';
+  return (
+    <li
+      className={`${styles.alertRow} ${hole ? styles.alertHole : ''}`}
+      aria-label={
+        hole
+          ? `Week ${alert.week}: no cover at ${slotLabel}`
+          : `Week ${alert.week}: ${slotLabel} starter on bye, cover available`
+      }
+    >
+      <span className={styles.alertIcon} aria-hidden="true">
+        {hole ? '⚠️' : '🟡'}
+      </span>
+      <div>
+        <div>
+          <strong>Week {alert.week} · {slotLabel}</strong>
+          {hole ? (
+            <>
+              : no one left to start
+              {onByeNames ? ` — ${onByeNames} on bye` : ''}.
+            </>
+          ) : (
+            <>
+              : {onByeNames} on bye — {alert.cover?.name ?? 'a backup'} covers.
+            </>
+          )}
+        </div>
+        <div className={styles.alertFillers}>{fillersText}</div>
+      </div>
+    </li>
+  );
 }
 
 // One team's whole season on a single screen: weekly scores, draft, trades,
@@ -130,6 +172,9 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
     );
   }, [league, team.id]);
 
+  const alerts = useMemo(() => teamRosterAlerts(league, team), [league, team]);
+  const scannedWeeks = useMemo(() => alertWeeks(league), [league]);
+
   // Step-line sparkline of weekly points.
   const sparkline = useMemo(() => {
     if (weekly.length < 2) return null;
@@ -177,6 +222,29 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           )}
         </div>
       </div>
+
+      {scannedWeeks.length > 0 && (
+        <section className={styles.section} aria-label="Roster alerts">
+          <h3 className={styles.sectionTitle}>Roster Alerts</h3>
+          {alerts.length === 0 ? (
+            <p className={styles.alertFootnote}>
+              No bye-week holes or thin spots in week
+              {scannedWeeks.length === 1 ? '' : 's'}{' '}
+              {scannedWeeks.join(', ')} — every slot has cover.
+            </p>
+          ) : (
+            <ul className={styles.alertList}>
+              {alerts.map(alert => (
+                <AlertRow key={`${alert.week}-${alert.slots[0]}-${alert.severity}`} alert={alert} />
+              ))}
+            </ul>
+          )}
+          <p className={styles.alertFootnote}>
+            Scans weeks {scannedWeeks.join(', ')} against the bundled preseason
+            pool projections; bye info comes from the pool.
+          </p>
+        </section>
+      )}
 
       {sparkline && (
         <section className={styles.section}>
