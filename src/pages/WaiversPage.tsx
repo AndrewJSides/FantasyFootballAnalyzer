@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { WaiverTable } from '@/components';
+import { FaabGuidance, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -36,6 +36,10 @@ export function WaiversPage({ league }: WaiversPageProps) {
             {league.season} pickups and free agent adds
           </p>
         </div>
+
+        {/* Bid guidance prices the top available targets against this
+            league's own FAAB norms — before the historical pickup table. */}
+        <FaabGuidance league={league} />
 
         {hasTransactions ? (
           <WaiverTable
