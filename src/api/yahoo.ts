@@ -1033,7 +1033,10 @@ export async function addInProgressWeek(
 
 // Weekly matchup scores for luck analysis. Regular season only: luck metrics
 // compare against regular-season records, so playoff/consolation weeks would
-// bias scores against playoff teams. Unplayed 0-0 weeks are skipped too.
+// bias scores against playoff teams. Unplayed 0-0 weeks are skipped too,
+// unless includeUnplayed is set — then they come back as pairings with 0
+// scores, which is how the sync reads the FUTURE regular-season schedule.
+// fromWeek lets the same call cover a trailing range instead of 1..maxWeek.
 // Exported for tests (tie regression: winner_team_key is absent on ties).
 export async function getWeeklyMatchups(
   leagueKey: string,
@@ -1042,9 +1045,11 @@ export async function getWeeklyMatchups(
   // Collects the weeks whose call failed for a reason worth retrying, so the
   // caller can report ONE summary instead of one warning per week.
   failedWeeks?: Set<number>,
+  includeUnplayed = false,
+  fromWeek = 1,
 ): Promise<WeeklyMatchup[]> {
-  const tasks = Array.from({ length: maxWeek }, (_, i) => async () => {
-    const week = i + 1;
+  const tasks = Array.from({ length: Math.max(0, maxWeek - fromWeek + 1) }, (_, i) => async () => {
+    const week = fromWeek + i;
     try {
       const data = await yahooFetch<any>(`/league/${leagueKey}/scoreboard;week=${week}`);
       return { week, data };
@@ -1068,7 +1073,7 @@ export async function getWeeklyMatchups(
       if (pair.length !== 2 || !pair[0]?.team_key || !pair[1]?.team_key) continue;
       const p1 = parseFloat(pair[0]?.team_points?.total ?? '0') || 0;
       const p2 = parseFloat(pair[1]?.team_points?.total ?? '0') || 0;
-      if (p1 === 0 && p2 === 0) continue; // future/unplayed week
+      if (p1 === 0 && p2 === 0 && !includeUnplayed) continue; // future/unplayed week
       matchups.push({
         week,
         team1Id: pair[0].team_key,
@@ -1428,6 +1433,25 @@ export async function enrichPlayersWithStats(
     }, failedScoreboardWeeks);
     if (weeklyMatchups.length > 0) {
       league.matchups = weeklyMatchups;
+    }
+
+    // 2b. Future regular-season schedule: remaining opponents per team for
+    //     the playoff-race section. Yahoo's scoreboard returns scheduled
+    //     pairings for future weeks; scores are 0 and irrelevant here.
+    //     Best-effort — the page hides when the schedule is absent.
+    try {
+      const cur = league.currentWeek;
+      const ps = league.playoffStartWeek;
+      if (league.status === 'live' && cur && ps && ps > cur) {
+        const future = await getWeeklyMatchups(
+          league.id, ps - 1, undefined, failedScoreboardWeeks, true, cur,
+        );
+        if (future.length > 0) {
+          league.futureSchedule = future;
+        }
+      }
+    } catch {
+      // best-effort: a schedule failure must not fail the sync
     }
 
     // 3. Weekly points for players who changed teams midseason (waiver/FA

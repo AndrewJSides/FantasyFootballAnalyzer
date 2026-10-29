@@ -212,6 +212,10 @@ export interface League {
   teams: Team[];
   trades?: Trade[];
   matchups?: WeeklyMatchup[]; // For luck analysis
+  // Future regular-season pairings (week >= currentWeek), fetched from the
+  // scoreboard with scores unplayed. Powers the playoff-race section;
+  // best-effort — surfaces hide when it is absent.
+  futureSchedule?: WeeklyMatchup[];
   scoringType: ScoringType;
   totalTeams: number;
   currentWeek?: number;

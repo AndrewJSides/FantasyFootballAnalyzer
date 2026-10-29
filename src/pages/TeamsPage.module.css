@@ -192,3 +192,16 @@
     display: none;
   }
 }
+
+.raceSection {
+  margin-top: 2rem;
+}
+
+.raceLikely {
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.raceLong {
+  color: var(--bone-dim);
+}

@@ -6,6 +6,7 @@ import type { League } from '@/types';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
+import { playoffRace } from '@/utils/playoffOdds';
 import { TeamDetail } from './TeamDetail';
 import styles from './TeamsPage.module.css';
 
@@ -116,6 +117,20 @@ export function TeamsPage({ league }: TeamsPageProps) {
   const shortName = (name: string) =>
     name.length > 10 ? `${name.slice(0, 9)}…` : name;
 
+  // Playoff race: needs the future schedule the owner's last sync fetched.
+  // Absent on old snapshots and in guest mode — the section hides itself.
+  const race = useMemo(() => playoffRace(league), [league]);
+  const teamById = useMemo(
+    () => new Map(league.teams.map(t => [t.id, t])),
+    [league.teams],
+  );
+  const remainingTitle = (r: (typeof race)[number]) =>
+    r.remaining.length === 0
+      ? 'No games left'
+      : r.remaining
+          .map(o => `Week ${o.week} vs ${teamById.get(o.opponentId)?.name ?? '?'}`)
+          .join(', ');
+
   if (detailTeam) {
     return (
       <div className={styles.page}>
@@ -204,6 +219,56 @@ export function TeamsPage({ league }: TeamsPageProps) {
             />
           ))}
         </div>
+
+        {race.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="playoff-race-heading">
+            <h2 id="playoff-race-heading" className={styles.sectionTitle}>Playoff Race</h2>
+            <p className={styles.sectionHint}>
+              {league.playoffTeams} playoff spots · 10,000 simulated seasons
+              from each team's season scoring average (shrunk toward the league
+              mean). Schedule from the owner's latest sync.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table className={styles.matrix} aria-label="Playoff race: remaining schedule and odds">
+                <thead>
+                  <tr>
+                    <th scope="col">Team</th>
+                    <th scope="col">W-L</th>
+                    <th scope="col">Remaining</th>
+                    <th scope="col">SOS</th>
+                    <th scope="col">Playoff odds</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {race.map(r => (
+                    <tr key={r.teamId}>
+                      <th scope="row" title={r.teamName}>{shortName(r.teamName)}</th>
+                      <td>
+                        {r.wins}-{r.losses}
+                        {r.ties > 0 ? `-${r.ties}` : ''}
+                      </td>
+                      <td title={remainingTitle(r)}>
+                        {r.remaining.length === 0
+                          ? '—'
+                          : r.remaining
+                              .map(o => `W${o.week} ${shortName(teamById.get(o.opponentId)?.name ?? '?')}`)
+                              .join(' · ')}
+                      </td>
+                      <td
+                        title={`Schedule difficulty rank ${r.sosRank} of ${race.length} (1 = toughest)`}
+                      >
+                        #{r.sosRank}
+                      </td>
+                      <td className={r.playoffProb >= 50 ? styles.raceLikely : styles.raceLong}>
+                        {r.playoffProb}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {h2h.size > 1 && (
           <section className={styles.matrixSection}>
