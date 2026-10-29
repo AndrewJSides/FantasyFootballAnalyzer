@@ -4,6 +4,13 @@ import type { League, Player, DraftPick } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { nflTeamInfo } from '@/data/nflTeams';
+import {
+  currentWeekEstimate,
+  getMatchupRating,
+  matchupDataWeeks,
+  matchupLabel,
+  matchupShort,
+} from '@/utils/matchupRating';
 import { AWARD_ICONS } from '@/utils/awardIcons';
 import styles from './PlayerJourneyPage.module.css';
 
@@ -225,6 +232,27 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
       document.title = 'Player Journey · TraderApe';
     };
   }, [selectedPlayer]);
+
+  // Weekly matchup difficulty (backlog item 2): the selected player's week-N
+  // opponent and that opponent's points allowed vs the position from
+  // completed weeks — the same rating the Rankings, Start/Sit, and Trade
+  // Analyzer pages show. Renders a dim dash for bye weeks and K/DST, which
+  // the rating doesn't cover.
+  const matchupWeek = league.currentWeek ?? currentWeekEstimate();
+  const matchupRating = selectedPlayer
+    ? getMatchupRating(
+        selectedPlayer.player.team,
+        selectedPlayer.player.position,
+        matchupWeek,
+      )
+    : null;
+  const matchupClass = !matchupRating
+    ? styles.matchupDash
+    : matchupRating.label === 'favorable'
+      ? styles.muFav
+      : matchupRating.label === 'tough'
+        ? styles.muTough
+        : styles.muNeutral;
 
   // Per-stint scoring: the payoff of a journey page. Each ownership stretch
   // (drafted/added week -> dropped/traded week) gets a points-per-week from
@@ -497,11 +525,43 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                     </span>
                     <span className={styles.statLabel}>Season Pts</span>
                   </div>
+                  {/* Weekly matchup chip: same favorable/tough/neutral rating
+                      as the other pages, priced on the league's current week. */}
+                  <div className={styles.statCard}>
+                    <span className={styles.matchupValue}>
+                      {matchupRating ? (
+                        <span
+                          className={matchupClass}
+                          title={matchupLabel(matchupRating, selectedPlayer.player.position)}
+                          aria-label={matchupLabel(matchupRating, selectedPlayer.player.position)}
+                        >
+                          {matchupShort(matchupRating)}
+                        </span>
+                      ) : (
+                        <span
+                          className={matchupClass}
+                          aria-label="No matchup rating — bye week or position not covered"
+                        >
+                          -
+                        </span>
+                      )}
+                    </span>
+                    <span className={styles.statLabel}>Week {matchupWeek} Matchup</span>
+                  </div>
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{selectedPlayer.events.length}</span>
                     <span className={styles.statLabel}>Transactions</span>
                   </div>
                 </div>
+                {/* The Matchup card reuses the Start/Sit and Trade Analyzer
+                    rating, so it needs the same method line: the opponent's
+                    points allowed to the position come from completed weeks,
+                    and K/DST/bye weeks have no rating. */}
+                <p className={styles.matchupFootnote}>
+                  Matchup prices on week {matchupWeek} — the opponent's points
+                  allowed to the position from completed weeks{' '}
+                  {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}.
+                </p>
 
                 {stints.length > 0 && (
                   <div className={styles.timeline}>

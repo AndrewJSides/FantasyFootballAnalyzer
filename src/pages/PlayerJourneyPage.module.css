@@ -321,6 +321,47 @@ button.moreResults:hover {
   color: var(--bone-dim);
 }
 
+/* Weekly matchup difficulty card (backlog item 2): same favorable/tough/
+   neutral color language as the Rankings, Start/Sit, and Trade Analyzer
+   chips. */
+.muFav,
+.muTough,
+.muNeutral,
+.matchupDash {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.muFav {
+  color: var(--lime);
+}
+
+.muTough {
+  color: var(--blood-text);
+}
+
+.muNeutral,
+.matchupDash {
+  color: var(--bone-dim);
+}
+
+/* The chip sits where other cards show their big value; the fixed height
+   keeps the summary row from shifting between cards. */
+.matchupValue {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.53rem;
+}
+
+/* Method footnote for the matchup card, tucked under the stats summary. */
+.matchupFootnote {
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin: -1rem 0 1.5rem;
+}
+
 /* ── Timeline ── */
 .timeline { margin-top: 1.5rem; }
 
