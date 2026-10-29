@@ -1,0 +1,101 @@
+/* GRIDIRON · Player value-over-time chart (Player Journey page) */
+
+.figure {
+  margin: 0 0 0.5rem;
+}
+
+.chartWrap {
+  overflow-x: auto;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* At phone widths the SVG scales down; floor the layout width so bars and
+     labels stay readable and the wrap scrolls instead of crushing them. */
+  min-width: 430px;
+}
+
+.bar { fill: var(--bone-dim); }
+.bestBar { fill: var(--lime); }
+
+.missingTick {
+  stroke: var(--bone-dim);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.gridLine {
+  stroke: var(--bone-dim);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.gridLabel {
+  fill: var(--bone-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.weekLabel {
+  fill: var(--bone-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.valueLabel {
+  fill: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.avgLine {
+  stroke: var(--lime);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.85;
+}
+
+.avgLabel {
+  fill: var(--lime);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.swatchBest {
+  width: 10px;
+  height: 10px;
+  background: var(--lime);
+}
+
+.swatchAvg {
+  width: 18px;
+  height: 0;
+  border-top: 2px dashed var(--lime);
+}
+
+.swatchMissing {
+  width: 18px;
+  height: 0;
+  border-top: 2px dashed var(--bone-dim);
+}

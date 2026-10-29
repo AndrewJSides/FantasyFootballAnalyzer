@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { League, Player, DraftPick } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
+import { WeeklyPointsChart } from '@/components/WeeklyPointsChart';
 import { nflTeamInfo } from '@/data/nflTeams';
 import {
   currentWeekEstimate,
@@ -254,13 +255,19 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
         ? styles.muTough
         : styles.muNeutral;
 
+  // Weekly points series for the value-over-time chart (backlog item 8)
+  // and the per-stint scoring below — the same series drives both. Absent
+  // when the league snapshot has no weekly points (guest mode, old saves),
+  // in which case both sections hide gracefully.
+  const weekly = selectedPlayer
+    ? league.playerWeeklyPoints?.[selectedPlayer.player.id]
+    : undefined;
+
   // Per-stint scoring: the payoff of a journey page. Each ownership stretch
   // (drafted/added week -> dropped/traded week) gets a points-per-week from
   // the platform's weekly player points, when the platform provides them.
   const stints = useMemo(() => {
-    if (!selectedPlayer) return [];
-    const weekly = league.playerWeeklyPoints?.[selectedPlayer.player.id];
-    if (!weekly) return [];
+    if (!selectedPlayer || !weekly) return [];
 
     // Ownership transitions in week order. Week 0 (draft) counts as week 1.
     const ownerEvents = selectedPlayer.events
@@ -299,7 +306,7 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
         ppg: games > 0 ? points / games : 0,
       };
     }).filter(s => s.toWeek >= s.fromWeek);
-  }, [selectedPlayer, league.playerWeeklyPoints]);
+  }, [selectedPlayer, weekly]);
 
   // Clear the right pane when the active filters would hide the current
   // selection. Otherwise the detail view shows a player who's invisible in
@@ -562,6 +569,19 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                   allowed to the position from completed weeks{' '}
                   {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}.
                 </p>
+
+                {/* Player value over time (backlog item 8): week-by-week
+                    full-PPR points as a bar chart, so rises and falls are
+                    visible. Same weekly series the stints table consumes. */}
+                {weekly && (
+                  <div className={styles.timeline}>
+                    <h3 className={styles.timelineTitle}>Points By Week</h3>
+                    <WeeklyPointsChart
+                      playerName={selectedPlayer.player.name}
+                      weekly={weekly}
+                    />
+                  </div>
+                )}
 
                 {stints.length > 0 && (
                   <div className={styles.timeline}>

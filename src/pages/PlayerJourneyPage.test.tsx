@@ -105,3 +105,30 @@ describe('Player Journey matchup chip', () => {
     ).toHaveTextContent('-');
   });
 });
+
+describe('Player Journey points-by-week chart', () => {
+  function leagueWithWeekly(): League {
+    const l = league([player({})], WEEK);
+    l.playerWeeklyPoints = { p1: { 1: 18.4, 2: 24.1, 3: 9.0 } };
+    return l;
+  }
+
+  it('shows the points-by-week chart for a selected player with weekly data', () => {
+    renderPage(leagueWithWeekly());
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
+    );
+    expect(screen.getByText('Points By Week')).toBeTruthy();
+    expect(
+      screen.getByRole('img').getAttribute('aria-label'),
+    ).toMatch(/Pack Runner.*3 games.*best week 2 with 24\.1 points/);
+  });
+
+  it('hides the chart when the league has no weekly points', () => {
+    renderPage(league([player({})], WEEK));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
+    );
+    expect(screen.queryByText('Points By Week')).toBeNull();
+  });
+});
