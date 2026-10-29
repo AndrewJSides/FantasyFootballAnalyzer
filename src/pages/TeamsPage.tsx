@@ -7,6 +7,7 @@ import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/util
 import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
+import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { TeamDetail } from './TeamDetail';
 import styles from './TeamsPage.module.css';
 
@@ -120,6 +121,10 @@ export function TeamsPage({ league }: TeamsPageProps) {
   // Playoff race: needs the future schedule the owner's last sync fetched.
   // Absent on old snapshots and in guest mode — the section hides itself.
   const race = useMemo(() => playoffRace(league), [league]);
+  // Weekly matchup preview: this week's projected scores + win probability
+  // per matchup, priced on the Start/Sit projection engine. Hides itself
+  // when the sync fetched no future schedule (old snapshots, guest mode).
+  const matchupPreviews = useMemo(() => previewWeeklyMatchups(league), [league]);
   const teamById = useMemo(
     () => new Map(league.teams.map(t => [t.id, t])),
     [league.teams],
@@ -222,6 +227,65 @@ export function TeamsPage({ league }: TeamsPageProps) {
             />
           ))}
         </div>
+
+        {matchupPreviews.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="matchup-preview-heading">
+            <h2 id="matchup-preview-heading" className={styles.sectionTitle}>
+              This Week&apos;s Matchups
+            </h2>
+            <p className={styles.sectionHint}>
+              Projected scores from TraderApe&apos;s weekly projection model
+              (recency-weighted form blended with the season baseline, nudged
+              by this week&apos;s matchup difficulty — the same engine as
+              Start/Sit), priced on completed weeks only. A 30-point projected
+              gap ≈ 91% win probability. Schedule from the owner&apos;s latest
+              sync.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table className={styles.matrix} aria-label="This week's matchup projections">
+                <thead>
+                  <tr>
+                    <th scope="col">Matchup</th>
+                    <th scope="col">Proj. score</th>
+                    <th scope="col">Win probability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchupPreviews.map(p => {
+                    const aName = teamById.get(p.teamAId)?.name ?? '?';
+                    const bName = teamById.get(p.teamBId)?.name ?? '?';
+                    const favA = p.winProbA >= 50;
+                    const favName = favA ? aName : bName;
+                    const favProb = favA ? p.winProbA : 100 - p.winProbA;
+                    return (
+                      <tr key={`${p.week}-${p.teamAId}-${p.teamBId}`}>
+                        <th scope="row">
+                          {aName} vs {bName}
+                        </th>
+                        <td>
+                          {p.projA.toFixed(1)} – {p.projB.toFixed(1)}
+                        </td>
+                        <td>
+                          <span
+                            title={`${aName} ${p.winProbA.toFixed(1)}% · ${bName} ${(100 - p.winProbA).toFixed(1)}%`}
+                          >
+                            {favName} {favProb.toFixed(1)}%
+                          </span>
+                          <div className={styles.skillBarTrack} aria-hidden="true">
+                            <div
+                              className={styles.skillBarFill}
+                              style={{ width: `${p.winProbA}%` }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {race.length > 0 && (
           <section className={styles.raceSection} aria-labelledby="playoff-race-heading">

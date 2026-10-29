@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { TeamsPage } from './TeamsPage';
-import type { League, Team, WeeklyMatchup } from '@/types';
+import type { League, Player, Team, WeeklyMatchup } from '@/types';
 
 function team(
   id: string,
@@ -83,6 +83,59 @@ describe('TeamsPage playoff race', () => {
     renderPage(league({ futureSchedule: undefined }));
     expect(
       screen.queryByRole('heading', { name: 'Playoff Race' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('TeamsPage matchup preview', () => {
+  // Teams need rosters + weekly points for a preview; the base factory has
+  // neither, so the section stays hidden there.
+  function rosteredLeague(): League {
+    const mkPlayer = (id: string, pos: string, nfl: string): Player =>
+      ({ id, platformId: id, name: id, position: pos, team: nfl }) as Player;
+    const l = league();
+    const weekly: Record<string, Record<number, number>> = {};
+    l.teams = l.teams.slice(0, 2).map((t, ti) => {
+      const roster = [
+        mkPlayer(`${t.id}-qb`, 'QB', 'KC'),
+        mkPlayer(`${t.id}-rb`, 'RB', 'SF'),
+        mkPlayer(`${t.id}-wr`, 'WR', 'DAL'),
+        mkPlayer(`${t.id}-te`, 'TE', 'KC'),
+      ];
+      for (const p of roster) {
+        weekly[p.id] = { 1: 10 + ti * 5, 2: 10 + ti * 5, 3: 10 + ti * 5 };
+      }
+      return { ...t, roster };
+    });
+    // Week 9 in the factory pairs A-D and B-C; with only A and B rostered,
+    // preview their head-to-head instead.
+    return { ...l, playerWeeklyPoints: weekly, futureSchedule: [matchup(9, 'A', 'B')] };
+  }
+
+  it('renders this week\u2019s projected scores and win probability', () => {
+    renderPage(rosteredLeague());
+    expect(
+      screen.getByRole('heading', { name: "This Week's Matchups" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('table', { name: /matchup projections/i }),
+    ).toBeInTheDocument();
+    // Team B's players score 15/week vs team A's 10, so B is favored
+    // (getAllByText: the Playoff Race row names the same pairing too).
+    expect(screen.getAllByText(/Beta [\d.]+%/).length).toBeGreaterThan(0);
+  });
+
+  it('hides the section when teams have no rosters', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: "This Week's Matchups" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the section when there is no future schedule', () => {
+    renderPage({ ...rosteredLeague(), futureSchedule: undefined });
+    expect(
+      screen.queryByRole('heading', { name: "This Week's Matchups" }),
     ).not.toBeInTheDocument();
   });
 });
