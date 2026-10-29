@@ -15,6 +15,7 @@ export { FaabGuidance } from './FaabGuidance';
 export { TrendingAdds } from './TrendingAdds';
 export { AddDropMoves } from './AddDropMoves';
 export { DstStreamers } from './DstStreamers';
+export { KickerStreamers } from './KickerStreamers';
 export { TradeTable } from './TradeTable';
 export { RivalryCard } from './RivalryCard';
 export { NflTeamLabel } from './NflTeamLabel';

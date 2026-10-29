@@ -26,6 +26,11 @@
 //     blocked kick 2, points-allowed brackets 0→10 / 1–6→7 / 7–13→4 /
 //     14–20→1 / 21–27→0 / 28–34→-1 / 35+→-4. Feeds the D/ST Streamers section
 //     (backlog item 14).
+//   src/data/kickerGenerosity.2026.json — per DEFENSE team: avg fantasy pts
+//     opposing kickers scored against it (generosity, rank 1 = most generous)
+//     + that team's own kicker's avg. Scored with standard kicker scoring
+//     (FG made 3, PAT made 1, FG missed -1) from Sleeper's free weekly
+//     kicker stat lines. Feeds the Kicker Streamers section (backlog item 15).
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -66,6 +71,22 @@ interface SleeperDefenseStats {
   safe?: number;
   blk_kick?: number;
   pts_allow?: number;
+}
+
+// Standard kicker scoring (Yahoo-style), documented for the Streamers
+// footnote: made field goals 3, made PATs 1, missed field goals -1.
+function scoreKicker(s: SleeperKickerStats): number | null {
+  if (typeof s.fgm !== 'number') return null;
+  const fga = typeof s.fga === 'number' ? s.fga : s.fgm;
+  return s.fgm * 3 + (s.xpm ?? 0) - (fga - s.fgm);
+}
+
+// Raw Sleeper kicker stat keys used for standard kicker scoring.
+interface SleeperKickerStats {
+  fgm?: number;
+  fga?: number;
+  xpm?: number;
+  xpa?: number;
 }
 
 // Standard D/ST scoring (Yahoo-style), documented for the Streamers footnote.
@@ -174,6 +195,13 @@ async function main(): Promise<void> {
   const generosityGames: Record<string, number> = {};
   const ownScore: Record<string, number> = {};
   const ownGames: Record<string, number> = {};
+  // 3c. Kicker generosity: each kicker's standard-scoring fantasy points are
+  //    credited to the DEFENSE he faced (kickerGenerosity[defense]) and to
+  //    his own team's kicking unit (ownKickerScore[team]).
+  const kickerGenerosity: Record<string, number> = {};
+  const kickerGenerosityGames: Record<string, number> = {};
+  const ownKickerScore: Record<string, number> = {};
+  const ownKickerGames: Record<string, number> = {};
   const unknownTeams = new Set<string>();
   for (let week = 1; week <= lastWeek; week++) {
     const stats = await getJson<Record<string, SleeperStats>>(
@@ -190,6 +218,21 @@ async function main(): Promise<void> {
         generosityGames[offense] = (generosityGames[offense] ?? 0) + 1;
         ownScore[defense] = (ownScore[defense] ?? 0) + score;
         ownGames[defense] = (ownGames[defense] ?? 0) + 1;
+        continue;
+      }
+      const kPos = players[id]?.position;
+      if (kPos === 'K') {
+        // Kicker generosity: credit the kicker's standard-scoring fantasy
+        // points to the defense he faced.
+        const kScore = scoreKicker(s as SleeperKickerStats);
+        const kTeam = canon(players[id]?.team);
+        const kDefense = kTeam ? opponent[week]?.[kTeam] : undefined;
+        if (kScore !== null && kTeam && kDefense) {
+          kickerGenerosity[kDefense] = (kickerGenerosity[kDefense] ?? 0) + kScore;
+          kickerGenerosityGames[kDefense] = (kickerGenerosityGames[kDefense] ?? 0) + 1;
+          ownKickerScore[kTeam] = (ownKickerScore[kTeam] ?? 0) + kScore;
+          ownKickerGames[kTeam] = (ownKickerGames[kTeam] ?? 0) + 1;
+        }
         continue;
       }
       if (typeof s.pts_ppr !== 'number' || s.pts_ppr <= 0) continue;
@@ -252,6 +295,34 @@ async function main(): Promise<void> {
     };
   });
 
+  // 6. Kicker generosity averages + ranks. Rank 1 = the defense gives up the
+  //    most fantasy points to opposing kickers (best streaming target).
+  const kickerTeams: Record<
+    string,
+    { generosityAvg: number; generosityRank: number; ownAvg: number }
+  > = {};
+  const kickerRows = Object.keys(kickerGenerosity)
+    .map(t => ({
+      team: t,
+      avg:
+        kickerGenerosityGames[t] > 0
+          ? kickerGenerosity[t] / kickerGenerosityGames[t]
+          : 0,
+    }))
+    .sort((a, b) => b.avg - a.avg);
+  kickerRows.forEach((r, i) => {
+    kickerTeams[r.team] = {
+      generosityAvg: Math.round(r.avg * 10) / 10,
+      generosityRank: i + 1,
+      ownAvg:
+        Math.round(
+          ((ownKickerScore[r.team] ?? 0) /
+            Math.max(1, ownKickerGames[r.team] ?? 0)) *
+            10,
+        ) / 10,
+    };
+  });
+
   const generatedAt = new Date().toISOString();
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(
@@ -279,10 +350,26 @@ async function main(): Promise<void> {
       2,
     ) + '\n',
   );
+  writeFileSync(
+    join(OUT_DIR, `kickerGenerosity.${season}.json`),
+    JSON.stringify(
+      {
+        season,
+        weeks: [1, lastWeek],
+        scoring:
+          'standard kicker: FG made 3, PAT made 1, FG missed -1',
+        teams: kickerTeams,
+        generatedAt,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
   console.log(
     `Schedule: ${Object.values(schedule).reduce((s, g) => s + g.length, 0)} games across 18 weeks; ` +
       `allowed averages from weeks 1–${lastWeek} (${Object.keys(teams).length} defenses); ` +
-      `D/ST generosity for ${Object.keys(defenseTeams).length} offenses.`,
+      `D/ST generosity for ${Object.keys(defenseTeams).length} offenses; ` +
+      `kicker generosity for ${Object.keys(kickerTeams).length} defenses.`,
   );
 }
 
