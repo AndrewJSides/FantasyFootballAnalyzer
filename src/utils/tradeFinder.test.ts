@@ -130,10 +130,24 @@ describe('findTradeCandidates', () => {
     expect(findTradeCandidates(balanced, pool, DEFAULT_VOR_CONFIG)).toEqual([]);
   });
 
-  it('never proposes a swap that harms a starting lineup', () => {
+  it('never proposes a depth swap that harms a starting lineup', () => {
     const pool = makePool();
     const candidates = findTradeCandidates(asymmetricLeague(pool), pool, DEFAULT_VOR_CONFIG);
+    const profiles = teamProfiles(asymmetricLeague(pool), pool, DEFAULT_VOR_CONFIG);
+    // Star-for-star swaps lower one positional best by design; they are
+    // covered by the star-swap test's net-upgrade rule instead.
+    const starIds = new Set<string>();
+    for (const prof of profiles) {
+      for (const pos of ['QB', 'RB', 'WR', 'TE'] as const) {
+        const best = prof.positions[pos].depthChart[0];
+        if (best) starIds.add(`${prof.team.id}:${best.id}`);
+      }
+    }
+    const isStarSwap = (c: (typeof candidates)[number]) =>
+      c.aGives.some(p => starIds.has(`${c.teamA.id}:${p.id}`)) ||
+      c.bGives.some(p => starIds.has(`${c.teamB.id}:${p.id}`));
     for (const c of candidates) {
+      if (isStarSwap(c)) continue;
       for (const impact of [c.analysis.teamAImpact, c.analysis.teamBImpact]) {
         for (const d of impact?.depth ?? []) {
           expect(d.bestAfter).toBeGreaterThanOrEqual(d.bestBefore - 0.5);
@@ -179,7 +193,89 @@ describe('findTradeCandidates 2-for-1 packages', () => {
     expect(pkg.reasons.length).toBeGreaterThan(0);
     expect(pkg.reasons[0]).toMatch(/consolidates/);
   });
+});
 
+describe('findTradeCandidates star-for-star need swaps', () => {
+  // Team A: stud RB1 plus RB cover, no WR to speak of. Team B: stud WR1
+  // plus WR cover, no RB to speak of. C and D are balanced fillers so
+  // need/surplus resolve league-relative.
+  function starSwapLeague(pool: DraftPoolFile): League {
+    void pool;
+    return league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB8', 'RB9', 'RB10', 'WR50', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB50', 'WR1', 'WR8', 'WR9', 'WR10', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB5', 'RB6', 'WR5', 'WR6', 'TE5']),
+      team('d', 'Team D', ['QB4', 'RB7', 'RB11', 'WR7', 'WR11', 'TE6']),
+    ]);
+  }
+
+  it('proposes a star-for-star swap when the stars are the fair match', () => {
+    const pool = makePool();
+    const candidates = findTradeCandidates(
+      starSwapLeague(pool),
+      pool,
+      DEFAULT_VOR_CONFIG,
+    );
+    const profiles = teamProfiles(starSwapLeague(pool), pool, DEFAULT_VOR_CONFIG);
+    const starIds = new Set<string>();
+    for (const prof of profiles) {
+      for (const pos of ['QB', 'RB', 'WR', 'TE'] as const) {
+        const best = prof.positions[pos].depthChart[0];
+        if (best) starIds.add(`${prof.team.id}:${best.id}`);
+      }
+    }
+    const starSwaps = candidates.filter(
+      c =>
+        c.aGives.some(p => starIds.has(`${c.teamA.id}:${p.id}`)) ||
+        c.bGives.some(p => starIds.has(`${c.teamB.id}:${p.id}`)),
+    );
+    expect(starSwaps.length).toBeGreaterThan(0);
+    const swap = starSwaps[0];
+    // Single players each way: the classic "my RB1 for your WR1".
+    expect(swap.aGives.length).toBe(1);
+    expect(swap.bGives.length).toBe(1);
+    expect(
+      [swap.aGives[0].pos.toUpperCase(), swap.bGives[0].pos.toUpperCase()].sort(),
+    ).toEqual(['RB', 'WR']);
+    expect(swap.analysis.marginShare).toBeLessThanOrEqual(0.25);
+    // Win-win: neither team's starting value goes backwards.
+    for (const impact of [swap.analysis.teamAImpact, swap.analysis.teamBImpact]) {
+      let net = 0;
+      for (const d of impact?.depth ?? []) net += d.bestAfter - d.bestBefore;
+      expect(net).toBeGreaterThanOrEqual(0);
+    }
+    expect(swap.reasons.length).toBeGreaterThan(0);
+    expect(swap.score).toBeGreaterThan(0);
+  });
+
+  it('no star swap fires when every roster is balanced', () => {
+    const pool = makePool();
+    const balanced = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR1', 'WR2', 'WR3', 'TE1']),
+      team('b', 'Team B', ['QB2', 'RB4', 'RB5', 'RB6', 'WR4', 'WR5', 'WR6', 'TE2']),
+      team('c', 'Team C', ['QB3', 'RB7', 'RB8', 'RB9', 'WR7', 'WR8', 'WR9', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RB10', 'RB11', 'RB12', 'WR10', 'WR11', 'WR12', 'TE4']),
+    ]);
+    const profiles = teamProfiles(balanced, pool, DEFAULT_VOR_CONFIG);
+    const starIds = new Set<string>();
+    for (const prof of profiles) {
+      for (const pos of ['QB', 'RB', 'WR', 'TE'] as const) {
+        const best = prof.positions[pos].depthChart[0];
+        if (best) starIds.add(`${prof.team.id}:${best.id}`);
+      }
+    }
+    const candidates = findTradeCandidates(balanced, pool, DEFAULT_VOR_CONFIG);
+    expect(
+      candidates.filter(
+        c =>
+          c.aGives.some(p => starIds.has(`${c.teamA.id}:${p.id}`)) ||
+          c.bGives.some(p => starIds.has(`${c.teamB.id}:${p.id}`)),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('findTradeCandidates 2-for-1 balance', () => {
   it('no 2-for-1 fires when every roster is balanced', () => {
     const pool = makePool();
     const balanced = league([

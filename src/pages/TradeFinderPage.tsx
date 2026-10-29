@@ -12,12 +12,13 @@ interface TradeFinderPageProps {
 }
 
 // Trade finder (backlog item 3): proposes concrete win-win swaps between
-// league teams. It scans every team pair for depth-for-need 1-for-1 trades —
-// Team A is weak at a position where Team B is deep and vice versa — then
-// grades each with the same VOR value model and roster-impact takes as the
-// Trade Analyzer. Only swaps that are fair on paper (within 25% on VOR)
-// AND leave both starting lineups intact are proposed. Each card deep-links
-// into the Trade Analyzer with the pairing pre-filled for a full breakdown.
+// league teams. It scans every team pair for depth-for-need trades —
+// 1-for-1 depth swaps, 2-for-1 consolidation packages, and star-for-star
+// need swaps ("my RB1 for your WR1") — then grades each with the same VOR
+// value model and roster-impact takes as the Trade Analyzer. Only swaps that
+// are fair on paper (within 25% on VOR) AND leave neither team's starting
+// value worse are proposed. Each card deep-links into the Trade Analyzer
+// with the pairing pre-filled for a full breakdown.
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -126,8 +127,10 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
         <p className={styles.footnote}>
           Method: value from projected-points VOR for your league's shape; a
           swap is proposed only when the sides are within 25% on VOR and
-          neither team's starting lineup gets worse. Needs and surplus are
-          priced against the league median at each position.
+          neither team's starting value goes backwards — depth swaps leave
+          every starter untouched, while star-for-star swaps are allowed only
+          when each team nets an upgrade at its starting lineup. Needs and
+          surplus are priced against the league median at each position.
         </p>
       </div>
     </div>

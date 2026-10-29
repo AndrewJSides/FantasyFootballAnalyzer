@@ -92,9 +92,13 @@ describe('TradeFinderPage', () => {
     );
     const cards = screen.getByRole('list', { name: 'Proposed trades' });
     expect(cards).toBeInTheDocument();
-    expect(screen.getByRole('article', { name: /Team A and Team B proposed trade/ })).toBeInTheDocument();
+    const articles = screen.getAllByRole('article', { name: /Team A and Team B proposed trade/ });
+    expect(articles.length).toBeGreaterThan(0);
+    // A star-for-star card renders alongside the depth swap: its reasons
+    // name the new positional best ("becomes its best WR/RB").
+    expect(screen.getAllByText(/becomes its best/).length).toBeGreaterThan(0);
     // The card deep-links into the Trade Analyzer with the pairing pre-filled.
-    const link = screen.getByRole('link', { name: /Analyze Team A and Team B trade/ });
+    const link = screen.getAllByRole('link', { name: /Analyze Team A and Team B trade/ })[0];
     const href = link.getAttribute('href') ?? '';
     expect(href).toMatch(/^\/trade-analyzer#trade=/);
     expect(decodeURIComponent(href)).toContain('"ta":"a"');

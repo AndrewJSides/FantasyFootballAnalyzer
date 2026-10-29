@@ -1,10 +1,12 @@
 // Trade finder: propose concrete win-win swaps between league teams.
 //
-// Scans every team pair for depth-for-need 1-for-1 swaps: Team A is weak at a
-// position where Team B is deep, and vice versa. Each candidate is graded with
-// the same value model as the Trade Analyzer (VOR from projected points) plus
-// the same roster-impact takes, and only swaps that are fair on paper AND
-// don't harm either team's starting lineup are proposed.
+// Scans every team pair for three kinds of depth-for-need trade:
+// depth-for-need 1-for-1 swaps (second-best pieces), 2-for-1 consolidation
+// packages, and star-for-star need swaps (each side's best at a position the
+// other needs). Each candidate is graded with the same value model as the
+// Trade Analyzer (VOR from projected points) plus the same roster-impact
+// takes, and only swaps that are fair on paper AND leave neither team's
+// starting value worse are proposed.
 //
 // Season-agnostic: consumes whatever pool season is bundled and whatever
 // league is supplied. Requires a connected league (team rosters) — there is
@@ -42,6 +44,10 @@ const MAX_CANDIDATES = 12;
 // Maximum 2-for-1 packages kept per team pair (separate cap so packages
 // don't crowd out the 1-for-1s).
 const MAX_TWO_FOR_ONE_PER_PAIR = 2;
+
+// Maximum star-for-star swaps kept per team pair (separate cap so they
+// don't crowd out the depth trades).
+const MAX_STAR_SWAP_PER_PAIR = 2;
 
 export interface PositionProfile {
   position: PositionKey;
@@ -283,6 +289,118 @@ function twoForOneAttempts(
   return out.sort((a, b) => b.score - a.score).slice(0, MAX_TWO_FOR_ONE_PER_PAIR);
 }
 
+// Net change in a team's starting value (best VOR at each position, before
+// → after). A star-for-star swap trades a positional best away, so the
+// depth-trade "no position gets worse" rule can't apply here — instead each
+// team must NET gain or break even on starting value.
+function netStarterChange(
+  impact: FullTradeAnalysis['teamAImpact'],
+): number {
+  let net = 0;
+  for (const d of impact?.depth ?? []) net += d.bestAfter - d.bestBefore;
+  return round1(net);
+}
+
+// Star-for-star need swaps: A is weak at p where B is deep, and B is weak at
+// q where A is deep. Unlike the depth-for-need 1-for-1s (which trade the
+// SECOND-best at each position), the stars themselves move — the classic "my
+// RB1 for your WR1" deal. It only fires when the pairing is win-win: each
+// side's gain at its need position outweighs the loss at the position it
+// trades from, and the `surplus` flag already guarantees the team keeps
+// starter demand covered after the star leaves.
+function needVsNeedAttempts(
+  A: TeamProfile,
+  B: TeamProfile,
+  vor: Map<string, number>,
+  valueLeague: ValueLeague,
+  pool: DraftPoolFile,
+  cfg: VorConfig,
+): TradeCandidate[] {
+  const out: TradeCandidate[] = [];
+  const seenLocal = new Set<string>();
+
+  // One attempt per direction: A needs p, B needs q, each gives its star.
+  const attempts: {
+    giver: TeamProfile;
+    receiver: TeamProfile;
+    give: PositionKey;
+    get: PositionKey;
+  }[] = [];
+  for (const p of POSITIONS) {
+    for (const q of POSITIONS) {
+      if (p === q) continue;
+      if (
+        A.positions[p].need &&
+        B.positions[p].surplus &&
+        B.positions[q].need &&
+        A.positions[q].surplus
+      ) {
+        attempts.push({ giver: A, receiver: B, give: q, get: p });
+      }
+    }
+  }
+
+  for (const { giver, receiver, give, get } of attempts) {
+    const giverStar = giver.positions[give].depthChart[0];
+    const receiverStar = receiver.positions[get].depthChart[0];
+    if (!giverStar || !receiverStar) continue;
+    if (vorOf(vor, giverStar) <= 0 || vorOf(vor, receiverStar) <= 0) continue;
+
+    const key = [
+      'star',
+      giver.team.id,
+      receiver.team.id,
+      giverStar.id,
+      receiverStar.id,
+    ]
+      .sort()
+      .join('|');
+    if (seenLocal.has(key)) continue;
+    seenLocal.add(key);
+
+    const analysis = analyzeTrade([giverStar], [receiverStar], {
+      valueLeague,
+      teamA: giver.team,
+      teamB: receiver.team,
+      pool,
+      cfg,
+    });
+    if (analysis.marginShare > FAIR_MARGIN_SHARE) continue;
+
+    const giverNet = netStarterChange(analysis.teamAImpact);
+    const receiverNet = netStarterChange(analysis.teamBImpact);
+    // Win-win: neither team's starting value goes backwards.
+    if (giverNet < 0 || receiverNet < 0) continue;
+    // A star swap that upgrades nobody's starter is just churn.
+    if (upgradeGain(analysis) <= 0) continue;
+
+    const giverNewBest =
+      analysis.teamAImpact?.depth.find(d => d.position === give)?.bestAfter ??
+      0;
+    const giverSecond = giver.positions[give].depthChart[1];
+
+    const reasons: string[] = [
+      `${giver.team.name} gets the ${get} it needs: ${receiverStar.name} (${round1(vorOf(vor, receiverStar))} VOR) becomes its best ${get}, up from ${giver.positions[get].best} VOR.`,
+      `${receiver.team.name} gets the ${give} it needs: ${giverStar.name} (${round1(vorOf(vor, giverStar))} VOR) becomes its best ${give}, up from ${receiver.positions[give].best} VOR.`,
+      `Both teams net-upgrade their starters (+${round1(giverNet)} / +${round1(receiverNet)} VOR) and still cover demand — ${giver.team.name}'s ${give} falls back to ${giverSecond.name} (${giverNewBest} VOR).`,
+      `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} VOR (within ${Math.round(analysis.marginShare * 100)}%).`,
+    ];
+    out.push({
+      teamA: giver.team,
+      teamB: receiver.team,
+      aGives: [giverStar],
+      bGives: [receiverStar],
+      analysis,
+      reasons,
+      score: round1(
+        giverNet + receiverNet + 1 / (1 + analysis.marginShare),
+      ),
+    });
+  }
+
+  return out.sort((a, b) => b.score - a.score).slice(0, MAX_STAR_SWAP_PER_PAIR);
+}
+
 export function findTradeCandidates(
   league: League,
   pool: DraftPoolFile = POOL,
@@ -325,6 +443,28 @@ export function findTradeCandidates(
           seen.add(key);
           candidates.push(pkg);
         }
+      }
+
+      // Star-for-star need swaps: the attempts already cover both
+      // directions, so one call per pair is enough.
+      for (const swap of needVsNeedAttempts(
+        A,
+        B,
+        vor,
+        valueLeague,
+        pool,
+        cfg,
+      )) {
+        const key = [
+          'star',
+          swap.teamA.id,
+          swap.teamB.id,
+          ...swap.aGives.map(p => p.id).sort(),
+          ...swap.bGives.map(p => p.id).sort(),
+        ].join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        candidates.push(swap);
       }
 
       // Both directions: A needs p while B is deep at p, and B needs q
