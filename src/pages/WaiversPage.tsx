@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, DstStreamers, FaabGuidance, KickerStreamers, TrendingAdds, WaiverTable } from '@/components';
+import { AddDropMoves, DstStreamers, FaabGuidance, HandcuffReport, KickerStreamers, TrendingAdds, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -52,6 +52,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* Best available kickers to stream this week, ranked by how
             generous each opponent's defense has been to opposing kickers. */}
         <KickerStreamers league={league} />
+
+        {/* Every NFL backfield's lead back and direct backup, with league
+            ownership — the league-wide answer to which handcuffs are worth
+            stashing. */}
+        <HandcuffReport league={league} />
 
         {/* Pair each team's most cuttable bench player with the best waiver
             target that beats him — the "drop THIS for THAT" answer. */}
