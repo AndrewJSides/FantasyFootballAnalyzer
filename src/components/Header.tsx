@@ -305,6 +305,14 @@ export function Header({
                 >
                   Trade Finder
                 </Link>
+                <Link
+                  to="/compare"
+                  className={`${styles.navLink} ${location.pathname === '/compare' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/compare' ? 'page' : undefined}
+                >
+                  Compare
+                </Link>
               </>
             ) : (
               <>
@@ -346,6 +354,14 @@ export function Header({
               aria-current={location.pathname === '/trade-finder' ? 'page' : undefined}
             >
               Trade Finder
+            </Link>
+            <Link
+              to="/compare"
+              className={`${styles.navLink} ${location.pathname === '/compare' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/compare' ? 'page' : undefined}
+            >
+              Compare
             </Link>
             <Link
               to="/waivers"

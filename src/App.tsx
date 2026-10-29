@@ -39,6 +39,7 @@ const TradeAnalyzerPage = lazyPage(() => import('@/pages/TradeAnalyzerPage'), 'T
 const WaiversPage = lazyPage(() => import('@/pages/WaiversPage'), 'WaiversPage');
 const StartSitPage = lazyPage(() => import('@/pages/StartSitPage'), 'StartSitPage');
 const TradeFinderPage = lazyPage(() => import('@/pages/TradeFinderPage'), 'TradeFinderPage');
+const ComparePage = lazyPage(() => import('@/pages/ComparePage'), 'ComparePage');
 const TeamsPage = lazyPage(() => import('@/pages/TeamsPage'), 'TeamsPage');
 const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage');
 const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
@@ -112,6 +113,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/values': 'Site Values',
   '/trends': 'ADP Trends',
   '/trades': 'Trades',
+  '/compare': 'Compare Players',
   '/waivers': 'Waivers',
   '/start-sit': 'Start/Sit',
   '/teams': 'Teams',
@@ -884,6 +886,12 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/trades" element={dataRoute(l => <TradesPage league={l} />)} />
           <Route path="/trade-finder" element={league ? <TradeFinderPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />} />
+          {/* Compare Players works in guest mode on two picked players
+              (Sleeper's public weekly stats, no auth), like Start/Sit. */}
+          <Route
+            path="/compare"
+            element={league ? <ComparePage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
+          />
           <Route path="/waivers" element={dataRoute(l => <WaiversPage league={l} />)} />
           {/* Start/Sit works in guest mode on a manually entered roster
               (Sleeper's public weekly stats, no auth), so guests aren't

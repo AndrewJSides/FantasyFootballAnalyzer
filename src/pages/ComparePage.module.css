@@ -1,0 +1,238 @@
+/* GRIDIRON · Compare Players */
+
+.page { padding: 3rem 0 5rem; }
+
+.header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.subtitle::before { content: '◆ '; }
+
+.pickers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+@media (max-width: 700px) {
+  .pickers { grid-template-columns: 1fr; }
+}
+
+.picker {
+  background: var(--ink);
+  border: 1px solid var(--bone-dim);
+  padding: 1.25rem;
+}
+
+.pickerTitle {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 0 0 1rem;
+}
+
+.searchLabel {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  margin-bottom: 0.4rem;
+}
+
+.searchInput {
+  width: 100%;
+  background: var(--coal);
+  border: 1px solid var(--bone-dim);
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.searchHint {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--bone-dim);
+  margin: 0.4rem 0 0;
+}
+
+.searchResults {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  border: 1px solid var(--bone-dim);
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.searchResult {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--bone-dim);
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+}
+.searchResult:hover, .searchResult:focus-visible {
+  background: var(--coal);
+  outline: 2px solid var(--lime);
+  outline-offset: -2px;
+}
+.searchResult:last-child { border-bottom: none; }
+
+.resultTeam, .pickedTeam {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--bone-dim);
+}
+
+.pickedRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--bone);
+}
+
+.removeButton {
+  background: none;
+  border: 1px solid var(--bone-dim);
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+.removeButton:hover { border-color: var(--lime); color: var(--lime); }
+
+.status { font-family: var(--font-display); color: var(--bone); margin-bottom: 2rem; }
+
+.retryButton {
+  background: none;
+  border: 1px solid var(--lime);
+  color: var(--lime);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.verdict {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--bone);
+  border-left: 4px solid var(--lime);
+  padding-left: 1rem;
+  margin: 0 0 2rem;
+}
+
+.tableWrap { overflow-x: auto; margin-bottom: 1.5rem; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-display);
+  color: var(--bone);
+}
+
+.caption {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  padding-bottom: 0.75rem;
+}
+
+.table th, .table td {
+  border: 1px solid var(--bone-dim);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table thead th {
+  background: var(--coal);
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.table tbody th[scope='row'] {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  font-weight: 400;
+}
+
+.table td {
+  font-size: 1.05rem;
+  min-width: 10rem;
+}
+
+.winner {
+  background: color-mix(in srgb, var(--lime) 12%, transparent);
+  color: var(--lime);
+  font-weight: 600;
+}
+
+.leadTag { font-weight: 700; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.footnote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--bone-dim);
+  margin-bottom: 3rem;
+}
