@@ -57,6 +57,86 @@ function renderPage(leagueArg: League) {
   );
 }
 
+describe('TeamsPage team injuries', () => {
+  // Injury summary: TeamsPage takes a pool override (bundled pool carries
+  // live Sleeper designations, unsuitable for assertions).
+  const mkPool = (): import('@/types/draft').DraftPoolFile => {
+    const player = (
+      id: string,
+      name: string,
+      pos: 'QB' | 'RB' | 'WR' | 'TE',
+      injury?: { injuryStatus: string; injuryBodyPart?: string },
+    ): import('@/types/draft').PoolPlayer =>
+      ({
+        id,
+        name,
+        team: 'DAL',
+        pos,
+        posRank: 1,
+        overallRank: 10,
+        tier: 1,
+        bye: 7,
+        baseValue: null,
+        projPtsPpr: 100,
+        ...injury,
+      }) as import('@/types/draft').PoolPlayer;
+    return {
+      season: 2026,
+      generatedAt: 'test',
+      baseline: { budget: 200, teams: 10, rounds: 15 },
+      players: [
+        player('wr1', 'Star Wideout', 'WR', { injuryStatus: 'IR', injuryBodyPart: 'Knee - ACL' }),
+        player('q1', 'Q Back', 'QB', { injuryStatus: 'Questionable', injuryBodyPart: 'Hamstring' }),
+        player('te1', 'Healthy Tight', 'TE'),
+      ],
+    };
+  };
+
+  const injuredLeague = (): League => {
+    const mkRosterPlayer = (id: string, name: string, pos: string): Player =>
+      ({ id, name, position: pos, team: 'DAL' }) as Player;
+    const l = league();
+    l.teams = l.teams.slice(0, 3).map(t => {
+      if (t.id === 'A') {
+        return { ...t, roster: [mkRosterPlayer('wr1', 'Star Wideout', 'WR')] };
+      }
+      if (t.id === 'B') {
+        return { ...t, roster: [mkRosterPlayer('q1', 'Q Back', 'QB')] };
+      }
+      return { ...t, roster: [mkRosterPlayer('te1', 'Healthy Tight', 'TE')] };
+    });
+    return l;
+  };
+
+  const renderInjured = () =>
+    render(
+      <MemoryRouter>
+        <TeamsPage league={injuredLeague()} pool={mkPool()} />
+      </MemoryRouter>,
+    );
+
+  it('renders each team\'s injured players, worst severity first', () => {
+    renderInjured();
+    expect(screen.getByRole('heading', { name: 'Team Injuries' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: /team injury summary/i })).toBeInTheDocument();
+    // Alpha's star (IR, season-ending) sorts ahead of Beta's questionable QB.
+    const rows = screen.getAllByRole('row');
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(rows[1]).toHaveTextContent(/Star Wideout/);
+    expect(rows[2]).toHaveTextContent('Beta');
+    // Gamma's tight end is healthy: all clear.
+    expect(rows[3]).toHaveTextContent('Gamma');
+    expect(rows[3]).toHaveTextContent('All clear');
+    // Full injury detail is in the accessible label.
+    expect(screen.getByLabelText(/Star Wideout: Season-ending, Knee - ACL/)).toBeInTheDocument();
+  });
+
+  it('hides the section when teams have no rosters', () => {
+    renderPage(league());
+    expect(screen.queryByRole('heading', { name: 'Team Injuries' })).not.toBeInTheDocument();
+  });
+});
+
 describe('TeamsPage playoff race', () => {
   it('renders remaining schedule, SOS rank, and odds when the schedule exists', () => {
     renderPage(league());

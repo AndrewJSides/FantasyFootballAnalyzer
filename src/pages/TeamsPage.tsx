@@ -2,20 +2,42 @@ import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DataAsOf } from '@/components/DataAsOf';
 import { TeamCard } from '@/components/TeamCard';
+import { POOL } from '@/data/draftPool';
 import type { League } from '@/types';
+import type { DraftPoolFile } from '@/types/draft';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
+import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
+import { injuryAbbrev, injuryTitle } from '@/utils/injury';
+import type { InjurySeverityTier } from '@/utils/injuryReport';
 import { TeamDetail } from './TeamDetail';
 import styles from './TeamsPage.module.css';
 
 interface TeamsPageProps {
   league: League;
+  /** Test override: a synthetic pool replaces the bundled one. */
+  pool?: DraftPoolFile;
 }
 
-export function TeamsPage({ league }: TeamsPageProps) {
+function tierInjuryClass(tier: InjurySeverityTier): string {
+  switch (tier) {
+    case 'season-ending':
+      return styles.injuryTierSeasonEnding;
+    case 'out':
+      return styles.injuryTierOut;
+    case 'doubtful':
+      return styles.injuryTierDoubtful;
+    case 'questionable':
+      return styles.injuryTierQuestionable;
+    default:
+      return styles.injuryTierOther;
+  }
+}
+
+export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // ?team=<id> opens the team hub; team names across the app link here.
   const [searchParams, setSearchParams] = useSearchParams();
   const detailTeam = useMemo(() => {
@@ -121,6 +143,15 @@ export function TeamsPage({ league }: TeamsPageProps) {
   // Playoff race: needs the future schedule the owner's last sync fetched.
   // Absent on old snapshots and in guest mode — the section hides itself.
   const race = useMemo(() => playoffRace(league), [league]);
+  // Per-owner injury summary: each team's injured rostered players, worst
+  // first, from the bundled pool's Sleeper injury data. Hides when the sync
+  // fetched no rosters (there's nobody to attribute injuries to).
+  const pool = poolOverride ?? POOL;
+  const hasRosters = league.teams.some(t => (t.roster?.length ?? 0) > 0);
+  const injurySummaries = useMemo(
+    () => (hasRosters ? buildTeamInjurySummaries(league, pool) : []),
+    [league, pool, hasRosters],
+  );
   // Weekly matchup preview: this week's projected scores + win probability
   // per matchup, priced on the Start/Sit projection engine. Hides itself
   // when the sync fetched no future schedule (old snapshots, guest mode).
@@ -227,6 +258,62 @@ export function TeamsPage({ league }: TeamsPageProps) {
             />
           ))}
         </div>
+
+        {hasRosters && injurySummaries.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="team-injuries-heading">
+            <h2 id="team-injuries-heading" className={styles.sectionTitle}>
+              Team Injuries
+            </h2>
+            <p className={styles.sectionHint}>
+              Each team&apos;s injured startable players, worst severity
+              first. Designations from Sleeper&apos;s injury data in the
+              bundled pool (refreshed twice daily); ownership from the
+              owner&apos;s latest sync. The league-wide view with handcuff
+              replacements lives on the Waivers page.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table className={styles.matrix} aria-label="Team injury summary">
+                <thead>
+                  <tr>
+                    <th scope="col">Team</th>
+                    <th scope="col">Hurt</th>
+                    <th scope="col">Injured players</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {injurySummaries.map(s => (
+                    <tr key={s.teamId}>
+                      <th scope="row" title={s.teamName}>{shortName(s.teamName)}</th>
+                      <td>
+                        {s.rows.length === 0 ? (
+                          <span className={styles.injuryClear}>All clear</span>
+                        ) : (
+                          s.rows.length
+                        )}
+                      </td>
+                      <td>
+                        {s.rows.length === 0
+                          ? '—'
+                          : s.rows.map((row, i) => (
+                              <span key={row.player.id}>
+                                {i > 0 ? '; ' : ''}
+                                <span
+                                  className={tierInjuryClass(row.tier)}
+                                  title={injuryTitle(row.player)}
+                                  aria-label={`${row.player.name}: ${row.tierLabel}${row.detail ? `, ${row.detail}` : ''}`}
+                                >
+                                  {row.player.name} ({injuryAbbrev(row.player.injuryStatus ?? '')})
+                                </span>
+                              </span>
+                            ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {matchupPreviews.length > 0 && (
           <section className={styles.raceSection} aria-labelledby="matchup-preview-heading">

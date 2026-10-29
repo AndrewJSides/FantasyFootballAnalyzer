@@ -205,3 +205,24 @@
 .raceLong {
   color: var(--bone-dim);
 }
+
+.injuryClear {
+  color: var(--lime);
+}
+
+.injuryTierSeasonEnding {
+  color: #ff6b6b;
+}
+
+.injuryTierOut {
+  color: var(--accent, var(--lime));
+}
+
+.injuryTierDoubtful,
+.injuryTierQuestionable {
+  color: var(--bone);
+}
+
+.injuryTierOther {
+  color: var(--bone-dim);
+}
