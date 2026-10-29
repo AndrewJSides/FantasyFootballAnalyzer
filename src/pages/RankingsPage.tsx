@@ -17,6 +17,13 @@ import { draftableSlotCount } from '@/utils/draftEngine';
 import { normalizeName } from '@/utils/playerNames';
 import { draftValues, vorConfigFor } from '@/utils/projectionValues';
 import { scoringLabel } from '@/utils/scoringLabel';
+import {
+  currentWeekEstimate,
+  getMatchupRating,
+  matchupDataWeeks,
+  matchupLabel,
+  matchupShort,
+} from '@/utils/matchupRating';
 import styles from './RankingsPage.module.css';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DST'];
@@ -57,6 +64,26 @@ interface RankingsPageProps {
   initialPos?: string;
 }
 
+// Weekly matchup difficulty cell (backlog item 2): the same rating the
+// Start/Sit and Trade Analyzer pages use — the player's week-N opponent and
+// that opponent's points allowed vs the position from completed weeks.
+// Renders a dim dash for bye weeks and K/DST, which the rating doesn't cover.
+function MatchupCell({ team, pos, week }: { team: string; pos: string; week: number }) {
+  const rating = getMatchupRating(team, pos, week);
+  if (!rating) return <td className={`${styles.num} ${styles.dim}`}>-</td>;
+  const cls =
+    rating.label === 'favorable'
+      ? styles.muFav
+      : rating.label === 'tough'
+        ? styles.muTough
+        : styles.muNeutral;
+  return (
+    <td className={styles.num} title={matchupLabel(rating, pos)}>
+      <span className={cls}>{matchupShort(rating)}</span>
+    </td>
+  );
+}
+
 // Read-only view of the bundled draft pool: every ranking source side by
 // side, with no draft session required. Auto-sorted by the consensus average
 // so the delta column surfaces where the user's platform disagrees.
@@ -85,6 +112,10 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   const isAuction = league.draftType === 'auction';
   const [viewTab, setViewTab] = useState<ViewTab>(isAuction ? 'auction' : 'snake');
   const auctionView = viewTab === 'auction';
+  // The week the Matchup column prices against: the league's current week
+  // when loaded, else the estimate from the completed-weeks range in the
+  // bundled matchup data (guest mode — same as the Trade Analyzer chips).
+  const matchupWeek = league.currentWeek ?? currentWeekEstimate();
   const scoring = league.scoringType;
   // Superflex leagues read Sleeper's 2QB ADP market (QBs go far earlier), so
   // the board's ADP column, sort, and delta match the mock AI's behavior.
@@ -470,6 +501,11 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 <th title="Position, with the player's rank at that position">Pos</th>
                 <th title="NFL team">Team</th>
                 <th
+                  title={`Weekly matchup difficulty: the player's week ${matchupWeek} opponent and that opponent's points allowed vs the position, from completed weeks ${matchupDataWeeks()[0]}–${matchupDataWeeks()[1]}`}
+                >
+                  Matchup
+                </th>
+                <th
                   className={styles.num}
                   title="Bye week: the week this player's team does not play"
                 >
@@ -530,7 +566,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                   <Fragment key={p.id}>
                   {showTierBreak && (
                     <tr className={styles.tierBreakRow} aria-hidden="true">
-                      <td colSpan={auctionView ? 12 : 11}>TIER {p.tier}</td>
+                      <td colSpan={auctionView ? 13 : 12}>TIER {p.tier}</td>
                     </tr>
                   )}
                   <tr className={styles.row}>
@@ -586,6 +622,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                     <td>
                       <NflTeamLabel team={p.team} />
                     </td>
+                    <MatchupCell team={p.team} pos={p.pos} week={matchupWeek} />
                     <td className={`${styles.num} ${styles.dim}`}>{p.bye ?? '-'}</td>
                     {!auctionView && (
                       <>
@@ -612,7 +649,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={auctionView ? 12 : 11} className={styles.emptyRow}>
+                  <td colSpan={auctionView ? 13 : 12} className={styles.emptyRow}>
                     No players match.
                   </td>
                 </tr>
@@ -629,6 +666,15 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               Showing {MAX_ROWS} of {rows.length}. Search or filter to narrow.
             </div>
           )}
+          {/* The Matchup column reuses the Start/Sit and Trade Analyzer
+              rating: the player's week-N opponent's points allowed vs the
+              position from completed weeks. */}
+          <p className={styles.footnote}>
+            The Matchup column shows the week-{matchupWeek} opponent's points allowed to the
+            player's position, from completed weeks{' '}
+            {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]} — the same rating the Start/Sit
+            and Trade Analyzer pages use.
+          </p>
         </div>
       </div>
     </div>
