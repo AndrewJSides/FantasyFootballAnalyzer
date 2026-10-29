@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { FaabGuidance, TrendingAdds, WaiverTable } from '@/components';
+import { AddDropMoves, FaabGuidance, TrendingAdds, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -44,6 +44,10 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* League-wide waiver momentum, filtered to players this league can
             actually add — priced with TraderApe's own projection + matchup. */}
         <TrendingAdds league={league} />
+
+        {/* Pair each team's most cuttable bench player with the best waiver
+            target that beats him — the "drop THIS for THAT" answer. */}
+        <AddDropMoves league={league} />
 
         {hasTransactions ? (
           <WaiverTable
