@@ -16,6 +16,7 @@ export { TrendingAdds } from './TrendingAdds';
 export { AddDropMoves } from './AddDropMoves';
 export { DstStreamers } from './DstStreamers';
 export { HandcuffReport } from './HandcuffReport';
+export { InjuryReport } from './InjuryReport';
 export { KickerStreamers } from './KickerStreamers';
 export { TradeTable } from './TradeTable';
 export { RivalryCard } from './RivalryCard';
