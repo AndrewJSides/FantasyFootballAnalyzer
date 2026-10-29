@@ -297,6 +297,14 @@ export function Header({
                 >
                   Start/Sit
                 </Link>
+                <Link
+                  to="/trade-finder"
+                  className={`${styles.navLink} ${location.pathname === '/trade-finder' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/trade-finder' ? 'page' : undefined}
+                >
+                  Trade Finder
+                </Link>
               </>
             ) : (
               <>

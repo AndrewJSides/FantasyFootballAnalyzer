@@ -3,7 +3,7 @@
 // balanced league renders the empty state. The bundled pool is mocked so
 // the test never depends on the live player data.
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Team } from '@/types';
@@ -79,6 +79,103 @@ function renderPage(leagueArg: League) {
 
 // Imported after the mock so the page binds the mocked pool.
 import { TradeFinderPage } from './TradeFinderPage';
+import { fireEvent } from '@testing-library/react';
+
+function renderGuest() {
+  return render(
+    <MemoryRouter>
+      <TradeFinderPage league={null} />
+    </MemoryRouter>,
+  );
+}
+
+// Type a query into one roster's search box and click the matching add
+// button (the two builders disambiguate by roster title).
+function addToRoster(rosterTitle: string, query: string, playerName: string) {
+  const input = screen.getByLabelText(
+    `Add players to ${rosterTitle.toLowerCase()}`,
+  );
+  fireEvent.change(input, { target: { value: query } });
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: `Add ${playerName} to ${rosterTitle}`,
+    }),
+  );
+}
+
+describe('TradeFinderPage guest mode', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  it('renders two roster builders and prompts for both rosters', () => {
+    renderGuest();
+    expect(screen.getByLabelText('Add players to your team')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add players to trade partner')).toBeInTheDocument();
+    expect(screen.getByText(/Add players to both rosters/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('list', { name: 'Proposed trades' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('proposes a swap card between complementary manually entered rosters', () => {
+    renderGuest();
+    for (const [q, name] of [
+      ['RB1', 'RB1'],
+      ['RB2', 'RB2'],
+      ['RB3', 'RB3'],
+      ['RB4', 'RB4'],
+      ['WR40', 'WR40'],
+      ['TE20', 'TE20'],
+    ] as const) {
+      addToRoster('Your team', q, name);
+    }
+    for (const [q, name] of [
+      ['WR1', 'WR1'],
+      ['WR2', 'WR2'],
+      ['WR3', 'WR3'],
+      ['WR4', 'WR4'],
+      ['RB40', 'RB40'],
+      ['TE25', 'TE25'],
+    ] as const) {
+      addToRoster('Trade partner', q, name);
+    }
+
+    const cards = screen.getByRole('list', { name: 'Proposed trades' });
+    expect(cards).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('article', {
+        name: /Your team and Trade partner proposed trade/,
+      }).length,
+    ).toBeGreaterThan(0);
+    // A win-win reason names the new positional best.
+    expect(screen.getAllByText(/becomes its best/).length).toBeGreaterThan(0);
+    // The guest deep link carries player names only — no ta/tb team ids.
+    const link = screen.getAllByRole('link', {
+      name: /Analyze Your team and Trade partner trade/,
+    })[0];
+    const href = link.getAttribute('href') ?? '';
+    expect(href).toMatch(/^\/trade-analyzer#trade=/);
+    const decoded = decodeURIComponent(href);
+    expect(decoded).toContain('"a":');
+    expect(decoded).not.toContain('"ta"');
+    expect(decoded).not.toContain('"tb"');
+  });
+
+  it('pre-fills your team from the Start/Sit guest roster', () => {
+    sessionStorage.setItem(
+      'guest-start-sit-roster',
+      JSON.stringify(['RB1', 'WR1']),
+    );
+    renderGuest();
+    expect(
+      screen.getByRole('list', { name: 'Your team' }),
+    ).toBeInTheDocument();
+    const roster = screen.getByRole('list', { name: 'Your team' });
+    expect(roster).toHaveTextContent('RB1');
+    expect(roster).toHaveTextContent('WR1');
+  });
+});
 
 describe('TradeFinderPage', () => {
   it('proposes a swap card between complementary teams', () => {

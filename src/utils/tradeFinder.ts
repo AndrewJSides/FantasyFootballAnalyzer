@@ -9,8 +9,10 @@
 // starting value worse are proposed.
 //
 // Season-agnostic: consumes whatever pool season is bundled and whatever
-// league is supplied. Requires a connected league (team rosters) — there is
-// no guest-mode fallback in this slice.
+// league is supplied. The optional valueLeague override lets callers run the
+// same scan on synthetic teams (guest mode, two manually entered rosters)
+// priced on the default manual shape; without it the shape comes from the
+// league like before.
 
 import type { League, Player, Team } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
@@ -109,9 +111,10 @@ export function teamProfiles(
   league: League,
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
+  valueLeague: ValueLeague = valueLeagueFor(league),
 ): TeamProfile[] {
-  const vor = vorPoints(pool.players, valueLeagueFor(league), cfg);
-  const slots = valueLeagueFor(league).rosterSlots;
+  const vor = vorPoints(pool.players, valueLeague, cfg);
+  const slots = valueLeague.rosterSlots;
   const perTeam = league.teams.map(team => {
     const roster = resolveTeamRoster(team, pool);
     const positions = {} as Record<PositionKey, PositionProfile>;
@@ -405,10 +408,10 @@ export function findTradeCandidates(
   league: League,
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
+  valueLeague: ValueLeague = valueLeagueFor(league),
 ): TradeCandidate[] {
-  const valueLeague = valueLeagueFor(league);
   const vor = vorPoints(pool.players, valueLeague, cfg);
-  const profiles = teamProfiles(league, pool, cfg);
+  const profiles = teamProfiles(league, pool, cfg, valueLeague);
   const candidates: TradeCandidate[] = [];
   const seen = new Set<string>();
 

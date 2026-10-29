@@ -883,7 +883,7 @@ function App() {
           {/* Owner console: league syncing + share PINs. Admin-key gated. */}
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/trades" element={dataRoute(l => <TradesPage league={l} />)} />
-          <Route path="/trade-finder" element={dataRoute(l => <TradeFinderPage league={l} />)} />
+          <Route path="/trade-finder" element={league ? <TradeFinderPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />} />
           <Route path="/waivers" element={dataRoute(l => <WaiversPage league={l} />)} />
           {/* Start/Sit works in guest mode on a manually entered roster
               (Sleeper's public weekly stats, no auth), so guests aren't
