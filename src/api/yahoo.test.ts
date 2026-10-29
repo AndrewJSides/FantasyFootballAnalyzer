@@ -13,6 +13,9 @@ import {
   getAccessToken,
   getRefreshToken,
   isAuthenticated,
+  isDeviceLinked,
+  clearDeviceLink,
+  getDeviceId,
   yahooPosition,
   clearYahooHistoryCache,
 } from './yahoo';
@@ -1489,5 +1492,37 @@ describe('addInProgressWeek (season totals lag the live week)', () => {
     const map = new Map([['p.lamb', { points: 70 }]]);
     expect(await addInProgressWeek('L', ['p.lamb'], 4, map)).toBe(false);
     expect(map.get('p.lamb')?.points).toBe(70);
+  });
+});
+
+describe('yahoo device linking', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('getDeviceId is stable within a browser', () => {
+    const first = getDeviceId();
+    expect(first).toBeTruthy();
+    expect(getDeviceId()).toBe(first);
+  });
+
+  it('isAuthenticated counts a linked device even with no tokens', () => {
+    expect(isAuthenticated()).toBe(false);
+    localStorage.setItem('ta_yahoo_device_linked', '1');
+    expect(isAuthenticated()).toBe(true);
+    expect(isDeviceLinked()).toBe(true);
+    clearDeviceLink();
+    expect(isAuthenticated()).toBe(false);
+    expect(isDeviceLinked()).toBe(false);
+  });
+
+  it('local tokens still authenticate without a device link', () => {
+    localStorage.setItem('yahoo_access_token', 'test-token');
+    localStorage.setItem('yahoo_token_expiry', String(Date.now() + 60 * 60 * 1000));
+    expect(isAuthenticated()).toBe(true);
   });
 });

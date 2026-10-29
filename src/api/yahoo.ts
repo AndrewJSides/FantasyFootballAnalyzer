@@ -18,7 +18,9 @@ const STORAGE_KEYS = {
   ACCESS_TOKEN: 'yahoo_access_token',
   REFRESH_TOKEN: 'yahoo_refresh_token',
   TOKEN_EXPIRY: 'yahoo_token_expiry',
-  OAUTH_STATE: 'yahoo_oauth_state'
+  OAUTH_STATE: 'yahoo_oauth_state',
+  DEVICE_ID: 'ta_device_id',
+  DEVICE_LINKED: 'ta_yahoo_device_linked'
 };
 
 // Tokens live in localStorage so the login survives closing the tab: the
@@ -129,10 +131,40 @@ export function clearTokens(): void {
   safeLocalStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
 }
 
+// Device-token flow: Yahoo tokens live server-side (one login lights up
+// every browser). Each browser carries a random device id; the server maps
+// it to the owner's Yahoo account. A new browser links itself with the
+// 6-digit pairing code shown on an already-connected device.
+export function getDeviceId(): string {
+  let id = safeLocalStorage.getItem(STORAGE_KEYS.DEVICE_ID);
+  if (!id) {
+    id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    safeLocalStorage.setItem(STORAGE_KEYS.DEVICE_ID, id);
+  }
+  return id;
+}
+
+export function isDeviceLinked(): boolean {
+  return safeLocalStorage.getItem(STORAGE_KEYS.DEVICE_LINKED) === '1';
+}
+
+function setDeviceLinked(linked: boolean): void {
+  if (linked) safeLocalStorage.setItem(STORAGE_KEYS.DEVICE_LINKED, '1');
+  else safeLocalStorage.removeItem(STORAGE_KEYS.DEVICE_LINKED);
+}
+
+export function clearDeviceLink(): void {
+  setDeviceLinked(false);
+}
+
 // A stored refresh token counts as logged in: the next API call mints a
-// fresh access token through yahooFetch's expiry check.
+// fresh access token through yahooFetch's expiry check. A linked device
+// counts too: the server holds the tokens and refreshes them itself.
 export function isAuthenticated(): boolean {
-  return !!(getAccessToken() || getRefreshToken());
+  return !!(getAccessToken() || getRefreshToken() || isDeviceLinked());
 }
 
 // Get auth URL to start OAuth flow. forceLogin makes Yahoo show its sign-in
@@ -304,42 +336,63 @@ export function yahooPosition(p: { display_position?: string; primary_position?:
 
 // Make authenticated API request
 async function yahooFetch<T>(endpoint: string): Promise<T> {
-  // Check if token needs refresh
-  if (isTokenExpired()) {
-    await refreshAccessToken();
-  }
+  // Every request carries the device id: when the device is linked, the
+  // server resolves and refreshes the Yahoo tokens itself and the Bearer
+  // token below is ignored. The Bearer path stays for browsers that logged
+  // in before the device flow existed.
+  const headers: Record<string, string> = { 'X-Device-Id': getDeviceId() };
 
   const accessToken = getAccessToken();
-  if (!accessToken) {
+  if (accessToken) {
+    // Check if token needs refresh
+    if (isTokenExpired()) {
+      await refreshAccessToken();
+    }
+    const fresh = getAccessToken();
+    if (fresh) headers['Authorization'] = `Bearer ${fresh}`;
+  } else if (!isDeviceLinked()) {
     throw new Error('Not authenticated with Yahoo (401)');
   }
 
   const response = await pacedYahooFetch(
     `${API_BASE}/api/yahoo-api?endpoint=${encodeURIComponent(endpoint)}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    }
+    { headers }
   );
 
   if (response.status === 401) {
-    // Token expired, try refresh once
-    await refreshAccessToken();
-    const newToken = getAccessToken();
-    const retryResponse = await pacedYahooFetch(
-      `${API_BASE}/api/yahoo-api?endpoint=${encodeURIComponent(endpoint)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${newToken}`
-        }
-      }
-    );
-
-    if (!retryResponse.ok) {
-      throw await yahooError(retryResponse);
+    let body: { error?: string } | null = null;
+    try {
+      body = await response.clone().json();
+    } catch {
+      // Non-JSON 401; fall through to the refresh path.
     }
-    return retryResponse.json();
+    if (body?.error === 'device_not_linked') {
+      // The server no longer knows this device (unlinked elsewhere or the
+      // token tables were reset). Drop the local flag so the UI offers a
+      // fresh login instead of looping on a dead device id.
+      setDeviceLinked(false);
+      throw new Error('Not authenticated with Yahoo (401)');
+    }
+    if (accessToken) {
+      // Token expired, try refresh once
+      await refreshAccessToken();
+      const newToken = getAccessToken();
+      const retryResponse = await pacedYahooFetch(
+        `${API_BASE}/api/yahoo-api?endpoint=${encodeURIComponent(endpoint)}`,
+        {
+          headers: {
+            'X-Device-Id': getDeviceId(),
+            ...(newToken ? { 'Authorization': `Bearer ${newToken}` } : {}),
+          }
+        }
+      );
+
+      if (!retryResponse.ok) {
+        throw await yahooError(retryResponse);
+      }
+      return retryResponse.json();
+    }
+    throw new Error('Not authenticated with Yahoo (401)');
   }
 
   if (!response.ok) {
@@ -347,6 +400,118 @@ async function yahooFetch<T>(endpoint: string): Promise<T> {
   }
 
   return response.json();
+}
+
+// The Yahoo user GUID identifies the account across devices. The
+// users;use_login=1 payload nests it differently depending on which
+// sub-resources were requested, so walk the tree for the first guid.
+function extractYahooGuid(data: unknown): string | null {
+  const seen = new Set<unknown>();
+  const walk = (node: unknown): string | null => {
+    if (!node || typeof node !== 'object' || seen.has(node)) return null;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const found = walk(item);
+        if (found) return found;
+      }
+      return null;
+    }
+    const record = node as Record<string, unknown>;
+    if (typeof record.guid === 'string' && record.guid.length > 0) {
+      return record.guid;
+    }
+    for (const value of Object.values(record)) {
+      const found = walk(value);
+      if (found) return found;
+    }
+    return null;
+  };
+  return walk(data);
+}
+
+// Store this browser's fresh OAuth tokens on the server and link its device
+// id to the Yahoo account. Called once, right after the OAuth callback.
+// Best-effort: if the server tables don't exist yet (migration not run) the
+// login still works via the local Bearer-token path.
+export async function registerDeviceOnServer(): Promise<boolean> {
+  try {
+    const data = await yahooFetch<unknown>('/users;use_login=1');
+    const guid = extractYahooGuid(data);
+    const accessToken = getAccessToken();
+    const refreshToken = getRefreshToken();
+    if (!guid || !accessToken || !refreshToken) {
+      logger.warn('[Yahoo] device registration skipped: missing guid or tokens');
+      return false;
+    }
+    // Yahoo's token response quotes a 3600s lifetime; read back what we stored.
+    const response = await fetch(`${API_BASE}/api/yahoo-tokens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_id: getDeviceId(),
+        yahoo_guid: guid,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_in: 3600,
+      }),
+    });
+    if (!response.ok) {
+      logger.warn('[Yahoo] device registration failed:', response.status);
+      return false;
+    }
+    setDeviceLinked(true);
+    return true;
+  } catch (e) {
+    logger.warn('[Yahoo] device registration failed:', e);
+    return false;
+  }
+}
+
+// Show a 6-digit code on an already-connected device; the new device types
+// it in to link itself. Single-use, ten minutes.
+export async function createPairingCode(): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/yahoo-pair`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create', device_id: getDeviceId() }),
+    });
+    if (!response.ok) return null;
+    const { code } = await response.json();
+    return typeof code === 'string' ? code : null;
+  } catch {
+    return null;
+  }
+}
+
+// Claim a pairing code on a new device. On success this browser is linked.
+export async function claimPairingCode(code: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/api/yahoo-pair`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'claim', device_id: getDeviceId(), code }),
+    });
+    if (!response.ok) return false;
+    setDeviceLinked(true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Sign this browser out server-side too (other linked devices keep working).
+export async function unlinkDevice(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/api/yahoo-pair`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'unlink', device_id: getDeviceId() }),
+    });
+  } catch {
+    // Local state still clears; a stale server row just never gets used.
+  }
 }
 
 // Get user's leagues for a season

@@ -28,6 +28,8 @@ interface HeaderProps {
   yahooConnected?: boolean;
   onYahooConnect?: () => void;
   onYahooDisconnect?: () => void;
+  onYahooLinkDevice?: () => void;
+  onYahooPairCode?: () => void;
 }
 
 function formatLoadedAt(ts: number): string {
@@ -53,6 +55,8 @@ export function Header({
   yahooConnected,
   onYahooConnect,
   onYahooDisconnect,
+  onYahooLinkDevice,
+  onYahooPairCode,
 }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -451,22 +455,48 @@ export function Header({
               </>
             )}
             {onYahooConnect && onYahooDisconnect && (
-              <button type="button"
-                onClick={() => {
-                  if (yahooConnected) onYahooDisconnect();
-                  else onYahooConnect();
-                }}
-                className={yahooConnected ? styles.yahooButtonOn : styles.yahooButton}
-                title={
-                  yahooConnected
-                    ? 'Yahoo connected: your Yahoo leagues can load. Click to disconnect.'
-                    : 'Connect Yahoo to load your Yahoo leagues'
-                }
-                aria-label={yahooConnected ? 'Disconnect Yahoo' : 'Connect Yahoo'}
-                aria-pressed={!!yahooConnected}
-              >
-                Y!
-              </button>
+              <>
+                <button type="button"
+                  onClick={() => {
+                    if (yahooConnected) onYahooDisconnect();
+                    else onYahooConnect();
+                  }}
+                  className={yahooConnected ? styles.yahooButtonOn : styles.yahooButton}
+                  title={
+                    yahooConnected
+                      ? 'Yahoo connected: your Yahoo leagues can load. Click to disconnect.'
+                      : 'Connect Yahoo to load your Yahoo leagues'
+                  }
+                  aria-label={yahooConnected ? 'Disconnect Yahoo' : 'Connect Yahoo'}
+                  aria-pressed={!!yahooConnected}
+                >
+                  Y!
+                </button>
+                {/* Device linking: the Yahoo login now lives server-side, so
+                    one login covers every browser. Connected browsers show a
+                    pairing code; new browsers type it in instead of logging
+                    in again. */}
+                {yahooConnected && onYahooLinkDevice && (
+                  <button type="button"
+                    onClick={onYahooLinkDevice}
+                    className={styles.yahooButton}
+                    title="Show a pairing code to connect Yahoo on another device"
+                    aria-label="Link another device"
+                  >
+                    ⛓
+                  </button>
+                )}
+                {!yahooConnected && onYahooPairCode && (
+                  <button type="button"
+                    onClick={onYahooPairCode}
+                    className={styles.yahooButton}
+                    title="Already connected on another device? Enter its pairing code instead of logging in again"
+                    aria-label="Use pairing code"
+                  >
+                    #
+                  </button>
+                )}
+              </>
             )}
           </nav>
         )}

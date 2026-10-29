@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import { applyCors } from './_cors.js';
+import { resolveDeviceToken } from './_yahoo-server.js';
 
 const YAHOO_API_BASE = 'https://fantasysports.yahooapis.com/fantasy/v2';
 
@@ -30,12 +31,36 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Two credential paths: a linked device id (server holds the Yahoo tokens
+  // and refreshes them) or a client-supplied Bearer token (the pre-device
+  // flow; kept for back-compat). The device path wins when it resolves.
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const bearerToken =
+    authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  const deviceId = req.headers['x-device-id'];
+
+  let accessToken = null;
+  if (typeof deviceId === 'string' && deviceId.length > 0) {
+    try {
+      accessToken = await resolveDeviceToken(deviceId);
+    } catch (err) {
+      // A failed refresh surfaces its own status (401/429/502); anything
+      // else is a server problem, not a credential problem.
+      const status = err.status || 500;
+      return res.status(status).json({ error: status === 401 ? 'Token expired or invalid' : 'Server error during API request' });
+    }
+    if (!accessToken && bearerToken) {
+      accessToken = bearerToken;
+    }
+    if (!accessToken) {
+      return res.status(401).json({ error: 'device_not_linked' });
+    }
+  } else if (bearerToken) {
+    accessToken = bearerToken;
+  } else {
     return res.status(401).json({ error: 'Missing or invalid authorization header' });
   }
 
-  const accessToken = authHeader.substring(7);
   const { endpoint } = req.query;
 
   if (!endpoint || typeof endpoint !== 'string') {

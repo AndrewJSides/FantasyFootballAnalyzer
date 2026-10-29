@@ -49,11 +49,16 @@ const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'P
 import { useLeague } from '@/hooks/useLeague';
 import {
   clearTokens,
+  clearDeviceLink,
+  claimPairingCode,
+  createPairingCode,
   getAuthUrl,
   isAuthenticated,
+  registerDeviceOnServer,
   saveOAuthReturn,
   saveTokens,
   takeOAuthReturn,
+  unlinkDevice,
   validateOAuthState,
   clearOAuthState,
 } from '@/api/yahoo';
@@ -299,6 +304,11 @@ function App() {
           const tokens = JSON.parse(decodeURIComponent(tokensParam));
           saveTokens(tokens);
           setYahooConnected(true);
+          // Store the tokens server-side and link this device, so the
+          // login carries to the user's other browsers. Best-effort: the
+          // local Bearer-token path still works if the server tables
+          // aren't migrated yet.
+          registerDeviceOnServer();
         } catch (e) {
           // The redirect looked successful but the payload was unreadable, so
           // the login did not actually complete. Say so instead of dropping
@@ -401,7 +411,35 @@ function App() {
   const handleYahooDisconnect = useCallback(() => {
     if (!window.confirm('Disconnect Yahoo? You will need to log in again to load your Yahoo leagues.')) return;
     clearTokens();
+    clearDeviceLink();
+    unlinkDevice();
     setYahooConnected(false);
+  }, []);
+
+  // Already connected on another device? Show a 6-digit code to type in
+  // there (single-use, ten minutes).
+  const handleYahooLinkDevice = useCallback(async () => {
+    const code = await createPairingCode();
+    if (!code) {
+      window.alert('Could not create a pairing code. Try connecting with Yahoo on this device instead.');
+      return;
+    }
+    window.prompt(
+      'On your other device, tap the Y! button and choose "Use pairing code", then enter this code (expires in 10 minutes):',
+      code
+    );
+  }, []);
+
+  // New device: claim the pairing code shown on the connected device.
+  const handleYahooPairCode = useCallback(async () => {
+    const code = window.prompt('Enter the 6-digit pairing code from your connected device:');
+    if (!code) return;
+    const ok = await claimPairingCode(code.trim());
+    if (ok) {
+      setYahooConnected(true);
+    } else {
+      window.alert('That code did not work — it may have expired. Generate a fresh one on your connected device and try again.');
+    }
   }, []);
 
   // Dropdown click → load the picked season and reflect it in the URL so back
@@ -732,6 +770,8 @@ function App() {
         yahooConnected={yahooConnected}
         onYahooConnect={handleYahooConnect}
         onYahooDisconnect={handleYahooDisconnect}
+        onYahooLinkDevice={handleYahooLinkDevice}
+        onYahooPairCode={handleYahooPairCode}
         yearSelector={league && credentials ? (
           <YearSelector
             league={league}
