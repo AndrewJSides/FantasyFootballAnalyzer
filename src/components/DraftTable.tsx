@@ -481,8 +481,22 @@ export function DraftTable({
 
   // Auction leagues get a cost-per-point column; snake drafts have no price.
   const showCostPerPoint = leaderboard.some(r => r.costPerPoint !== null);
+  // Yahoo/ESPN/Sleeper standings ride along on the Team objects. Show them as
+  // the first stat columns once any team has played a game; before Week 1
+  // every record is 0-0 and the columns add nothing.
+  const teamById = useMemo(() => new Map(teams.map(t => [t.id, t])), [teams]);
+  const showStandings = teams.some(
+    t => (t.wins ?? 0) + (t.losses ?? 0) + (t.ties ?? 0) > 0,
+  );
+  const standingsColumns: LbColumn[] = showStandings
+    ? [
+        { label: 'Record', title: 'Win-loss record, from league standings' },
+        { label: 'PF', title: 'Fantasy points scored, from league standings' },
+      ]
+    : [];
   const lbColumns: LbColumn[] = hasResults
     ? [
+        ...standingsColumns,
         { label: 'Pts', title: 'Points scored by drafted players' },
         { label: 'Hits', title: 'Share of live picks graded Great or Good' },
         ...(showCostPerPoint ? [{ label: '$/pt', title: 'Auction dollars paid per point scored' }] : []),
@@ -493,6 +507,7 @@ export function DraftTable({
         },
       ]
     : [
+        ...standingsColumns,
         {
           label: 'Proj',
           title:
@@ -565,6 +580,24 @@ export function DraftTable({
               >
                 <span className={styles.lbRank}>{i + 1}</span>
                 <span className={styles.lbName}>{row.teamName}</span>
+                {showStandings &&
+                  (() => {
+                    const t = teamById.get(row.teamId);
+                    const w = t?.wins ?? 0;
+                    const l = t?.losses ?? 0;
+                    const tie = t?.ties ?? 0;
+                    const record = tie > 0 ? `${w}-${l}-${tie}` : `${w}-${l}`;
+                    return (
+                      <>
+                        <span className={styles.lbStat} title="Win-loss record, from league standings">
+                          {record}
+                        </span>
+                        <span className={styles.lbStat} title="Fantasy points scored, from league standings">
+                          {(t?.pointsFor ?? 0).toFixed(0)}
+                        </span>
+                      </>
+                    );
+                  })()}
                 {hasResults ? (
                   <span className={styles.lbStat} title="Points scored by drafted players">
                     {row.points.toFixed(0)}
