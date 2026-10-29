@@ -5,6 +5,7 @@ import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { POOL_SEASON } from '@/data/draftPoolMeta';
 import { DataAsOf } from '@/components/DataAsOf';
+import { BuyLowSellHigh } from '@/components/BuyLowSellHigh';
 import { PosBadge } from '@/components';
 import {
   findTradeCandidates,
@@ -12,6 +13,16 @@ import {
 } from '@/utils/tradeFinder';
 import { valueLeagueFor, DEFAULT_MANUAL_SHAPE } from '@/utils/tradeAnalysis';
 import { DEFAULT_VOR_CONFIG } from '@/utils/projectionValues';
+import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
+import { currentWeekEstimate } from '@/utils/matchupRating';
+import {
+  marketTargets,
+  type MarketTarget,
+} from '@/utils/buyLowSellHigh';
+import {
+  fetchWeeklyPprPoints,
+  type WeeklyPprPoints,
+} from '@/api/sleeperWeeklyPoints';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import styles from './TradeFinderPage.module.css';
 
@@ -133,6 +144,53 @@ function CandidateList({
       )}
     </>
   );
+}
+
+// Buy Low / Sell High targets panel (backlog item 16): regression targets
+// from TraderApe's own forward projection vs last-3 actuals. The wrapper
+// announces the in-place swap for guest mode, where the weekly data loads
+// after the page renders.
+function MarketTargetsPanel({
+  targets,
+  week,
+  showRosteredBy,
+}: {
+  targets: { buyLow: MarketTarget[]; sellHigh: MarketTarget[] } | null;
+  week: number;
+  showRosteredBy: boolean;
+}) {
+  if (!targets) return null;
+  return (
+    <div aria-live="polite">
+      <BuyLowSellHigh
+        week={week}
+        buyLow={targets.buyLow}
+        sellHigh={targets.sellHigh}
+        showRosteredBy={showRosteredBy}
+      />
+    </div>
+  );
+}
+
+// League mode: map pool players back to their league roster entries so the
+// weekly points (keyed by platform player id) resolve and the owning team
+// is named on each target.
+function leagueRosterMaps(league: League): {
+  platformIdByPoolId: Map<string, string>;
+  teamByPoolId: Map<string, string>;
+} {
+  const index = indexPool(POOL);
+  const platformIdByPoolId = new Map<string, string>();
+  const teamByPoolId = new Map<string, string>();
+  for (const team of league.teams) {
+    for (const p of team.roster ?? []) {
+      const resolved = resolvePoolPlayer(p as Player, index);
+      if (!resolved) continue;
+      if (p.platformId) platformIdByPoolId.set(resolved.id, p.platformId);
+      teamByPoolId.set(resolved.id, team.name);
+    }
+  }
+  return { platformIdByPoolId, teamByPoolId };
 }
 
 // Guest player search: match against the bundled pool by name, like the
@@ -347,6 +405,48 @@ function GuestTradeFinder() {
     [guestLeague, ready],
   );
 
+  // --- Guest weekly data for Buy Low / Sell High: Sleeper public stats ---
+  const [guestWeek] = useState(() => currentWeekEstimate());
+  const [guestWeekly, setGuestWeekly] = useState<WeeklyPprPoints | null>(null);
+  const [guestWeeklyState, setGuestWeeklyState] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle');
+  useEffect(() => {
+    let cancelled = false;
+    setGuestWeeklyState('loading');
+    // A guest league's season is the pool season; score completed weeks only.
+    fetchWeeklyPprPoints(guestLeague.season, guestWeek - 1)
+      .then(r => {
+        if (cancelled) return;
+        if (!r || r.weeks.length === 0) {
+          setGuestWeeklyState('error');
+        } else {
+          setGuestWeekly(r);
+          setGuestWeeklyState('ready');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setGuestWeeklyState('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [guestLeague.season, guestWeek]);
+
+  const market = useMemo(
+    () =>
+      guestWeekly
+        ? marketTargets({
+            poolPlayers: POOL.players,
+            weeklyPoints: guestWeekly.pointsBySleeperId,
+            currentWeek: guestWeek,
+            valueLeague: valueLeagueFor(null),
+            vorCfg: DEFAULT_VOR_CONFIG,
+          })
+        : null,
+    [guestWeekly, guestWeek],
+  );
+
   return (
     <div className={styles.page}>
       <div className="container">
@@ -387,6 +487,19 @@ function GuestTradeFinder() {
           }
         />
 
+        {guestWeeklyState === 'loading' && (
+          <p className={styles.footnote} aria-live="polite">
+            Loading weekly stats for the Buy Low / Sell High targets…
+          </p>
+        )}
+        {guestWeeklyState === 'ready' && (
+          <MarketTargetsPanel
+            targets={market}
+            week={guestWeek}
+            showRosteredBy={false}
+          />
+        )}
+
         <p className={styles.footnote}>
           Method: value from projected-points VOR on the standard 10-team
           full-PPR shape; a swap is proposed only when the sides are within
@@ -415,6 +528,32 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
     () => (league && !league.isGuest ? findTradeCandidates(league) : []),
     [league],
   );
+  const currentWeek = useMemo(
+    () =>
+      league && !league.isGuest
+        ? (league.currentWeek ?? currentWeekEstimate())
+        : currentWeekEstimate(),
+    [league],
+  );
+  const rosterMaps = useMemo(
+    () => (league && !league.isGuest ? leagueRosterMaps(league) : null),
+    [league],
+  );
+  const market = useMemo(
+    () =>
+      league && !league.isGuest && league.playerWeeklyPoints && rosterMaps
+        ? marketTargets({
+            poolPlayers: POOL.players,
+            weeklyPoints: league.playerWeeklyPoints,
+            platformIdByPoolId: rosterMaps.platformIdByPoolId,
+            teamByPoolId: rosterMaps.teamByPoolId,
+            currentWeek,
+            valueLeague: valueLeagueFor(league),
+            vorCfg: DEFAULT_VOR_CONFIG,
+          })
+        : null,
+    [league, currentWeek, rosterMaps],
+  );
 
   if (!league || league.isGuest === true) {
     return <GuestTradeFinder />;
@@ -436,6 +575,12 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           search={location.search}
           includeTeamIds
           emptyText="No win-win swaps right now — no team pair lines up with complementary needs and depth."
+        />
+
+        <MarketTargetsPanel
+          targets={market}
+          week={currentWeek}
+          showRosteredBy
         />
 
         <p className={styles.footnote}>

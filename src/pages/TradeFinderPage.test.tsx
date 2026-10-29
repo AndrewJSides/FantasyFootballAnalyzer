@@ -4,7 +4,7 @@
 // the test never depends on the live player data.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
@@ -213,6 +213,38 @@ describe('TradeFinderPage', () => {
     );
     expect(screen.queryByRole('list', { name: 'Proposed trades' })).not.toBeInTheDocument();
     expect(screen.getByText(/No win-win swaps right now/)).toBeInTheDocument();
+  });
+
+  it('renders Buy Low / Sell High targets from league weekly points, naming the owning team', () => {
+    const lg = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'TE25']),
+    ]);
+    lg.currentWeek = 8;
+    lg.playerWeeklyPoints = {
+      // Slumping: 4 strong weeks then 3 cold ones — buy low.
+      RB1: { 1: 24, 2: 24, 3: 24, 4: 24, 5: 10, 6: 10, 7: 10 },
+      // Surging: 4 quiet weeks then 3 hot ones — sell high.
+      WR1: { 1: 8, 2: 8, 3: 8, 4: 8, 5: 24, 6: 24, 7: 24 },
+    };
+    renderPage(lg);
+    const panel = screen.getByLabelText('Buy Low Sell High targets');
+    expect(panel).toBeInTheDocument();
+    expect(within(panel).getByText('RB1')).toBeInTheDocument();
+    expect(within(panel).getByText('WR1')).toBeInTheDocument();
+    // The owning league team is named on each target.
+    expect(within(panel).getByText('Team A')).toBeInTheDocument();
+    expect(within(panel).getByText('Team B')).toBeInTheDocument();
+  });
+
+  it('hides the Buy Low / Sell High panel when the league has no weekly points', () => {
+    renderPage(
+      league([
+        team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR1', 'WR2', 'WR3', 'TE1']),
+        team('b', 'Team B', ['QB2', 'RB4', 'RB5', 'RB6', 'WR4', 'WR5', 'WR6', 'TE2']),
+      ]),
+    );
+    expect(screen.queryByLabelText('Buy Low Sell High targets')).not.toBeInTheDocument();
   });
 
   it('announces the result count for assistive tech', () => {

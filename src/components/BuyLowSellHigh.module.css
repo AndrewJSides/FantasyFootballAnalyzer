@@ -1,0 +1,134 @@
+/* GRIDIRON · Buy Low / Sell High targets (Trade Finder page, backlog item 16) */
+
+.panel {
+  background: var(--ink);
+  border: 2px solid var(--bone);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.headRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.heading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0;
+}
+
+.window {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.intro {
+  font-size: 0.9rem;
+  color: var(--bone);
+  margin: 0 0 1.5rem;
+  max-width: 62ch;
+}
+
+.sideHeading {
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0 0 0.75rem;
+}
+
+.sideHeading .buy { color: var(--lime); }
+.sideHeading .sell { color: var(--blood-text); }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 2rem;
+}
+
+.table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--bone-faint, rgba(255, 255, 255, 0.14));
+}
+
+.table tbody td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--bone-faint, rgba(255, 255, 255, 0.08));
+  vertical-align: top;
+}
+
+.playerCell {
+  text-align: left;
+  font-weight: 600;
+}
+
+.playerName {
+  display: block;
+}
+
+.reasons {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin-top: 0.25rem;
+  list-style: none;
+  padding: 0;
+}
+
+.reasons li { margin-top: 0.15rem; }
+
+.nums {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.gapBuy { color: var(--lime); font-weight: 600; }
+.gapSell { color: var(--blood-text); font-weight: 600; }
+
+/* Same favorable/tough/neutral color language as the other matchup cells. */
+.muFav,
+.muTough,
+.muNeutral {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.muFav { color: var(--lime); }
+.muTough { color: var(--blood-text); }
+.muNeutral { color: var(--bone-dim); }
+
+.dim { color: var(--bone-dim); }
+
+.empty {
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+  margin: 0 0 2rem;
+}
+
+.footnote {
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin: 1rem 0 0;
+}
