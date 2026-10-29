@@ -1,0 +1,208 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · Weekly Recap
+   ───────────────────────────────────────────── */
+
+.recapPage {
+  padding: 3rem 0 5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.subtitle::before {
+  content: '★ ';
+}
+
+.weekRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.weekLabel {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.weekSelect {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--pitch);
+  color: var(--bone);
+  border: 2px solid var(--bone);
+  border-radius: 6px;
+}
+
+.headline {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem 2rem;
+  background: var(--lime);
+  color: var(--pitch);
+  border-radius: 10px;
+}
+
+.headlineTitle {
+  font-family: var(--font-headline);
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  margin: 0 0 0.4rem;
+}
+
+.headlineDetail {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+  margin-bottom: 1rem;
+}
+
+.gameTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-display);
+}
+
+.gameTable caption {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lime);
+  padding-bottom: 0.5rem;
+}
+
+.gameTable th,
+.gameTable td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--bone) 20%, transparent);
+  text-align: left;
+}
+
+.gameTable th {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.winner {
+  color: var(--lime);
+  font-weight: 600;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.callCard {
+  border: 2px solid var(--bone);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  background: color-mix(in srgb, var(--pitch) 60%, transparent);
+}
+
+.callCard h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin: 0 0 0.25rem;
+}
+
+.callMeta {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bone);
+  opacity: 0.75;
+  margin-bottom: 0.5rem;
+}
+
+.callNumbers {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.up {
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.down {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
+.callNote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.graceNote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.02rem;
+}
+
+.footnote {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--bone);
+  opacity: 0.7;
+  margin-top: 2.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--bone) 25%, transparent);
+  padding-top: 1rem;
+}
+
+.empty {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+}

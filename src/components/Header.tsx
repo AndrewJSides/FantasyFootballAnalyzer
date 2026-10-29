@@ -416,6 +416,14 @@ export function Header({
               Luck
             </Link>
             <Link
+              to="/recap"
+              className={`${styles.navLink} ${location.pathname === '/recap' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/recap' ? 'page' : undefined}
+            >
+              Recap
+            </Link>
+            <Link
               to="/players"
               className={`${styles.navLink} ${location.pathname === '/players' ? styles.active : ''}`}
               onClick={handleNavClick}
