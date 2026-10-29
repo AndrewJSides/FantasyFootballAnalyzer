@@ -38,6 +38,7 @@ const TradesPage = lazyPage(() => import('@/pages/TradesPage'), 'TradesPage');
 const TradeAnalyzerPage = lazyPage(() => import('@/pages/TradeAnalyzerPage'), 'TradeAnalyzerPage');
 const WaiversPage = lazyPage(() => import('@/pages/WaiversPage'), 'WaiversPage');
 const StartSitPage = lazyPage(() => import('@/pages/StartSitPage'), 'StartSitPage');
+const TradeFinderPage = lazyPage(() => import('@/pages/TradeFinderPage'), 'TradeFinderPage');
 const TeamsPage = lazyPage(() => import('@/pages/TeamsPage'), 'TeamsPage');
 const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage');
 const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
@@ -882,6 +883,7 @@ function App() {
           {/* Owner console: league syncing + share PINs. Admin-key gated. */}
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/trades" element={dataRoute(l => <TradesPage league={l} />)} />
+          <Route path="/trade-finder" element={dataRoute(l => <TradeFinderPage league={l} />)} />
           <Route path="/waivers" element={dataRoute(l => <WaiversPage league={l} />)} />
           {/* Start/Sit works in guest mode on a manually entered roster
               (Sleeper's public weekly stats, no auth), so guests aren't

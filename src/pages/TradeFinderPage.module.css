@@ -1,0 +1,145 @@
+/* GRIDIRON · Trade Finder */
+
+.page { padding: 3rem 0 5rem; }
+
+.header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.subtitle::before { content: '◆ '; }
+
+.intro {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--bone);
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.cards {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--ink);
+  border: 1px solid var(--bone-dim);
+  border-left: 4px solid var(--lime);
+  padding: 1.5rem;
+}
+
+.pairing {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 0 0 1rem;
+}
+
+.swap { color: var(--lime); }
+
+.sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sideTitle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  margin: 0 0 0.5rem;
+}
+
+.side ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+.playerName {
+  font-family: var(--font-display);
+  color: var(--bone);
+  font-weight: 600;
+}
+
+.vor {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--bone-dim);
+  margin-left: auto;
+}
+
+.reasons {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--bone);
+}
+
+.reasons li { padding: 0.35rem 0; }
+.reasons li::before {
+  content: '◆';
+  color: var(--lime);
+  margin-right: 0.6rem;
+}
+
+.analyze {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lime);
+  text-decoration: none;
+}
+.analyze:hover { text-decoration: underline; }
+
+.footnote {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--bone-dim);
+  border-top: 1px solid var(--bone-dim);
+  padding-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .title { font-size: 56px; }
+  .sides { grid-template-columns: 1fr; }
+}
