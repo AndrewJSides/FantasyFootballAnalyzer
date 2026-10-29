@@ -89,3 +89,43 @@ describe('InjuryReport', () => {
     expect(table.textContent).not.toContain('Free agent');
   });
 });
+
+describe('InjuryReport handcuff column', () => {
+  function backfieldPool(): DraftPoolFile {
+    const mk = (
+      id: string, name: string, depth: number, overallRank: number, injuryStatus?: string
+    ): PoolPlayer => ({
+      id,
+      name,
+      team: 'DAL',
+      pos: 'RB',
+      posRank: depth,
+      overallRank,
+      depthChartOrder: depth,
+      tier: 1,
+      bye: 7,
+      baseValue: null,
+      projPtsPpr: 100,
+      ...(injuryStatus ? { injuryStatus, injuryBodyPart: 'Knee' } : {}),
+    }) as PoolPlayer;
+    return {
+      season: 2026,
+      generatedAt: 'test',
+      baseline: { budget: 200, teams: 10, rounds: 15 },
+      players: [
+        mk('lead1', 'Lead Back', 1, 8, 'Out'),
+        mk('cuff1', 'Backup Back', 2, 95),
+      ],
+    };
+  }
+
+  it('names the replacement handcuff for an injured lead RB and dashes the rest', () => {
+    render(<InjuryReport league={{ teams: [] } as League} pool={backfieldPool()} />);
+    const table = screen.getByRole('table');
+    expect(within(table).getByRole('columnheader', { name: 'Handcuff' })).toBeTruthy();
+    const row = within(table)
+      .getAllByRole('row')
+      .find(r => r.textContent?.includes('Lead Back'));
+    expect(within(row!).getByLabelText('Backup Back, replacement handcuff')).toBeTruthy();
+  });
+});

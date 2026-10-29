@@ -11,6 +11,8 @@
 
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { injuryOf } from '@/utils/seasonOutlook';
+import { leadAndHandcuff } from '@/utils/handcuffReport';
+import { canonicalTeam } from '@/utils/playerNames';
 
 export const INJURY_REPORT_POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 
@@ -25,6 +27,14 @@ export interface InjuryRow {
   detail: string;
   /** League mode: owning fantasy team name, or null when the player is on no roster. Absent in guest mode. */
   owner: string | null;
+  /**
+   * The direct handcuff who would inherit the lead job if this player is an
+   * NFL team's lead RB (per Sleeper depth-chart order, same pairing as the
+   * Handcuff Report). Null for non-RBs, for RBs who aren't the lead, and
+   * when the backfield has no pair. Shown regardless of the handcuff's own
+   * health — the handcuff's own row shows its designation.
+   */
+  replacement: PoolPlayer | null;
 }
 
 export interface InjuryReportInput {
@@ -73,6 +83,26 @@ export function injuryTierLabel(player: PoolPlayer, tier: InjurySeverityTier): s
 // Worst-first, then by overall rank so the stars sit on top of each tier.
 export function buildInjuryReport(input: InjuryReportInput): InjuryRow[] {
   const ownerByPoolId = input.ownerByPoolId ?? new Map<string, string>();
+  // Backfield pairs per NFL team (lead + handcuff), computed once so the
+  // replacement column reuses the Handcuff Report's exact pairing.
+  const byTeam = new Map<string, PoolPlayer[]>();
+  for (const p of input.pool.players) {
+    const team = canonicalTeam(p.team);
+    if (!team || team === 'FA') continue;
+    const list = byTeam.get(team) ?? [];
+    list.push(p);
+    byTeam.set(team, list);
+  }
+  const pairByTeam = new Map<string, { lead: PoolPlayer; handcuff: PoolPlayer }>();
+  const pairFor = (team: string | null) => {
+    if (!team || team === 'FA') return null;
+    if (!pairByTeam.has(team)) {
+      const pair = leadAndHandcuff(byTeam.get(team) ?? []);
+      if (pair) pairByTeam.set(team, pair);
+    }
+    return pairByTeam.get(team) ?? null;
+  };
+
   const rows: InjuryRow[] = [];
   for (const player of input.pool.players) {
     if (!INJURY_REPORT_POSITIONS.includes(player.pos as (typeof INJURY_REPORT_POSITIONS)[number])) continue;
@@ -80,12 +110,15 @@ export function buildInjuryReport(input: InjuryReportInput): InjuryRow[] {
     const tier = injuryTier(player);
     const notes = player.injuryNotes ? ` (${player.injuryNotes})` : '';
     const detail = player.injuryBodyPart ? `${player.injuryBodyPart}${notes}` : notes.replace(/^ \(|\)$/g, '');
+    const pair = player.pos === 'RB' ? pairFor(canonicalTeam(player.team)) : null;
+    const replacement = pair && pair.lead.id === player.id ? pair.handcuff : null;
     rows.push({
       player,
       tier,
       tierLabel: injuryTierLabel(player, tier),
       detail,
       owner: ownerByPoolId.get(player.id) ?? null,
+      replacement,
     });
   }
   return rows.sort(

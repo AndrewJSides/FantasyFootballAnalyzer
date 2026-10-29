@@ -82,3 +82,68 @@ describe('buildInjuryReport', () => {
     expect(rows.find(r => r.player.id === 'wr1')!.tierLabel).toBe('Season-ending');
   });
 });
+
+describe('replacement handcuff', () => {
+  function back(
+    id: string,
+    name: string,
+    depth: number,
+    overallRank: number,
+    injuryStatus?: string
+  ): PoolPlayer {
+    return {
+      id,
+      name,
+      team: 'DAL',
+      pos: 'RB',
+      posRank: depth,
+      overallRank,
+      depthChartOrder: depth,
+      tier: 1,
+      bye: 7,
+      baseValue: null,
+      projPtsPpr: 100,
+      ...(injuryStatus ? { injuryStatus, injuryBodyPart: 'Knee' } : {}),
+    } as PoolPlayer;
+  }
+  const backfield: DraftPoolFile = {
+    season: 2026,
+    generatedAt: 'test',
+    baseline: { budget: 200, teams: 10, rounds: 15 },
+    players: [
+      back('lead1', 'Lead Back', 1, 8, 'Out'),
+      back('cuff1', 'Backup Back', 2, 95),
+      back('third1', 'Third String', 3, 150, 'Out'),
+      player('qb2', 'Hurt QB', 'QB', 40, { injuryStatus: 'Questionable', injuryBodyPart: 'Shoulder' }),
+    ],
+  };
+
+  it('names the depth-chart backup when the lead back is hurt', () => {
+    const rows = buildInjuryReport({ pool: backfield });
+    const lead = rows.find(r => r.player.id === 'lead1')!;
+    expect(lead.replacement?.name).toBe('Backup Back');
+  });
+
+  it('shows no replacement for a hurt backup or third-string back', () => {
+    const rows = buildInjuryReport({ pool: backfield });
+    expect(rows.find(r => r.player.id === 'third1')!.replacement).toBeNull();
+  });
+
+  it('shows no replacement for non-RB injuries', () => {
+    const rows = buildInjuryReport({ pool: backfield });
+    expect(rows.find(r => r.player.id === 'qb2')!.replacement).toBeNull();
+  });
+
+  it('still names the depth-chart backup even when the backup is also hurt', () => {
+    const bothHurt: DraftPoolFile = {
+      ...backfield,
+      players: [
+        back('lead1', 'Lead Back', 1, 8, 'Out'),
+        back('cuff1', 'Backup Back', 2, 95, 'Questionable'),
+        back('third1', 'Third String', 3, 150),
+      ],
+    };
+    const rows = buildInjuryReport({ pool: bothHurt });
+    expect(rows.find(r => r.player.id === 'lead1')!.replacement?.name).toBe('Backup Back');
+  });
+});

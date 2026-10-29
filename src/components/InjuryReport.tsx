@@ -73,7 +73,8 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
       ) : (
         <table className={styles.table}>
           <caption className="visually-hidden">
-            Injured players sorted by severity, with injury detail and the
+            Injured players sorted by severity, with injury detail, the
+            replacement handcuff for hurt lead running backs, and the
             fantasy team that owns each one
           </caption>
           <thead>
@@ -86,6 +87,7 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
               <th scope="col">Pos</th>
               <th scope="col">Status</th>
               <th scope="col">Detail</th>
+              <th scope="col">Handcuff</th>
               <th scope="col">Owner</th>
             </tr>
           </thead>
@@ -110,6 +112,21 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
                   </span>
                 </td>
                 <td className={styles.detail}>{row.detail || '—'}</td>
+                <td
+                  className={styles.replacement}
+                  aria-label={
+                    row.replacement
+                      ? `${row.replacement.name}, replacement handcuff`
+                      : 'No handcuff replacement'
+                  }
+                  title={
+                    row.replacement
+                      ? `Next man up per Sleeper depth-chart order — see the Handcuff Report for availability`
+                      : undefined
+                  }
+                >
+                  {row.replacement ? row.replacement.name : '—'}
+                </td>
                 <td className={styles.ownerCell}>
                   {hasRosters ? row.owner ?? 'Free agent' : '—'}
                 </td>
@@ -121,8 +138,11 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
 
       <p className={styles.footnote}>
         Designations from Sleeper&apos;s injury data in the bundled pool,
-        refreshed twice daily. Ownership resolves from the last /admin sync.
-        Waiver research only — nothing here moves a roster.
+        refreshed twice daily. The Handcuff column names the direct backup
+        who would inherit the lead job for an injured lead running back
+        (per Sleeper depth-chart order, same pairing as the Handcuff
+        Report — availability there). Ownership resolves from the last
+        /admin sync. Waiver research only — nothing here moves a roster.
       </p>
     </section>
   );

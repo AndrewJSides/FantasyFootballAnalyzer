@@ -90,6 +90,11 @@
   color: var(--bone-dim);
 }
 
+.replacement {
+  font-size: 0.78rem;
+  color: var(--bone);
+}
+
 .ownerCell {
   font-size: 0.78rem;
 }
