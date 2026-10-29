@@ -44,10 +44,16 @@ export default async function handler(req, res) {
     try {
       accessToken = await resolveDeviceToken(deviceId);
     } catch (err) {
-      // A failed refresh surfaces its own status (401/429/502); anything
-      // else is a server problem, not a credential problem.
-      const status = err.status || 500;
-      return res.status(status).json({ error: status === 401 ? 'Token expired or invalid' : 'Server error during API request' });
+      if (err.status) {
+        // The device is linked but its Yahoo refresh failed: surface it so
+        // the client tries its own refresh instead of silently degrading.
+        const status = err.status;
+        return res.status(status).json({ error: status === 401 ? 'Token expired or invalid' : 'Server error during API request' });
+      }
+      // DB unreachable or the token tables not migrated yet: fall back to
+      // the client-supplied Bearer token rather than breaking logged-in
+      // users on a partially-rolled-out backend.
+      accessToken = null;
     }
     if (!accessToken && bearerToken) {
       accessToken = bearerToken;
