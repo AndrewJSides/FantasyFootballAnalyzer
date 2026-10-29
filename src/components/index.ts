@@ -12,6 +12,7 @@ export { YearSelector } from './YearSelector';
 export { SeasonLoadingOverlay } from './SeasonLoadingOverlay';
 export { WaiverTable } from './WaiverTable';
 export { FaabGuidance } from './FaabGuidance';
+export { TrendingAdds } from './TrendingAdds';
 export { TradeTable } from './TradeTable';
 export { RivalryCard } from './RivalryCard';
 export { NflTeamLabel } from './NflTeamLabel';
