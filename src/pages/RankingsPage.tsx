@@ -24,6 +24,7 @@ import {
   matchupLabel,
   matchupShort,
 } from '@/utils/matchupRating';
+import { rosLabel, rosMatchupStrength, rosShort } from '@/utils/rosSchedule';
 import styles from './RankingsPage.module.css';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DST'];
@@ -80,6 +81,26 @@ function MatchupCell({ team, pos, week }: { team: string; pos: string; week: num
   return (
     <td className={styles.num} title={matchupLabel(rating, pos)}>
       <span className={cls}>{matchupShort(rating)}</span>
+    </td>
+  );
+}
+
+// Rest-of-season strength of schedule cell (backlog item 11): the average
+// allowed-vs-position rank over the player's remaining regular-season games
+// (FantasyPros-style ROS SOS, computed from TraderApe's own bundled schedule
+// and completed-week allowed averages). Dim dash for K/DST and unknown data.
+function RosSosCell({ team, pos, week }: { team: string; pos: string; week: number }) {
+  const strength = rosMatchupStrength(team, pos, week);
+  if (!strength) return <td className={`${styles.num} ${styles.dim}`}>-</td>;
+  const cls =
+    strength.label === 'favorable'
+      ? styles.muFav
+      : strength.label === 'tough'
+        ? styles.muTough
+        : styles.muNeutral;
+  return (
+    <td className={styles.num} title={rosLabel(strength, pos)} aria-label={rosLabel(strength, pos)}>
+      <span className={cls}>{rosShort(strength)}</span>
     </td>
   );
 }
@@ -506,6 +527,11 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                   Matchup
                 </th>
                 <th
+                  title={`Rest-of-season strength of schedule: average allowed-vs-position rank over the player's remaining regular-season games (weeks ${matchupWeek}–18), from completed weeks ${matchupDataWeeks()[0]}–${matchupDataWeeks()[1]}; lower is softer`}
+                >
+                  ROS SOS
+                </th>
+                <th
                   className={styles.num}
                   title="Bye week: the week this player's team does not play"
                 >
@@ -623,6 +649,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                       <NflTeamLabel team={p.team} />
                     </td>
                     <MatchupCell team={p.team} pos={p.pos} week={matchupWeek} />
+                    <RosSosCell team={p.team} pos={p.pos} week={matchupWeek} />
                     <td className={`${styles.num} ${styles.dim}`}>{p.bye ?? '-'}</td>
                     {!auctionView && (
                       <>
@@ -649,7 +676,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={auctionView ? 13 : 12} className={styles.emptyRow}>
+                  <td colSpan={auctionView ? 14 : 13} className={styles.emptyRow}>
                     No players match.
                   </td>
                 </tr>
@@ -673,7 +700,8 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             The Matchup column shows the week-{matchupWeek} opponent's points allowed to the
             player's position, from completed weeks{' '}
             {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]} — the same rating the Start/Sit
-            and Trade Analyzer pages use.
+            and Trade Analyzer pages use. ROS SOS averages the same rating over the player's
+            remaining regular-season games (weeks {matchupWeek}–18); lower is softer.
           </p>
         </div>
       </div>
