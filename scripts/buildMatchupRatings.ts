@@ -19,6 +19,13 @@
 //   src/data/nflSchedule.2026.json   — per-week [home, away] pairs (canonical abbrevs)
 //   src/data/matchupAllowed.2026.json — per team / position: avg fantasy pts
 //     allowed per game over completed weeks + rank (1 = allows the most)
+//   src/data/defenseGenerosity.2026.json — per team: avg fantasy pts opposing
+//     defenses scored against that team's offense (generosity, rank 1 = most
+//     generous) + the team's own defense's avg. Scored with standard D/ST
+//     scoring: sack 1, INT 2, fumble recovery 2, defensive TD 6, safety 2,
+//     blocked kick 2, points-allowed brackets 0→10 / 1–6→7 / 7–13→4 /
+//     14–20→1 / 21–27→0 / 28–34→-1 / 35+→-4. Feeds the D/ST Streamers section
+//     (backlog item 14).
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -48,6 +55,49 @@ interface SleeperPlayer {
 
 interface SleeperStats {
   pts_ppr?: number;
+}
+
+// Raw Sleeper team-defense stat keys used for standard D/ST scoring.
+interface SleeperDefenseStats {
+  sack?: number;
+  int?: number;
+  fum_rec?: number;
+  td?: number;
+  safe?: number;
+  blk_kick?: number;
+  pts_allow?: number;
+}
+
+// Standard D/ST scoring (Yahoo-style), documented for the Streamers footnote.
+function scoreDefense(s: SleeperDefenseStats): number | null {
+  if (typeof s.pts_allow !== 'number') return null;
+  const pa = s.pts_allow;
+  const bracket =
+    pa <= 0 ? 10 :
+    pa <= 6 ? 7 :
+    pa <= 13 ? 4 :
+    pa <= 20 ? 1 :
+    pa <= 27 ? 0 :
+    pa <= 34 ? -1 : -4;
+  return (
+    (s.sack ?? 0) * 1 +
+    (s.int ?? 0) * 2 +
+    (s.fum_rec ?? 0) * 2 +
+    (s.td ?? 0) * 6 +
+    (s.safe ?? 0) * 2 +
+    (s.blk_kick ?? 0) * 2 +
+    bracket
+  );
+}
+
+// Team-defense rows in Sleeper's weekly stats are keyed by the team
+// abbreviation (e.g. "HOU") and carry a pts_allow line; player rows are
+// keyed by numeric ids.
+function isDefenseRow(id: string, s: SleeperStats): boolean {
+  return (
+    /^[A-Z]{2,3}$/.test(id) &&
+    typeof (s as SleeperDefenseStats).pts_allow === 'number'
+  );
 }
 
 interface EspnEvent {
@@ -117,6 +167,13 @@ async function main(): Promise<void> {
   //    each defense's played weeks (bye weeks never appear in the schedule).
   const allowed: Record<string, Record<SkillPos, number>> = {};
   const games: Record<string, number> = {};
+  // 3b. D/ST generosity: each team defense's standard-scoring fantasy points
+  //    are credited to the OFFENSE they faced (generosity[offense]) and to
+  //    the defense itself (ownScore[defense]).
+  const generosity: Record<string, number> = {};
+  const generosityGames: Record<string, number> = {};
+  const ownScore: Record<string, number> = {};
+  const ownGames: Record<string, number> = {};
   const unknownTeams = new Set<string>();
   for (let week = 1; week <= lastWeek; week++) {
     const stats = await getJson<Record<string, SleeperStats>>(
@@ -124,6 +181,17 @@ async function main(): Promise<void> {
     );
     const seenDefense = new Set<string>();
     for (const [id, s] of Object.entries(stats)) {
+      if (isDefenseRow(id, s)) {
+        const defense = canon(id);
+        const score = scoreDefense(s as SleeperDefenseStats);
+        const offense = opponent[week]?.[defense];
+        if (score === null || !offense) continue;
+        generosity[offense] = (generosity[offense] ?? 0) + score;
+        generosityGames[offense] = (generosityGames[offense] ?? 0) + 1;
+        ownScore[defense] = (ownScore[defense] ?? 0) + score;
+        ownGames[defense] = (ownGames[defense] ?? 0) + 1;
+        continue;
+      }
       if (typeof s.pts_ppr !== 'number' || s.pts_ppr <= 0) continue;
       const p = players[id];
       const team = canon(p?.team);
@@ -160,6 +228,30 @@ async function main(): Promise<void> {
     });
   }
 
+  // 5. D/ST generosity averages + ranks. Rank 1 = the offense gives up the
+  //    most fantasy points to opposing defenses (best streaming target).
+  const defenseTeams: Record<
+    string,
+    { generosityAvg: number; generosityRank: number; ownAvg: number }
+  > = {};
+  const genRows = Object.keys(generosity)
+    .map(t => ({
+      team: t,
+      avg:
+        generosityGames[t] > 0 ? generosity[t] / generosityGames[t] : 0,
+    }))
+    .sort((a, b) => b.avg - a.avg);
+  genRows.forEach((r, i) => {
+    defenseTeams[r.team] = {
+      generosityAvg: Math.round(r.avg * 10) / 10,
+      generosityRank: i + 1,
+      ownAvg:
+        Math.round(
+          ((ownScore[r.team] ?? 0) / Math.max(1, ownGames[r.team] ?? 0)) * 10,
+        ) / 10,
+    };
+  });
+
   const generatedAt = new Date().toISOString();
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(
@@ -170,9 +262,27 @@ async function main(): Promise<void> {
     join(OUT_DIR, `matchupAllowed.${season}.json`),
     JSON.stringify({ season, weeks: [1, lastWeek], teams, generatedAt }, null, 2) + '\n',
   );
+  writeFileSync(
+    join(OUT_DIR, `defenseGenerosity.${season}.json`),
+    JSON.stringify(
+      {
+        season,
+        weeks: [1, lastWeek],
+        scoring:
+          'standard D/ST: sack 1, INT 2, fumble recovery 2, defensive TD 6, ' +
+          'safety 2, blocked kick 2; points allowed 0→10, 1–6→7, 7–13→4, ' +
+          '14–20→1, 21–27→0, 28–34→-1, 35+→-4',
+        teams: defenseTeams,
+        generatedAt,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
   console.log(
     `Schedule: ${Object.values(schedule).reduce((s, g) => s + g.length, 0)} games across 18 weeks; ` +
-      `allowed averages from weeks 1–${lastWeek} (${Object.keys(teams).length} defenses).`,
+      `allowed averages from weeks 1–${lastWeek} (${Object.keys(teams).length} defenses); ` +
+      `D/ST generosity for ${Object.keys(defenseTeams).length} offenses.`,
   );
 }
 

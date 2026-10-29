@@ -14,6 +14,7 @@ export { WaiverTable } from './WaiverTable';
 export { FaabGuidance } from './FaabGuidance';
 export { TrendingAdds } from './TrendingAdds';
 export { AddDropMoves } from './AddDropMoves';
+export { DstStreamers } from './DstStreamers';
 export { TradeTable } from './TradeTable';
 export { RivalryCard } from './RivalryCard';
 export { NflTeamLabel } from './NflTeamLabel';

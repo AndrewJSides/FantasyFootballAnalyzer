@@ -78,7 +78,7 @@ export function getMatchupRating(
 }
 
 /** Ordinal with "most" context: rank 1 → "most", rank 5 → "5th-most". */
-function rankPhrase(rank: number): string {
+export function rankPhrase(rank: number): string {
   if (rank === 1) return 'the most';
   const suffix =
     rank % 10 === 1 && rank % 100 !== 11

@@ -1,0 +1,171 @@
+{
+  "season": 2026,
+  "weeks": [
+    1,
+    7
+  ],
+  "scoring": "standard D/ST: sack 1, INT 2, fumble recovery 2, defensive TD 6, safety 2, blocked kick 2; points allowed 0→10, 1–6→7, 7–13→4, 14–20→1, 21–27→0, 28–34→-1, 35+→-4",
+  "teams": {
+    "ARI": {
+      "generosityAvg": 26.9,
+      "generosityRank": 1,
+      "ownAvg": 14.3
+    },
+    "LAC": {
+      "generosityAvg": 26.7,
+      "generosityRank": 2,
+      "ownAvg": 13.7
+    },
+    "MIA": {
+      "generosityAvg": 25.8,
+      "generosityRank": 3,
+      "ownAvg": 13
+    },
+    "NO": {
+      "generosityAvg": 25.6,
+      "generosityRank": 4,
+      "ownAvg": 21
+    },
+    "WAS": {
+      "generosityAvg": 24.3,
+      "generosityRank": 5,
+      "ownAvg": 18.5
+    },
+    "CAR": {
+      "generosityAvg": 24.3,
+      "generosityRank": 6,
+      "ownAvg": 22.7
+    },
+    "NYG": {
+      "generosityAvg": 24.3,
+      "generosityRank": 7,
+      "ownAvg": 19.4
+    },
+    "DET": {
+      "generosityAvg": 24,
+      "generosityRank": 8,
+      "ownAvg": 27
+    },
+    "LV": {
+      "generosityAvg": 24,
+      "generosityRank": 9,
+      "ownAvg": 21.9
+    },
+    "BUF": {
+      "generosityAvg": 23.8,
+      "generosityRank": 10,
+      "ownAvg": 26.5
+    },
+    "ATL": {
+      "generosityAvg": 23.4,
+      "generosityRank": 11,
+      "ownAvg": 21.6
+    },
+    "IND": {
+      "generosityAvg": 22.4,
+      "generosityRank": 12,
+      "ownAvg": 15
+    },
+    "PHI": {
+      "generosityAvg": 22.4,
+      "generosityRank": 13,
+      "ownAvg": 15.7
+    },
+    "CHI": {
+      "generosityAvg": 21.3,
+      "generosityRank": 14,
+      "ownAvg": 24
+    },
+    "DAL": {
+      "generosityAvg": 20.7,
+      "generosityRank": 15,
+      "ownAvg": 21.1
+    },
+    "GB": {
+      "generosityAvg": 20.7,
+      "generosityRank": 16,
+      "ownAvg": 20.1
+    },
+    "CLE": {
+      "generosityAvg": 20.4,
+      "generosityRank": 17,
+      "ownAvg": 17.4
+    },
+    "BAL": {
+      "generosityAvg": 20.1,
+      "generosityRank": 18,
+      "ownAvg": 20.7
+    },
+    "HOU": {
+      "generosityAvg": 20,
+      "generosityRank": 19,
+      "ownAvg": 20
+    },
+    "NYJ": {
+      "generosityAvg": 20,
+      "generosityRank": 20,
+      "ownAvg": 17.7
+    },
+    "NE": {
+      "generosityAvg": 19.7,
+      "generosityRank": 21,
+      "ownAvg": 21.9
+    },
+    "TEN": {
+      "generosityAvg": 19.1,
+      "generosityRank": 22,
+      "ownAvg": 14.9
+    },
+    "TB": {
+      "generosityAvg": 19.1,
+      "generosityRank": 23,
+      "ownAvg": 20
+    },
+    "SEA": {
+      "generosityAvg": 18.3,
+      "generosityRank": 24,
+      "ownAvg": 23
+    },
+    "LAR": {
+      "generosityAvg": 17.7,
+      "generosityRank": 25,
+      "ownAvg": 22.7
+    },
+    "PIT": {
+      "generosityAvg": 16.4,
+      "generosityRank": 26,
+      "ownAvg": 19.7
+    },
+    "DEN": {
+      "generosityAvg": 15.6,
+      "generosityRank": 27,
+      "ownAvg": 19.9
+    },
+    "CIN": {
+      "generosityAvg": 14.8,
+      "generosityRank": 28,
+      "ownAvg": 27.2
+    },
+    "JAC": {
+      "generosityAvg": 13.8,
+      "generosityRank": 29,
+      "ownAvg": 25
+    },
+    "SF": {
+      "generosityAvg": 13.7,
+      "generosityRank": 30,
+      "ownAvg": 27.1
+    },
+    "KC": {
+      "generosityAvg": 12.2,
+      "generosityRank": 31,
+      "ownAvg": 22.8
+    },
+    "MIN": {
+      "generosityAvg": 12,
+      "generosityRank": 32,
+      "ownAvg": 20.5
+    }
+  },
+  "generatedAt": "2026-10-29T17:40:27.667Z"
+}
