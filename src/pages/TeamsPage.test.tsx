@@ -66,10 +66,14 @@ describe('TeamsPage playoff race', () => {
     expect(
       screen.getByRole('table', { name: /playoff race/i }),
     ).toBeInTheDocument();
-    // Alpha's two remaining games are both vs Delta.
-    expect(screen.getByText('W9 Delta · W10 Delta')).toBeInTheDocument();
-    // Odds cells render as percentages, one per team.
-    expect(screen.getAllByText(/^\d+(\.\d+)?%$/)).toHaveLength(4);
+    // Alpha's two remaining games are both vs Delta, each with a
+    // game-by-game win probability from the same Monte Carlo.
+    expect(
+      screen.getByText(/W9 Delta [\d.]+% · W10 Delta [\d.]+%/),
+    ).toBeInTheDocument();
+    // Each row's remaining-schedule cell explains the game win
+    // probabilities on hover — one such cell per team.
+    expect(screen.getAllByTitle(/win probability/i)).toHaveLength(4);
     // The dominant team's row is first (sorted by odds).
     const rows = screen.getAllByRole('row');
     expect(rows[1]).toHaveTextContent('Alpha');

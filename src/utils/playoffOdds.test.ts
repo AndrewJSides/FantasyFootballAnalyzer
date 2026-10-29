@@ -63,10 +63,11 @@ describe('playoffRace', () => {
   it('extracts remaining opponents in week order', () => {
     const rows = playoffRace(league(), { simulations: 10, seed: 1 });
     const a = rows.find(r => r.teamId === 'A')!;
-    expect(a.remaining).toEqual([
-      { week: 9, opponentId: 'D' },
-      { week: 10, opponentId: 'D' },
+    expect(a.remaining.map(o => [o.week, o.opponentId])).toEqual([
+      [9, 'D'],
+      [10, 'D'],
     ]);
+    expect(a.remaining.every(o => o.winProb >= 0 && o.winProb <= 100)).toBe(true);
     expect(a.wins).toBe(8);
     expect(a.losses).toBe(0);
   });
@@ -83,6 +84,22 @@ describe('playoffRace', () => {
   it('is deterministic for a fixed seed', () => {
     const run = () => playoffRace(league(), { simulations: 500, seed: 7 });
     expect(run()).toEqual(run());
+  });
+
+  it('prices per-game win probability on the same simulations', () => {
+    const rows = playoffRace(league(), { simulations: 5000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    // A (avg 150) vs D (avg 100) is a heavy favorite; B vs C is close.
+    const aVsD = byId.get('A')!.remaining[0].winProb;
+    const dVsA = byId.get('D')!.remaining[0].winProb;
+    expect(aVsD).toBeGreaterThan(90);
+    expect(dVsA).toBeLessThan(10);
+    // Complementary within rounding.
+    expect(Math.abs(aVsD + dVsA - 100)).toBeLessThanOrEqual(0.1);
+    const bVsC = byId.get('B')!.remaining[0].winProb;
+    // B outscores C by ~12.5/game: a clear favorite, not a coin flip, not a lock.
+    expect(bVsC).toBeGreaterThan(50);
+    expect(bVsC).toBeLessThan(80);
   });
 
   it('ignores schedule weeks already played and returns empty without data', () => {

@@ -128,7 +128,10 @@ export function TeamsPage({ league }: TeamsPageProps) {
     r.remaining.length === 0
       ? 'No games left'
       : r.remaining
-          .map(o => `Week ${o.week} vs ${teamById.get(o.opponentId)?.name ?? '?'}`)
+          .map(
+            o =>
+              `Week ${o.week} vs ${teamById.get(o.opponentId)?.name ?? '?'} — ${o.winProb}% win probability`,
+          )
           .join(', ');
 
   if (detailTeam) {
@@ -226,7 +229,8 @@ export function TeamsPage({ league }: TeamsPageProps) {
             <p className={styles.sectionHint}>
               {league.playoffTeams} playoff spots · 10,000 simulated seasons
               from each team's season scoring average (shrunk toward the league
-              mean). Schedule from the owner's latest sync.
+              mean). The % next to each opponent is that team's share of sims
+              in which it won that game. Schedule from the owner's latest sync.
             </p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
               <table className={styles.matrix} aria-label="Playoff race: remaining schedule and odds">
@@ -251,7 +255,7 @@ export function TeamsPage({ league }: TeamsPageProps) {
                         {r.remaining.length === 0
                           ? '—'
                           : r.remaining
-                              .map(o => `W${o.week} ${shortName(teamById.get(o.opponentId)?.name ?? '?')}`)
+                              .map(o => `W${o.week} ${shortName(teamById.get(o.opponentId)?.name ?? '?')} ${o.winProb}%`)
                               .join(' · ')}
                       </td>
                       <td

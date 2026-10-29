@@ -7,6 +7,8 @@ import type { League, Team } from '@/types';
 export interface RemainingOpponent {
   week: number;
   opponentId: string;
+  /** 0..100, one decimal — share of the Monte Carlo sims this team won the game. */
+  winProb: number;
 }
 
 export interface PlayoffRaceEntry {
@@ -97,9 +99,11 @@ export function playoffRace(
     list.push(opp);
     remByTeam.set(id, list);
   };
+  const gameKey = (week: number, a: string, b: string) =>
+    `${week}|${a}|${b}`;
   for (const m of remaining) {
-    push(m.team1Id, { week: m.week, opponentId: m.team2Id });
-    push(m.team2Id, { week: m.week, opponentId: m.team1Id });
+    push(m.team1Id, { week: m.week, opponentId: m.team2Id, winProb: -1 });
+    push(m.team2Id, { week: m.week, opponentId: m.team1Id, winProb: -1 });
   }
   for (const list of remByTeam.values()) {
     list.sort((a, b) => a.week - b.week || (a.opponentId < b.opponentId ? -1 : 1));
@@ -126,13 +130,19 @@ export function playoffRace(
   const rand =
     opts.seed === undefined ? Math.random : mulberry32(opts.seed);
   const made = new Map<string, number>();
+  // Per-game wins for team1 of each remaining matchup, so each team sees
+  // a game-by-game win probability priced on the same simulations.
+  const team1Wins = new Map<string, number>();
+  for (const m of remaining) team1Wins.set(gameKey(m.week, m.team1Id, m.team2Id), 0);
   const spots = Math.min(playoffTeams, teams.length);
   for (let s = 0; s < sims; s++) {
     const extra = new Map<string, number>();
     for (const t of teams) extra.set(t.id, 0);
     for (const m of remaining) {
+      const key = gameKey(m.week, m.team1Id, m.team2Id);
       if (rand() < winProb(ratingOf(m.team1Id), ratingOf(m.team2Id))) {
         extra.set(m.team1Id, (extra.get(m.team1Id) ?? 0) + 1);
+        team1Wins.set(key, (team1Wins.get(key) ?? 0) + 1);
       } else {
         extra.set(m.team2Id, (extra.get(m.team2Id) ?? 0) + 1);
       }
@@ -153,6 +163,22 @@ export function playoffRace(
     for (let i = 0; i < spots; i++) {
       const id = ranked[i].id;
       made.set(id, (made.get(id) ?? 0) + 1);
+    }
+  }
+
+  // Game-by-game win probability per team, from the same simulations:
+  // the owning team's share of wins in that specific matchup.
+  for (const t of teams) {
+    for (const o of remByTeam.get(t.id) ?? []) {
+      const direct = team1Wins.get(gameKey(o.week, t.id, o.opponentId));
+      const reversed = team1Wins.get(gameKey(o.week, o.opponentId, t.id));
+      const share =
+        direct !== undefined
+          ? direct / sims
+          : reversed !== undefined
+            ? 1 - reversed / sims
+            : 0.5;
+      o.winProb = Math.round(share * 1000) / 10;
     }
   }
 
