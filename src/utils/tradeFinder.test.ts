@@ -101,8 +101,7 @@ describe('teamProfiles', () => {
 });
 
 describe('findTradeCandidates', () => {
-  it('proposes a win-win swap between complementary teams', () => {
-    const pool = makePool();
+  it('proposes a win-win swap between complementary teams', () => {    const pool = makePool();
     const candidates = findTradeCandidates(asymmetricLeague(pool), pool, DEFAULT_VOR_CONFIG);
     expect(candidates.length).toBeGreaterThan(0);
     const top = candidates[0];
@@ -141,5 +140,55 @@ describe('findTradeCandidates', () => {
         }
       }
     }
+  });
+});
+
+describe('findTradeCandidates 2-for-1 packages', () => {
+  // Team A: 4-deep at RB (positive VOR throughout), weak at WR.
+  // Team B: stacked at WR (two near-equal studs), weak at RB.
+  // C and D are balanced fillers so need/surplus resolve league-relative.
+  function twoForOneLeague(pool: DraftPoolFile): League {
+    void pool;
+    return league([
+      team('a', 'Team A', ['QB1', 'RB5', 'RB6', 'RB7', 'RB8', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB9', 'RB10', 'WR5', 'WR6', 'TE5']),
+      team('d', 'Team D', ['QB4', 'RB11', 'RB12', 'WR7', 'WR8', 'TE6']),
+    ]);
+  }
+
+  it('proposes a 2-for-1 consolidation package', () => {
+    const pool = makePool();
+    const candidates = findTradeCandidates(
+      twoForOneLeague(pool),
+      pool,
+      DEFAULT_VOR_CONFIG,
+    );
+    const packages = candidates.filter(c => c.aGives.length === 2);
+    expect(packages.length).toBeGreaterThan(0);
+    const pkg = packages[0];
+    // The buyer gives two RB depth pieces for the deep side's WR depth.
+    expect(pkg.aGives.map(p => p.pos.toUpperCase())).toEqual(['RB', 'RB']);
+    expect(pkg.bGives[0].pos.toUpperCase()).toBe('WR');
+    expect(pkg.aGives.length + pkg.bGives.length).toBe(3);
+    // The single piece is the seller's SECOND-best, never the star.
+    expect(pkg.bGives[0].name).toBe('WR2');
+    // Fair on paper and mutually upgrading.
+    expect(pkg.analysis.marginShare).toBeLessThanOrEqual(0.25);
+    expect(pkg.score).toBeGreaterThan(0);
+    expect(pkg.reasons.length).toBeGreaterThan(0);
+    expect(pkg.reasons[0]).toMatch(/consolidates/);
+  });
+
+  it('no 2-for-1 fires when every roster is balanced', () => {
+    const pool = makePool();
+    const balanced = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR1', 'WR2', 'WR3', 'TE1']),
+      team('b', 'Team B', ['QB2', 'RB4', 'RB5', 'RB6', 'WR4', 'WR5', 'WR6', 'TE2']),
+      team('c', 'Team C', ['QB3', 'RB7', 'RB8', 'RB9', 'WR7', 'WR8', 'WR9', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RB10', 'RB11', 'RB12', 'WR10', 'WR11', 'WR12', 'TE4']),
+    ]);
+    const candidates = findTradeCandidates(balanced, pool, DEFAULT_VOR_CONFIG);
+    expect(candidates.filter(c => c.aGives.length === 2)).toEqual([]);
   });
 });

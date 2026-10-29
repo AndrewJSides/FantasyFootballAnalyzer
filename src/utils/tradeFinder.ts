@@ -16,6 +16,7 @@ import { POOL } from '@/data/draftPool';
 import {
   DEFAULT_VOR_CONFIG,
   vorPoints,
+  type ValueLeague,
   type VorConfig,
 } from './projectionValues';
 import { indexPool, resolvePoolPlayer } from './consensusGrade';
@@ -37,6 +38,10 @@ const FAIR_MARGIN_SHARE = 0.25;
 // Maximum candidates kept per team pair, and overall.
 const MAX_PER_PAIR = 3;
 const MAX_CANDIDATES = 12;
+
+// Maximum 2-for-1 packages kept per team pair (separate cap so packages
+// don't crowd out the 1-for-1s).
+const MAX_TWO_FOR_ONE_PER_PAIR = 2;
 
 export interface PositionProfile {
   position: PositionKey;
@@ -186,6 +191,98 @@ function vorOf(vor: Map<string, number>, p: PoolPlayer): number {
   return vor.get(p.id) ?? 0;
 }
 
+// 2-for-1 packages: the buyer (need at p) gives two depth pieces for the
+// seller's SECOND-best at p — never the star, so neither starting lineup is
+// harmed. The classic consolidation deal: the buyer upgrades a weak starter
+// and frees a bench spot; the seller turns one surplus depth piece into two
+// startable players. Fairness is the same ±25% band as the 1-for-1s, which
+// means the single piece has to be worth roughly the pair combined — i.e.
+// the seller must be genuinely stacked at p (two near-equal studs), which is
+// exactly when a 2-for-1 makes sense for both sides.
+function twoForOneAttempts(
+  buyer: TeamProfile,
+  seller: TeamProfile,
+  vor: Map<string, number>,
+  valueLeague: ValueLeague,
+  pool: DraftPoolFile,
+  cfg: VorConfig,
+): TradeCandidate[] {
+  const out: TradeCandidate[] = [];
+  const seenLocal = new Set<string>();
+
+  for (const p of POSITIONS) {
+    if (!buyer.positions[p].need || !seller.positions[p].surplus) continue;
+    const piece = seller.positions[p].depthChart[1]; // depth, not the star
+    if (!piece || vorOf(vor, piece) <= 0) continue;
+
+    // Candidate depth pieces: second-best from each buyer surplus position
+    // (the star they keep stays), skipping p itself. A second spare from a
+    // 3+-deep position is also tradable.
+    const spares: { player: PoolPlayer; position: PositionKey }[] = [];
+    for (const q of POSITIONS) {
+      if (q === p) continue;
+      const prof = buyer.positions[q];
+      if (!prof.surplus) continue;
+      for (const depthIdx of [1, 2]) {
+        if (prof.depthChart.length <= depthIdx) break;
+        const spare = prof.depthChart[depthIdx];
+        if (vorOf(vor, spare) <= 0) break;
+        spares.push({ player: spare, position: q });
+      }
+    }
+
+    // All unordered pairs of spares.
+    for (let i = 0; i < spares.length; i++) {
+      for (let j = i + 1; j < spares.length; j++) {
+        const g1 = spares[i];
+        const g2 = spares[j];
+        const key = [
+          '2for1',
+          buyer.team.id,
+          seller.team.id,
+          piece.id,
+          g1.player.id,
+          g2.player.id,
+        ]
+          .sort()
+          .join('|');
+        if (seenLocal.has(key)) continue;
+        seenLocal.add(key);
+
+        const analysis = analyzeTrade([g1.player, g2.player], [piece], {
+          valueLeague,
+          teamA: buyer.team,
+          teamB: seller.team,
+          pool,
+          cfg,
+        });
+        if (analysis.marginShare > FAIR_MARGIN_SHARE) continue;
+        if (harmsStarter(analysis)) continue;
+        const gain = upgradeGain(analysis);
+        // A 2-for-1 that upgrades nobody's starter is just churn.
+        if (gain <= 0) continue;
+
+        const reasons: string[] = [
+          `${buyer.team.name} consolidates: ${piece.name} (${round1(vorOf(vor, piece))} VOR) becomes their best ${p}, upgrading the position from ${buyer.positions[p].best} VOR — and the deal frees a bench spot.`,
+          `${seller.team.name} turns surplus ${p} depth into two startable pieces: ${g1.player.name} (${g1.position}, ${round1(vorOf(vor, g1.player))} VOR) and ${g2.player.name} (${g2.position}, ${round1(vorOf(vor, g2.player))} VOR), keeping its ${p} star.`,
+          `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} VOR (within ${Math.round(analysis.marginShare * 100)}%).`,
+        ];
+        out.push({
+          teamA: buyer.team,
+          teamB: seller.team,
+          aGives: [g1.player, g2.player],
+          bGives: [piece],
+          analysis,
+          reasons,
+          score: round1(gain + 1 / (1 + analysis.marginShare)),
+        });
+      }
+    }
+  }
+
+  return out.sort((a, b) => b.score - a.score).slice(0, MAX_TWO_FOR_ONE_PER_PAIR);
+}
+
 export function findTradeCandidates(
   league: League,
   pool: DraftPoolFile = POOL,
@@ -202,6 +299,33 @@ export function findTradeCandidates(
       const A = profiles[i];
       const B = profiles[j];
       let pairCount = 0;
+
+      // 2-for-1 packages, both directions: the side that needs a position
+      // gives two depth pieces for the deep side's second-best there.
+      for (const [buyer, seller] of [
+        [A, B],
+        [B, A],
+      ] as const) {
+        for (const pkg of twoForOneAttempts(
+          buyer,
+          seller,
+          vor,
+          valueLeague,
+          pool,
+          cfg,
+        )) {
+          const key = [
+            'pkg',
+            pkg.teamA.id,
+            pkg.teamB.id,
+            ...pkg.aGives.map(p => p.id).sort(),
+            ...pkg.bGives.map(p => p.id),
+          ].join('|');
+          if (seen.has(key)) continue;
+          seen.add(key);
+          candidates.push(pkg);
+        }
+      }
 
       // Both directions: A needs p while B is deep at p, and B needs q
       // while A is deep at q.
