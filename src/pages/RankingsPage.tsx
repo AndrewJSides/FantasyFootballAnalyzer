@@ -24,7 +24,13 @@ import {
   matchupLabel,
   matchupShort,
 } from '@/utils/matchupRating';
-import { rosLabel, rosMatchupStrength, rosShort } from '@/utils/rosSchedule';
+import {
+  playoffScheduleStrength,
+  playoffWeeksForLeague,
+  rosLabel,
+  rosMatchupStrength,
+  rosShort,
+} from '@/utils/rosSchedule';
 import styles from './RankingsPage.module.css';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DST'];
@@ -105,6 +111,36 @@ function RosSosCell({ team, pos, week }: { team: string; pos: string; week: numb
   );
 }
 
+// Playoff-schedule strength cell (backlog item 19): the average
+// allowed-vs-position rank over the league's fantasy playoff weeks only
+// (weeks 15–17 by default; shifted when the league's playoffStartWeek is
+// known). ESPN-style PO SOS, computed from TraderApe's own bundled schedule
+// and completed-week allowed averages. Dim dash for K/DST and unknown data.
+function PlayoffSosCell({
+  team,
+  pos,
+  weeks,
+}: {
+  team: string;
+  pos: string;
+  weeks: number[];
+}) {
+  const strength = playoffScheduleStrength(team, pos, weeks);
+  if (!strength) return <td className={`${styles.num} ${styles.dim}`}>-</td>;
+  const cls =
+    strength.label === 'favorable'
+      ? styles.muFav
+      : strength.label === 'tough'
+        ? styles.muTough
+        : styles.muNeutral;
+  const label = rosLabel(strength, pos, weeks);
+  return (
+    <td className={styles.num} title={label} aria-label={label}>
+      <span className={cls}>{rosShort(strength)}</span>
+    </td>
+  );
+}
+
 // Read-only view of the bundled draft pool: every ranking source side by
 // side, with no draft session required. Auto-sorted by the consensus average
 // so the delta column surfaces where the user's platform disagrees.
@@ -138,6 +174,13 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   // bundled matchup data (guest mode — same as the Trade Analyzer chips).
   const matchupWeek = league.currentWeek ?? currentWeekEstimate();
   const scoring = league.scoringType;
+  // The fantasy-playoff week window the PO SOS column prices against:
+  // weeks 15–17 by default, shifted to the league's playoffStartWeek when
+  // the sync picked it up.
+  const playoffWeeks = useMemo(
+    () => playoffWeeksForLeague(league.playoffStartWeek),
+    [league.playoffStartWeek],
+  );
   // Superflex leagues read Sleeper's 2QB ADP market (QBs go far earlier), so
   // the board's ADP column, sort, and delta match the mock AI's behavior.
   const superflex = (league.rosterSlots?.SUPERFLEX ?? 0) > 0;
@@ -532,6 +575,11 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                   ROS SOS
                 </th>
                 <th
+                  title={`Playoff strength of schedule: average allowed-vs-position rank over the league's fantasy playoff weeks (W${playoffWeeks[0]}–W${playoffWeeks[playoffWeeks.length - 1]}), from completed weeks ${matchupDataWeeks()[0]}–${matchupDataWeeks()[1]}; lower is softer`}
+                >
+                  PO SOS
+                </th>
+                <th
                   className={styles.num}
                   title="Bye week: the week this player's team does not play"
                 >
@@ -592,7 +640,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                   <Fragment key={p.id}>
                   {showTierBreak && (
                     <tr className={styles.tierBreakRow} aria-hidden="true">
-                      <td colSpan={auctionView ? 13 : 12}>TIER {p.tier}</td>
+                      <td colSpan={auctionView ? 14 : 13}>TIER {p.tier}</td>
                     </tr>
                   )}
                   <tr className={styles.row}>
@@ -650,6 +698,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                     </td>
                     <MatchupCell team={p.team} pos={p.pos} week={matchupWeek} />
                     <RosSosCell team={p.team} pos={p.pos} week={matchupWeek} />
+                    <PlayoffSosCell team={p.team} pos={p.pos} weeks={playoffWeeks} />
                     <td className={`${styles.num} ${styles.dim}`}>{p.bye ?? '-'}</td>
                     {!auctionView && (
                       <>
@@ -676,7 +725,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={auctionView ? 14 : 13} className={styles.emptyRow}>
+                  <td colSpan={auctionView ? 15 : 14} className={styles.emptyRow}>
                     No players match.
                   </td>
                 </tr>
@@ -701,7 +750,9 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             player's position, from completed weeks{' '}
             {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]} — the same rating the Start/Sit
             and Trade Analyzer pages use. ROS SOS averages the same rating over the player's
-            remaining regular-season games (weeks {matchupWeek}–18); lower is softer.
+            remaining regular-season games (weeks {matchupWeek}–18); PO SOS averages it over
+            the league's fantasy playoff weeks only (W{playoffWeeks[0]}–W
+            {playoffWeeks[playoffWeeks.length - 1]}); lower is softer.
           </p>
         </div>
       </div>
