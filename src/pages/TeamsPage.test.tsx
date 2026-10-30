@@ -346,3 +346,25 @@ describe('TeamsPage team grades', () => {
     expect(screen.queryByRole('heading', { name: 'Team Grades' })).not.toBeInTheDocument();
   });
 });
+
+describe('TeamsPage projected bracket', () => {
+  it('renders the bracket from projected seeds when a future schedule exists', () => {
+    renderPage(league({ playoffTeams: 4 }));
+    expect(
+      screen.getByRole('heading', { name: 'Projected Bracket' }),
+    ).toBeInTheDocument();
+    const semis = screen.getByRole('list', { name: 'Semifinals matchups' });
+    expect(within(semis).getAllByRole('listitem')).toHaveLength(2);
+    // Alpha is 8-0, so it holds a top-two projected seed and appears in a
+    // semifinal with a favored-higher-seed marker.
+    expect(within(semis).getAllByText(/Alpha/)[0]).toBeInTheDocument();
+    expect(within(semis).getAllByText(/favored/)[0]).toBeInTheDocument();
+  });
+
+  it('hides the bracket when the sync fetched no future schedule', () => {
+    renderPage(league({ futureSchedule: [], playoffTeams: 4 }));
+    expect(
+      screen.queryByRole('heading', { name: 'Projected Bracket' }),
+    ).not.toBeInTheDocument();
+  });
+});

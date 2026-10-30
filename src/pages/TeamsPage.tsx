@@ -10,6 +10,7 @@ import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/util
 import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
+import { buildPlayoffBracket } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
@@ -145,6 +146,13 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // Playoff race: needs the future schedule the owner's last sync fetched.
   // Absent on old snapshots and in guest mode — the section hides itself.
   const race = useMemo(() => playoffRace(league), [league]);
+  const bracket = useMemo(
+    () =>
+      race.length > 0 && league.playoffTeams
+        ? buildPlayoffBracket(race, league.playoffTeams)
+        : [],
+    [race, league.playoffTeams],
+  );
   // Per-owner injury summary: each team's injured rostered players, worst
   // first, from the bundled pool's Sleeper injury data. Hides when the sync
   // fetched no rosters (there's nobody to attribute injuries to).
@@ -514,6 +522,54 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                 </tbody>
               </table>
             </div>
+            {bracket.length > 0 && (
+              <div aria-labelledby="playoff-bracket-heading">
+                <h3 id="playoff-bracket-heading" className={styles.sectionTitle}>
+                  Projected Bracket
+                </h3>
+                <p className={styles.sectionHint}>
+                  Pairs the projected seeds above; the higher seed is favored
+                  in each matchup. Later rounds show winners to be determined —
+                  individual playoff games are not simulated.
+                </p>
+                {bracket.map(round => (
+                  <div key={round.label}>
+                    <h4>{round.label}</h4>
+                    <ul aria-label={`${round.label} matchups`}>
+                      {round.matchups.map((m, i) => {
+                        const favoredName =
+                          m.favoredTeamId === m.slotA.teamId
+                            ? m.slotA.name
+                            : m.favoredTeamId === m.slotB.teamId
+                              ? m.slotB.name
+                              : null;
+                        return (
+                          <li
+                            key={i}
+                            aria-label={
+                              `${m.slotA.seed > 0 ? `${m.slotA.seed}-seed ` : ''}${m.slotA.name} versus ` +
+                              `${m.slotB.seed > 0 ? `${m.slotB.seed}-seed ` : ''}${m.slotB.name}` +
+                              (favoredName ? `, ${favoredName} favored as the higher seed` : '')
+                            }
+                          >
+                            {m.slotA.seed > 0 ? `${m.slotA.seed}. ` : ''}
+                            {m.slotA.name}
+                            {' vs '}
+                            {m.slotB.seed > 0 ? `${m.slotB.seed}. ` : ''}
+                            {m.slotB.name}
+                            {favoredName !== null && (
+                              <span title={`${favoredName} favored as the higher seed`}>
+                                {' '}· {favoredName} favored
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
