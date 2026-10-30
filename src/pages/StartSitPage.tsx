@@ -13,8 +13,10 @@ import {
   modeScoreUnit,
   modeSlotVerb,
   modeTotalUnit,
+  suggestedModeFromWinProb,
   type LineupMode,
 } from '@/utils/lineupMode';
+import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import {
   normalizeLineupPos,
   optimalLineup,
@@ -226,6 +228,48 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // floor) before the lineup is built. Switching modes swaps the lineup in
   // place, like the team picker.
   const [mode, setMode] = useState<LineupMode>('balanced');
+  const [modePinned, setModePinned] = useState(false);
+
+  // Auto-suggest the mode from this week's win probability (item 25
+  // remainder): chase ceiling under 40%, protect floor over 60%, balanced
+  // in between. Reuses the same Monte Carlo matchup preview as the Matchup
+  // page, so the two pages never disagree. A manual radio choice pins the
+  // mode for the session; until then the suggestion re-applies when the
+  // team (and therefore the matchup) changes.
+  const previews = useMemo(() => previewWeeklyMatchups(league), [league]);
+  const teamById = useMemo(
+    () => new Map(league.teams.map(t => [t.id, t])),
+    [league.teams],
+  );
+  const myPreview = useMemo(
+    () =>
+      previews.find(p => p.teamAId === team?.id || p.teamBId === team?.id) ??
+      null,
+    [previews, team],
+  );
+  const myWinProb = useMemo(() => {
+    if (!myPreview || !team) return null;
+    return myPreview.teamAId === team.id
+      ? myPreview.winProbA
+      : 100 - myPreview.winProbA;
+  }, [myPreview, team]);
+  const suggestedMode = useMemo(
+    () => suggestedModeFromWinProb(myWinProb),
+    [myWinProb],
+  );
+  useEffect(() => {
+    if (!modePinned) setMode(suggestedMode);
+  }, [suggestedMode, modePinned]);
+  const oppName =
+    myPreview && team
+      ? teamById.get(
+          myPreview.teamAId === team.id ? myPreview.teamBId : myPreview.teamAId,
+        )?.name ?? 'your opponent'
+      : 'your opponent';
+  const pickMode = (m: LineupMode) => {
+    setModePinned(true);
+    setMode(m);
+  };
   const modeScored = useMemo<ScoredPlayer[]>(
     () => scored.map(s => ({ ...s, score: modeScore(s, mode) })),
     [scored, mode],
@@ -418,7 +462,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                     name="lineup-mode"
                     value={m.id}
                     checked={mode === m.id}
-                    onChange={() => setMode(m.id)}
+                    onChange={() => pickMode(m.id)}
                     aria-describedby="lineup-mode-hint"
                   />
                   {m.label}
@@ -431,6 +475,14 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 ? ` Now ranking on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} from each player\u2019s own week-to-week volatility.`
                 : ''}
             </p>
+            {!isGuest && myPreview && myWinProb !== null && (
+              <p className={styles.modeSuggest} aria-live="polite">
+                Suggested: {LINEUP_MODES.find(m => m.id === suggestedMode)?.label}
+                {' '}— {round1(myWinProb)}% {myWinProb >= 50 ? 'favorite' : 'underdog'} vs{' '}
+                {oppName} this week.
+                {modePinned ? ' Your pick overrides the suggestion.' : ''}
+              </p>
+            )}
           </fieldset>
         )}
 
@@ -572,6 +624,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 : ''}
               {isGuest
                 ? ' Weekly stats from Sleeper\u2019s public data (full PPR).'
+                : ''}{' '}
+              {!isGuest && myPreview
+                ? ' The mode auto-suggests from your weekly win probability (chase ceiling below 40%, protect floor above 60%); picking a mode manually overrides it.'
                 : ''}{' '}
               This does not yet see injuries or news, so check those before lock.
             </p>

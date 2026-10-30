@@ -100,6 +100,14 @@
   color: var(--bone-dim);
 }
 
+/* Auto-suggestion line: which mode the weekly win probability recommends
+   and why. Sits under the hint so it reads as an extension of the control. */
+.modeSuggest {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--bone);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

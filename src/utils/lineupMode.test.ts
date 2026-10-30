@@ -9,6 +9,9 @@ import {
   modeSlotVerb,
   modeStdDev,
   modeTotalUnit,
+  suggestedModeFromWinProb,
+  WIN_PROB_FAVORITE_MIN,
+  WIN_PROB_UNDERDOG_MAX,
 } from './lineupMode';
 
 function scored(partial: Partial<ScoredPlayer>): ScoredPlayer {
@@ -97,5 +100,28 @@ describe('mode labels', () => {
     expect(modeTotalUnit('ceiling')).toBe('P75 ceiling points');
     expect(modeTotalUnit('floor')).toBe('P25 floor points');
     expect(modeTotalUnit('balanced')).toBe('projected points');
+  });
+});
+
+describe('suggestedModeFromWinProb', () => {
+  it('suggests chase ceiling for a big underdog (below 40%)', () => {
+    expect(suggestedModeFromWinProb(25)).toBe('ceiling');
+    expect(suggestedModeFromWinProb(WIN_PROB_UNDERDOG_MAX - 0.1)).toBe('ceiling');
+  });
+
+  it('suggests protect floor for a big favorite (above 60%)', () => {
+    expect(suggestedModeFromWinProb(75)).toBe('floor');
+    expect(suggestedModeFromWinProb(WIN_PROB_FAVORITE_MIN + 0.1)).toBe('floor');
+  });
+
+  it('suggests balanced in the middle band and on the boundary values', () => {
+    expect(suggestedModeFromWinProb(50)).toBe('balanced');
+    expect(suggestedModeFromWinProb(WIN_PROB_UNDERDOG_MAX)).toBe('balanced');
+    expect(suggestedModeFromWinProb(WIN_PROB_FAVORITE_MIN)).toBe('balanced');
+  });
+
+  it('suggests balanced when no win probability is available', () => {
+    expect(suggestedModeFromWinProb(null)).toBe('balanced');
+    expect(suggestedModeFromWinProb(undefined)).toBe('balanced');
   });
 });

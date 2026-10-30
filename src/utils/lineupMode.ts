@@ -60,8 +60,7 @@ export function modeScore(player: ScoredPlayer, mode: LineupMode): number {
 }
 
 /** Unit label for a mode-adjusted gap, for the "why they sit" column. */
-export function modeScoreUnit(mode: LineupMode, hasProjection: boolean): string {
-  if (mode === 'ceiling') return 'ceiling pts';
+export function modeScoreUnit(mode: LineupMode, hasProjection: boolean): string {  if (mode === 'ceiling') return 'ceiling pts';
   if (mode === 'floor') return 'floor pts';
   return hasProjection ? 'projected pts' : 'pts/game';
 }
@@ -78,4 +77,29 @@ export function modeTotalUnit(mode: LineupMode): string {
     : mode === 'ceiling'
       ? 'P75 ceiling points'
       : 'P25 floor points';
+}
+
+// Auto-suggesting the lineup mode from the weekly win probability (backlog
+// item 25 remainder): the strategy writing is unanimous — a big favorite
+// protects the floor, a big underdog chases ceiling, everyone in between
+// takes the average week. The 40/60 bands keep the suggestion from
+// flip-flopping on coin-flip matchups.
+
+/** Win probability below this (0..100) means "big underdog" — chase ceiling. */
+export const WIN_PROB_UNDERDOG_MAX = 40;
+/** Win probability above this (0..100) means "big favorite" — protect floor. */
+export const WIN_PROB_FAVORITE_MIN = 60;
+
+/**
+ * The lineup mode to default to for a given weekly win probability
+ * (0..100). Null/undefined probability (no matchup preview available)
+ * means no signal — default to balanced.
+ */
+export function suggestedModeFromWinProb(
+  winProb: number | null | undefined,
+): LineupMode {
+  if (winProb === null || winProb === undefined) return 'balanced';
+  if (winProb < WIN_PROB_UNDERDOG_MAX) return 'ceiling';
+  if (winProb > WIN_PROB_FAVORITE_MIN) return 'floor';
+  return 'balanced';
 }
