@@ -23,6 +23,7 @@ import {
   slotEligiblePositions,
 } from '@/utils/optimalLineup';
 import { projectionReason } from '@/utils/weeklyProjection';
+import { planLineupWeeks, type PlannedWeek } from '@/utils/lineupPlanner';
 import {
   currentWeekEstimate,
   matchupDataWeeks,
@@ -346,6 +347,55 @@ export function StartSitPage({ league }: StartSitPageProps) {
   const displayName = isGuest ? 'Your roster' : team?.name;
   const guestDataPending = isGuest && guestWeeklyState !== 'ready';
 
+  // --- Plan ahead: multi-week lineup planner (backlog item 29) ---------------
+  // Optimal lineups for every remaining regular-season week (this week
+  // through the week before the fantasy playoffs), priced on the same
+  // projection + matchup engine as the single-week optimizer. Each week is
+  // priced by re-running the scoring core with currentWeek set to that week,
+  // so the matchup blend and bye benching key off the target week while the
+  // form series stays today's form. Balanced projection only — lineup modes
+  // apply to this week's call, not the plan.
+  const planEndWeek = useMemo(() => {
+    const end = league.playoffStartWeek ? league.playoffStartWeek - 1 : 14;
+    return Math.min(Math.max(end, currentWeek ?? 0), 18);
+  }, [league.playoffStartWeek, currentWeek]);
+  const lineupPlan = useMemo<PlannedWeek[]>(
+    () =>
+      currentWeek === undefined
+        ? []
+        : planLineupWeeks({
+            roster,
+            weeklyPoints,
+            gamesBySleeperId: isGuest
+              ? guestWeekly?.gamesBySleeperId
+              : league.gamesPlayed?.bySleeperId,
+            gamesSeason: isGuest ? guestWeekly?.season : league.gamesPlayed?.season,
+            season: league.season,
+            fromWeek: currentWeek,
+            toWeek: planEndWeek,
+            slots,
+          }),
+    [
+      roster,
+      weeklyPoints,
+      isGuest,
+      guestWeekly,
+      league.gamesPlayed,
+      league.season,
+      currentWeek,
+      planEndWeek,
+      slots,
+    ],
+  );
+  const planWatch = (w: PlannedWeek): string => {
+    const parts: string[] = [];
+    if (w.onBye.length > 0) parts.push(`Bye: ${w.onBye.join(', ')}`);
+    const tough = w.starters.filter(s => s.matchupLabel === 'tough');
+    if (tough.length > 0)
+      parts.push(`Tough: ${tough.map(s => `${s.name} (vs ${s.opponent})`).join(', ')}`);
+    return parts.length > 0 ? parts.join(' · ') : '—';
+  };
+
   return (
     <div className={styles.page}>
       <div className="container">
@@ -630,6 +680,49 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 : ''}{' '}
               This does not yet see injuries or news, so check those before lock.
             </p>
+
+            {lineupPlan.length > 1 && (
+              <>
+                <h2 className={styles.sectionTitle}>
+                  Plan ahead · weeks {currentWeek}–{planEndWeek}
+                </h2>
+                <table
+                  className={styles.table}
+                  aria-label={`Optimal lineups for weeks ${currentWeek} through ${planEndWeek}`}
+                >
+                  <thead>
+                    <tr>
+                      <th scope="col">Week</th>
+                      <th scope="col">Proj. pts</th>
+                      <th scope="col">Optimal starters</th>
+                      <th scope="col">Watch</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lineupPlan.map(w => (
+                      <tr key={w.week}>
+                        <th scope="row">
+                          {w.week}
+                          {w.week === currentWeek ? ' (this week)' : ''}
+                        </th>
+                        <td>{w.projectedTotal}</td>
+                        <td>
+                          {w.starters.map(s => `${s.position} ${s.name}`).join(' · ')}
+                        </td>
+                        <td>{planWatch(w)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className={styles.note}>
+                  Each week is priced on today&apos;s form plus that week&apos;s
+                  matchup — the model does not decay form over time, so treat
+                  far weeks as directional. Bye-week players sit automatically.
+                  Priced on the balanced projection; lineup modes apply to this
+                  week&apos;s call only.
+                </p>
+              </>
+            )}
           </>
         )}
       </div>
