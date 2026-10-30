@@ -13,6 +13,7 @@ import {
   matchupShort,
 } from '@/utils/matchupRating';
 import { AWARD_ICONS } from '@/utils/awardIcons';
+import { consistencySummary } from '@/utils/consistency';
 import styles from './PlayerJourneyPage.module.css';
 
 interface PlayerJourneyPageProps {
@@ -262,6 +263,19 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
   const weekly = selectedPlayer
     ? league.playerWeeklyPoints?.[selectedPlayer.player.id]
     : undefined;
+
+  // Week-to-week consistency (backlog item 20): floor/ceiling from the
+  // player's own played weeks, boom/bust counts against TraderApe's own
+  // per-position bars. Needs the same weekly series as the chart, so it
+  // hides in the same cases (guest mode, old snapshots) and when fewer
+  // than 3 games are played.
+  const consistency = useMemo(
+    () =>
+      selectedPlayer
+        ? consistencySummary(weekly, selectedPlayer.player.position)
+        : null,
+    [weekly, selectedPlayer],
+  );
 
   // Per-stint scoring: the payoff of a journey page. Each ownership stretch
   // (drafted/added week -> dropped/traded week) gets a points-per-week from
@@ -580,6 +594,79 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                       playerName={selectedPlayer.player.name}
                       weekly={weekly}
                     />
+                  </div>
+                )}
+
+                {/* Week-to-week consistency (backlog item 20): how steady
+                    the player is week over week — floor/ceiling from his own
+                    played weeks plus boom/bust counts. */}
+                {consistency && (
+                  <div className={styles.timeline}>
+                    <h3 className={styles.timelineTitle}>
+                      Week-to-Week Consistency
+                    </h3>
+                    <div className={styles.statsSummary}>
+                      <div
+                        className={styles.statCard}
+                        aria-label={`Floor: ${consistency.floor.toFixed(1)} points (25th percentile of ${consistency.games} played weeks)`}
+                      >
+                        <span className={styles.statValue}>
+                          {consistency.floor.toFixed(1)}
+                        </span>
+                        <span className={styles.statLabel}>Floor (P25)</span>
+                      </div>
+                      <div
+                        className={styles.statCard}
+                        aria-label={`Median: ${consistency.median.toFixed(1)} points across ${consistency.games} played weeks`}
+                      >
+                        <span className={styles.statValue}>
+                          {consistency.median.toFixed(1)}
+                        </span>
+                        <span className={styles.statLabel}>Median</span>
+                      </div>
+                      <div
+                        className={styles.statCard}
+                        aria-label={`Ceiling: ${consistency.ceiling.toFixed(1)} points (75th percentile of ${consistency.games} played weeks)`}
+                      >
+                        <span className={styles.statValue}>
+                          {consistency.ceiling.toFixed(1)}
+                        </span>
+                        <span className={styles.statLabel}>Ceiling (P75)</span>
+                      </div>
+                      <div
+                        className={styles.statCard}
+                        aria-label={`${consistency.boomWeeks} boom weeks scoring ${consistency.boomBar} or more points`}
+                      >
+                        <span className={styles.statValue}>
+                          {consistency.boomWeeks}
+                        </span>
+                        <span className={styles.statLabel}>
+                          Boom (≥{consistency.boomBar})
+                        </span>
+                      </div>
+                      <div
+                        className={styles.statCard}
+                        aria-label={`${consistency.bustWeeks} bust weeks scoring ${consistency.bustBar} or fewer points`}
+                      >
+                        <span className={styles.statValue}>
+                          {consistency.bustWeeks}
+                        </span>
+                        <span className={styles.statLabel}>
+                          Bust (≤{consistency.bustBar})
+                        </span>
+                      </div>
+                    </div>
+                    {/* Verdict plus method: the swap is in place on player
+                        change, so a live announcement is not needed. */}
+                    <p className={styles.matchupFootnote}>
+                      {selectedPlayer.player.name} is{' '}
+                      <strong>{consistency.verdict}</strong> week to week (
+                      {consistency.games} games). Boom/bust bars are
+                      TraderApe's own per-position cutoffs (QB ≥
+                      {consistency.boomBar}/≤{consistency.bustBar}; floor and
+                      ceiling are the 25th/75th percentile of his played
+                      weeks — bye weeks and DNPs excluded).
+                    </p>
                   </div>
                 )}
 
