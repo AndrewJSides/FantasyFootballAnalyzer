@@ -45,6 +45,7 @@ const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage')
 const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
 const LuckPage = lazyPage(() => import('@/pages/LuckPage'), 'LuckPage');
 const RecapPage = lazyPage(() => import('@/pages/RecapPage'), 'RecapPage');
+const RestOfSeasonPage = lazyPage(() => import('@/pages/RestOfSeasonPage'), 'RestOfSeasonPage');
 const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'PlayerJourneyPage');
 import { useLeague } from '@/hooks/useLeague';
 import {
@@ -127,6 +128,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/awards': 'Awards',
   '/luck': 'Luck',
   '/recap': 'Weekly Recap',
+  '/rest-of-season': 'Rest-of-Season Rankings',
   '/players': 'Player Journey',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
@@ -947,6 +949,12 @@ function App() {
           <Route path="/awards" element={dataRoute(l => <AwardsPage league={l} />)} />
           <Route path="/luck" element={dataRoute(l => <LuckPage league={l} />)} />
           <Route path="/recap" element={dataRoute(l => <RecapPage league={l} />)} />
+          {/* Rest-of-Season Rankings works in guest mode on season
+              projections (no auth), like Compare and Start/Sit. */}
+          <Route
+            path="/rest-of-season"
+            element={league ? <RestOfSeasonPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
+          />
           <Route path="/players" element={dataRoute(l => <PlayerJourneyPage league={l} />)} />
 
           <Route path="*" element={<NotFoundPage />} />
