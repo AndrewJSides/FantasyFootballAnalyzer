@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { League, Player } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -6,6 +6,9 @@ import { NflTeamLabel, PosBadge } from '@/components';
 import { POOL } from '@/data/draftPool';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
+import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
+import { gameKickoff } from '@/utils/gameTimes';
+import { lateSwapAlerts } from '@/utils/lateSwap';
 import { round1, scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 import {
   LINEUP_MODES,
@@ -396,6 +399,38 @@ export function StartSitPage({ league }: StartSitPageProps) {
     return parts.length > 0 ? parts.join(' · ') : '—';
   };
 
+  // --- Late-swap watch: kickoff times + game-time-decision alerts ---------
+  // A starter locks at HIS kickoff, so a Questionable starter can only be
+  // rescued by a same-slot-eligible bench player who plays later. Injury
+  // designations resolve from the bundled pool (refreshed twice daily),
+  // same as the Rankings injury tags.
+  const poolIndex = useMemo(() => indexPool(POOL), []);
+  const kickoffChip = (s: ScoredPlayer): ReactNode => {
+    const k = gameKickoff(s.nflTeam, currentWeek);
+    return k ? (
+      <span title={`${s.nflTeam} kicks off ${k.label}`}>{k.slot}</span>
+    ) : (
+      '—'
+    );
+  };
+  const swapAlerts = useMemo(() => {
+    if (guestDataPending || currentWeek === undefined) return [];
+    const toWatch = (s: ScoredPlayer, slot?: string) => ({
+      name: s.name,
+      position: s.position,
+      nflTeam: s.nflTeam,
+      slot,
+      injuryStatus: resolvePoolPlayer(s.player, poolIndex)?.injuryStatus ?? null,
+    });
+    return lateSwapAlerts({
+      starters: lineup.starters
+        .filter(a => a.player)
+        .map(a => toWatch(a.player as ScoredPlayer, a.slot)),
+      bench: benched.map(s => toWatch(s)),
+      week: currentWeek,
+    });
+  }, [lineup, benched, currentWeek, guestDataPending, poolIndex]);
+
   return (
     <div className={styles.page}>
       <div className="container">
@@ -585,6 +620,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Pts/game</th>
                   <th scope="col">Last 3</th>
                   <th scope="col">Matchup</th>
+                  <th scope="col">Kickoff</th>
                   <th scope="col">Why they start</th>
                 </tr>
               </thead>
@@ -616,6 +652,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           '—'
                         )}
                       </td>
+                      <td>{s ? kickoffChip(s) : '—'}</td>
                       <td>
                         {s ? starterReason(s, a.slot) : '—'}
                       </td>
@@ -636,6 +673,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <th scope="col">Pts/game</th>
                       <th scope="col">Last 3</th>
                       <th scope="col">Matchup</th>
+                      <th scope="col">Kickoff</th>
                       <th scope="col">Why they sit</th>
                     </tr>
                   </thead>
@@ -658,11 +696,27 @@ export function StartSitPage({ league }: StartSitPageProps) {
                             '—'
                           )}
                         </td>
+                        <td>{kickoffChip(s)}</td>
                         <td>{benchReason(s)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </>
+            )}
+            {swapAlerts.length > 0 && (
+              <>
+                <h2 className={styles.sectionTitle}>Late-swap watch</h2>
+                <ul className={styles.watchList} aria-label="Late-swap watch">
+                  {swapAlerts.map((a, i) => (
+                    <li
+                      key={i}
+                      className={`${styles.watchItem} ${a.kind === 'risk' ? styles.risk : styles.insurance}`}
+                    >
+                      <strong>{a.headline}.</strong> {a.detail}
+                    </li>
+                  ))}
+                </ul>
               </>
             )}
             <p className={styles.note}>
@@ -678,7 +732,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
               {!isGuest && myPreview
                 ? ' The mode auto-suggests from your weekly win probability (chase ceiling below 40%, protect floor above 60%); picking a mode manually overrides it.'
                 : ''}{' '}
-              This does not yet see injuries or news, so check those before lock.
+              This does not yet see news, so check that before lock. Injury
+              designations feed the Late-swap watch from the bundled pool
+              (refreshed twice daily) — not live inactives.
             </p>
 
             {lineupPlan.length > 1 && (

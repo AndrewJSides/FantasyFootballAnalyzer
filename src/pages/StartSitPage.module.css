@@ -270,6 +270,26 @@
   color: var(--bone-dim);
 }
 
+.watchList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.watchItem {
+  padding: 0.75rem 1rem;
+  background: var(--ink);
+  font-family: var(--font-display);
+  border-left: 3px solid var(--bone-dim);
+}
+.watchItem.risk {
+  border-left-color: var(--amber, #e8a33d);
+}
+.watchItem.insurance {
+  border-left-color: var(--lime);
+}
+
 .empty {
   text-align: center;
   padding: 4rem 2rem;
