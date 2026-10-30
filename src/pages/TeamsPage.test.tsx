@@ -205,6 +205,20 @@ describe('TeamsPage matchup preview', () => {
     expect(screen.getAllByText(/Beta [\d.]+%/).length).toBeGreaterThan(0);
   });
 
+  it('renders a score-range distribution bar per team in the matchup preview', () => {
+    renderPage(rosteredLeague());
+    const table = screen.getByRole('table', { name: /matchup projections/i });
+    expect(
+      within(table).getByRole('columnheader', { name: 'Score range' }),
+    ).toBeInTheDocument();
+    // Two P10–P90 range bars, one per team, with their accessible summary.
+    expect(within(table).getAllByTestId('dist-band')).toHaveLength(2);
+    const summaries = within(table).getAllByRole('img');
+    expect(summaries[0].getAttribute('aria-label')).toContain(
+      '80% of simulated weeks score between',
+    );
+  });
+
   it('hides the section when teams have no rosters', () => {
     renderPage(league());
     expect(

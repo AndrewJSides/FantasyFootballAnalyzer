@@ -13,7 +13,7 @@ import type { League, Team } from '@/types';
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
 import { optimalLineup } from '@/utils/optimalLineup';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
-import { monteCarloWinProb, type SwingPlayer } from '@/utils/weeklyWinProb';
+import { monteCarloWinProb, type ScoreDistribution, type SwingPlayer } from '@/utils/weeklyWinProb';
 
 /** A 30-pt projected-score gap ≈ 91% win probability — the same calibration
  *  as the playoff-race elo scale, fitted to typical full-PPR weekly spreads. */
@@ -36,6 +36,9 @@ export interface MatchupPreview {
   winProbA: number;
   /** Starters who carry the most of the matchup's variance (item 24). */
   swingPlayers: SwingPlayer[];
+  /** P10/median/P90 of each team's simulated scores, from the same sim run. */
+  distA: ScoreDistribution;
+  distB: ScoreDistribution;
 }
 
 /** Scored starters for one team's optimal lineup, with their team id for
@@ -138,6 +141,8 @@ export function previewWeeklyMatchups(
       projB: b.preview.projectedScore,
       winProbA: mc.winProbA,
       swingPlayers: mc.swingPlayers,
+      distA: mc.distA,
+      distB: mc.distB,
     });
   }
   return out;

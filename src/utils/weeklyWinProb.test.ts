@@ -6,6 +6,8 @@ import type { ScoredPlayer } from '@/utils/rosterScoring';
 import {
   monteCarloWinProb,
   playerScoreDistribution,
+  quantileSorted,
+  scoreDistributionFromSamples,
 } from './weeklyWinProb';
 
 function starter(
@@ -95,5 +97,62 @@ describe('monteCarloWinProb', () => {
     expect(swingPlayers).toEqual([]);
     // No variance at all: identical projections split the ties.
     expect(winProbA).toBeCloseTo(50, 0);
+  });
+});
+
+describe('quantileSorted', () => {
+  it('computes nearest-rank quantiles', () => {
+    const sorted = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    expect(quantileSorted(sorted, 0.1)).toBe(10);
+    expect(quantileSorted(sorted, 0.5)).toBe(50);
+    expect(quantileSorted(sorted, 0.9)).toBe(90);
+  });
+
+  it('clamps out-of-range queries and empty input', () => {
+    expect(quantileSorted([5], 0)).toBe(5);
+    expect(quantileSorted([5], 1)).toBe(5);
+    expect(quantileSorted([], 0.5)).toBe(0);
+  });
+});
+
+describe('scoreDistributionFromSamples', () => {
+  it('rounds P10/median/P90 to 1dp with p10 <= median <= p90', () => {
+    const samples = Array.from({ length: 101 }, (_, i) => i * 0.333);
+    const d = scoreDistributionFromSamples(samples);
+    expect(d.p10).toBeLessThanOrEqual(d.median);
+    expect(d.median).toBeLessThanOrEqual(d.p90);
+    expect([d.p10, d.median, d.p90].every(n => Number.isInteger(n * 10))).toBe(true);
+  });
+});
+
+describe('monteCarloWinProb distributions', () => {
+  it('returns ordered, seeded-stable per-team score distributions', () => {
+    const a = [starter('a1', 'A', 15, 3), starter('a2', 'A', 12, 2)];
+    const b = [starter('b1', 'B', 14, 3), starter('b2', 'B', 12, 2)];
+    const first = monteCarloWinProb(a, b, { seed: 7, simulations: 2000 });
+    const second = monteCarloWinProb(a, b, { seed: 7, simulations: 2000 });
+    expect(first.distA).toEqual(second.distA);
+    expect(first.distB).toEqual(second.distB);
+    for (const d of [first.distA, first.distB]) {
+      expect(d.p10).toBeLessThanOrEqual(d.median);
+      expect(d.median).toBeLessThanOrEqual(d.p90);
+    }
+  });
+
+  it('centers the median on the projected total for normal scores', () => {
+    const a = [starter('a1', 'A', 15, 3), starter('a2', 'A', 12, 2)];
+    const b = [starter('b1', 'B', 14, 3), starter('b2', 'B', 12, 2)];
+    const { distA, distB } = monteCarloWinProb(a, b, { seed: 3 });
+    // Projected totals are 27 and 26; symmetric normals keep medians close.
+    expect(Math.abs(distA.median - 27)).toBeLessThan(1.5);
+    expect(Math.abs(distB.median - 26)).toBeLessThan(1.5);
+  });
+
+  it('collapses to a point when every starter has zero variance', () => {
+    const a = [starter('a1', 'A', 15, 0)];
+    const b = [starter('b1', 'B', 14, 0)];
+    const { distA, distB } = monteCarloWinProb(a, b, { seed: 9, simulations: 500 });
+    expect(distA).toEqual({ p10: 15, median: 15, p90: 15 });
+    expect(distB).toEqual({ p10: 14, median: 14, p90: 14 });
   });
 });

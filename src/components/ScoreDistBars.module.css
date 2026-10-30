@@ -1,0 +1,57 @@
+/* ScoreDistBars — per-team P10/median/P90 range bars (item 24b). */
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 11rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.label {
+  flex: 0 0 4.5rem;
+  font-size: 0.68rem;
+  color: var(--bone-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border: 1px solid var(--rule);
+  background: var(--ink-2);
+}
+
+.band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--lime);
+  opacity: 0.45;
+}
+
+.tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--lime);
+  transform: translateX(-1px);
+}
+
+.numbers {
+  flex: 0 0 4.8rem;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--bone);
+  text-align: right;
+  white-space: nowrap;
+}

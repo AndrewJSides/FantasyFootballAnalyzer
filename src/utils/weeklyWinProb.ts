@@ -30,6 +30,37 @@ export interface MonteCarloWinProb {
   winProbA: number;
   /** Top swing players across both starting lineups. */
   swingPlayers: SwingPlayer[];
+  /** Score distributions from the same simulation (item 24b). */
+  distA: ScoreDistribution;
+  distB: ScoreDistribution;
+}
+
+/** P10 / median / P90 of one team's simulated weekly scores, 1dp. */
+export interface ScoreDistribution {
+  p10: number;
+  median: number;
+  p90: number;
+}
+
+/**
+ * Nearest-rank quantile of a pre-sorted array. q is 0..1 (0.1 = P10).
+ * Clamps to the ends rather than throwing on empty.
+ */
+export function quantileSorted(sorted: number[], q: number): number {
+  if (sorted.length === 0) return 0;
+  const rank = Math.ceil(q * sorted.length) - 1;
+  return sorted[Math.min(Math.max(rank, 0), sorted.length - 1)];
+}
+
+/** Build a ScoreDistribution from raw simulated team scores, 1dp. */
+export function scoreDistributionFromSamples(samples: number[]): ScoreDistribution {
+  const sorted = [...samples].sort((a, b) => a - b);
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return {
+    p10: r(quantileSorted(sorted, 0.1)),
+    median: r(quantileSorted(sorted, 0.5)),
+    p90: r(quantileSorted(sorted, 0.9)),
+  };
 }
 
 export interface WeeklyWinProbOptions {
@@ -85,6 +116,8 @@ export function monteCarloWinProb(
   const bDist = teamBStarters.map(playerScoreDistribution);
 
   let aWins = 0;
+  const samplesA = new Array<number>(sims);
+  const samplesB = new Array<number>(sims);
   for (let s = 0; s < sims; s++) {
     let scoreA = 0;
     for (let i = 0; i < aDist.length; i++) {
@@ -94,6 +127,8 @@ export function monteCarloWinProb(
     for (let i = 0; i < bDist.length; i++) {
       scoreB += bDist[i].mean + bDist[i].std * randn(rand);
     }
+    samplesA[s] = scoreA;
+    samplesB[s] = scoreB;
     if (scoreA > scoreB) aWins += 1;
     else if (scoreA === scoreB) aWins += 0.5;
   }
@@ -123,5 +158,7 @@ export function monteCarloWinProb(
   return {
     winProbA: Math.round((aWins / sims) * 1000) / 10,
     swingPlayers,
+    distA: scoreDistributionFromSamples(samplesA),
+    distB: scoreDistributionFromSamples(samplesB),
   };
 }

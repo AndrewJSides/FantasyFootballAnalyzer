@@ -11,6 +11,7 @@ import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
+import ScoreDistBars from '@/components/ScoreDistBars';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
@@ -354,7 +355,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               score drawn from his projection ± his own week-to-week
               volatility. Swing players are the starters carrying the most
               of the matchup&apos;s variance — the ones most likely to decide
-              it. Schedule from the owner&apos;s latest sync.
+              it. Score range shows each team&apos;s P10–P90 band from the
+              same simulation, with a median tick — the matchup&apos;s
+              realistic shootout-or-snoozer band. Schedule from the
+              owner&apos;s latest sync.
             </p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
               <table className={styles.matrix} aria-label="This week's matchup projections">
@@ -363,6 +367,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                     <th scope="col">Matchup</th>
                     <th scope="col">Proj. score</th>
                     <th scope="col">Win probability</th>
+                    <th scope="col">Score range</th>
                     <th scope="col">Swing players</th>
                   </tr>
                 </thead>
@@ -393,6 +398,14 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                               style={{ width: `${p.winProbA}%` }}
                             />
                           </div>
+                        </td>
+                        <td>
+                          <ScoreDistBars
+                            rows={[
+                              { label: aName, dist: p.distA },
+                              { label: bName, dist: p.distB },
+                            ]}
+                          />
                         </td>
                         <td>
                           {p.swingPlayers.length === 0 ? (
