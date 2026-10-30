@@ -29,6 +29,14 @@ export interface PlayoffRaceEntry {
   projectedWins: number;
   /** Projected final losses: current losses + mean simulated losses, one decimal. */
   projectedLosses: number;
+  /** Mean playoff seed (1..N) across the simulated seasons, one decimal. */
+  projectedSeed: number;
+  /**
+   * Model verdict from the simulated seasons: 'clinched' when the team made
+   * the playoffs in every sim, 'eliminated' when it missed in every sim,
+   * 'alive' otherwise. This is the model's verdict, not league-official.
+   */
+  playoffStatus: 'clinched' | 'eliminated' | 'alive';
 }
 
 export interface PlayoffRaceOptions {
@@ -142,6 +150,9 @@ export function playoffRace(
   // record from the same simulations (no extra sim cost).
   const totalWins = new Map<string, number>();
   const totalLosses = new Map<string, number>();
+  // Per-team seed sums, so each team gets a projected playoff seed from the
+  // same simulations (1..N in every sim, so the league mean is constant).
+  const totalSeed = new Map<string, number>();
   const spots = Math.min(playoffTeams, teams.length);
   for (let s = 0; s < sims; s++) {
     const extra = new Map<string, number>();
@@ -181,6 +192,9 @@ export function playoffRace(
       const id = ranked[i].id;
       made.set(id, (made.get(id) ?? 0) + 1);
     }
+    ranked.forEach((t, i) => {
+      totalSeed.set(t.id, (totalSeed.get(t.id) ?? 0) + (i + 1));
+    });
   }
 
   // Game-by-game win probability per team, from the same simulations:
@@ -200,7 +214,7 @@ export function playoffRace(
   }
 
   return teams
-    .map(t => ({
+    .map((t): PlayoffRaceEntry => ({
       teamId: t.id,
       teamName: t.name,
       wins: t.wins || 0,
@@ -215,6 +229,14 @@ export function playoffRace(
         Math.round(((totalWins.get(t.id) ?? 0) / sims) * 10) / 10,
       projectedLosses:
         Math.round(((totalLosses.get(t.id) ?? 0) / sims) * 10) / 10,
+      projectedSeed:
+        Math.round(((totalSeed.get(t.id) ?? 0) / sims) * 10) / 10,
+      playoffStatus:
+        (made.get(t.id) ?? 0) === sims
+          ? 'clinched'
+          : (made.get(t.id) ?? 0) === 0
+            ? 'eliminated'
+            : 'alive',
     }))
     .sort((a, b) => b.playoffProb - a.playoffProb || b.wins - a.wins);
 }

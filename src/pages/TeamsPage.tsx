@@ -432,18 +432,24 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               from each team's season scoring average (shrunk toward the league
               mean). The % next to each opponent is that team's share of sims
               in which it won that game; Proj. W-L is the projected final
-              record from the same simulations. Schedule from the owner's latest sync.
+              record from the same simulations. Proj. seed is the mean playoff
+              seed across the sims, and Status is the model's verdict —
+              Clinched means the team made the playoffs in every sim,
+              Eliminated means it missed in every sim (the model, not the
+              league office). Schedule from the owner's latest sync.
             </p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, and odds">
+              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, seed, status, and odds">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
                     <th scope="col">W-L</th>
                     <th scope="col">Proj. W-L</th>
+                    <th scope="col">Proj. seed</th>
                     <th scope="col">Remaining</th>
                     <th scope="col">SOS</th>
                     <th scope="col">Playoff odds</th>
+                    <th scope="col">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -460,6 +466,12 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       >
                         {r.projectedWins.toFixed(1)}-{r.projectedLosses.toFixed(1)}
                       </td>
+                      <td
+                        title={`Mean playoff seed ${r.projectedSeed.toFixed(1)} of ${race.length} across 10,000 simulated seasons`}
+                        aria-label={`Projected playoff seed: ${r.projectedSeed.toFixed(1)}`}
+                      >
+                        {r.projectedSeed.toFixed(1)}
+                      </td>
                       <td title={remainingTitle(r)}>
                         {r.remaining.length === 0
                           ? '—'
@@ -474,6 +486,28 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       </td>
                       <td className={r.playoffProb >= 50 ? styles.raceLikely : styles.raceLong}>
                         {r.playoffProb}%
+                      </td>
+                      <td
+                        title={
+                          r.playoffStatus === 'clinched'
+                            ? 'Clinched: made the playoffs in all 10,000 simulated seasons (model verdict, not league-official)'
+                            : r.playoffStatus === 'eliminated'
+                              ? 'Eliminated: missed the playoffs in all 10,000 simulated seasons (model verdict, not league-official)'
+                              : 'Still alive in the playoff race'
+                        }
+                        aria-label={
+                          r.playoffStatus === 'clinched'
+                            ? 'Playoff status: clinched, per the model'
+                            : r.playoffStatus === 'eliminated'
+                              ? 'Playoff status: eliminated, per the model'
+                              : 'Playoff status: still alive'
+                        }
+                      >
+                        {r.playoffStatus === 'clinched'
+                          ? 'Clinched'
+                          : r.playoffStatus === 'eliminated'
+                            ? 'Eliminated'
+                            : '—'}
                       </td>
                     </tr>
                   ))}

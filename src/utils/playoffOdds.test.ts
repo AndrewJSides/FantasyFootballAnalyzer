@@ -145,4 +145,50 @@ describe('playoffRace', () => {
       second.map(r => [r.projectedWins, r.projectedLosses]),
     );
   });
+
+  it('projects final seeds from the same simulations', () => {
+    const rows = playoffRace(league(), { simulations: 2000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    const a = byId.get('A')!;
+    const b = byId.get('B')!;
+    const c = byId.get('C')!;
+    const d = byId.get('D')!;
+    // Dominant A is nearly the 1 seed; weak D is nearly the 4 seed.
+    expect(a.projectedSeed).toBeLessThan(1.5);
+    expect(b.projectedSeed).toBeLessThan(c.projectedSeed);
+    expect(c.projectedSeed).toBeLessThan(d.projectedSeed);
+    expect(d.projectedSeed).toBeGreaterThan(3.5);
+    // Every sim assigns seeds 1..4, so the league mean seed is always 2.5.
+    const meanSeed =
+      (a.projectedSeed + b.projectedSeed + c.projectedSeed + d.projectedSeed) / 4;
+    expect(meanSeed).toBeCloseTo(2.5, 1);
+    for (const r of rows) {
+      expect(r.projectedSeed).toBeGreaterThanOrEqual(1);
+      expect(r.projectedSeed).toBeLessThanOrEqual(4);
+      // One-decimal precision.
+      expect(r.projectedSeed).toBe(Math.round(r.projectedSeed * 10) / 10);
+    }
+    // Deterministic with a seed.
+    const again = playoffRace(league(), { simulations: 2000, seed: 42 });
+    expect(again.map(r => r.projectedSeed)).toEqual(rows.map(r => r.projectedSeed));
+  });
+
+  it('marks clinched, eliminated, and alive teams', () => {
+    const x = team('X', 'Ex', 8, 0, 1200); // 8 wins already: can't miss top 2
+    const z = team('Z', 'Zed', 4, 4, 920); // 4-4: second spot is up for grabs
+    const w = team('W', 'Dub', 4, 4, 896); // 4-4: the rival for it
+    const y = team('Y', 'Why', 0, 8, 800); // 0 wins: can't catch anyone
+    const lg = league({
+      teams: [x, z, w, y],
+      playoffTeams: 2,
+      futureSchedule: [matchup(9, 'X', 'Y'), matchup(9, 'Z', 'W'), matchup(10, 'X', 'Y'), matchup(10, 'Z', 'W')],
+    });
+    const rows = playoffRace(lg, { simulations: 2000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    // X never finishes worse than 8 wins: clinched. Y can never reach 2: eliminated.
+    expect(byId.get('X')!.playoffStatus).toBe('clinched');
+    expect(byId.get('Y')!.playoffStatus).toBe('eliminated');
+    // Z wins the second spot in some sims and loses it in others: alive.
+    expect(byId.get('Z')!.playoffStatus).toBe('alive');
+  });
 });
