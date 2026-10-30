@@ -792,6 +792,10 @@ export async function loadLeague(leagueKey: string): Promise<League> {
     team.draftPicks = draftPicks.filter(p => p.teamId === team.id);
   }
 
+  // Current rosters drive every ownership flag in the app (ROS rankings,
+  // waiver tools, roster alerts, trade finder). One call for all teams.
+  await fetchCurrentRosters(leagueKey, teams);
+
   // Yahoo never exposes the auction budget in settings; the best available
   // read is the biggest per-team spend in a completed auction (teams almost
   // always spend to the cap). Stays undefined predraft or for snake.
@@ -913,6 +917,38 @@ function parseDraftResults(data: any, teams: Team[]): DraftPick[] {
   }
 
   return picks;
+}
+
+// Current rosters for every team, one call. Without this the Team objects
+// loadLeague returns have no roster array, and every ownership-dependent
+// surface (ROS rankings, waiver tools, roster alerts, trade finder) treats
+// every player as a free agent. Failure is non-fatal: the league still
+// loads, just without ownership flags.
+export async function fetchCurrentRosters(leagueKey: string, teams: Team[]): Promise<void> {
+  try {
+    const data = await yahooFetch<any>(`/league/${leagueKey}/teams/roster`);
+    const teamsNode = data?.fantasy_content?.league?.teams?.team;
+    if (!teamsNode) return;
+    const list = Array.isArray(teamsNode) ? teamsNode : [teamsNode];
+    const byKey = new Map(teams.map(t => [t.id, t]));
+    for (const tn of list) {
+      const team = byKey.get(tn?.team_key);
+      if (!team) continue;
+      const players = tn?.roster?.players?.player;
+      const arr = players ? (Array.isArray(players) ? players : [players]) : [];
+      team.roster = arr
+        .filter((p: any) => p?.player_key)
+        .map((p: any): Player => ({
+          id: p.player_key,
+          platformId: p.player_key,
+          name: p?.name?.full || '',
+          position: yahooPosition(p),
+          team: p?.editorial_team_abbr || '',
+        }));
+    }
+  } catch (e) {
+    logger.warn('[Yahoo] current rosters fetch failed; ownership flags will be empty:', e);
+  }
 }
 
 function parseTransactions(data: any, teams: Team[]): { transactions: Transaction[]; trades: Trade[] } {

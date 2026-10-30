@@ -18,6 +18,7 @@ import {
   getDeviceId,
   yahooPosition,
   clearYahooHistoryCache,
+  fetchCurrentRosters,
 } from './yahoo';
 
 describe('NFL_GAME_KEYS', () => {
@@ -1524,5 +1525,91 @@ describe('yahoo device linking', () => {
     localStorage.setItem('yahoo_access_token', 'test-token');
     localStorage.setItem('yahoo_token_expiry', String(Date.now() + 60 * 60 * 1000));
     expect(isAuthenticated()).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchCurrentRosters: every ownership surface depends on team.roster.
+// Regression: live Yahoo loads once shipped with no roster arrays, so ROS
+// rankings / waiver tools / roster alerts / trade finder treated every
+// player as a free agent.
+// ---------------------------------------------------------------------------
+
+describe('fetchCurrentRosters', () => {
+  const KEY = '470.l.855311';
+  const rosterBody = {
+    fantasy_content: {
+      league: {
+        teams: {
+          team: [
+            {
+              team_key: '470.l.855311.t.1',
+              roster: {
+                players: {
+                  player: [
+                    {
+                      player_key: '470.p.1',
+                      name: { full: 'Test Runner' },
+                      display_position: 'RB',
+                      editorial_team_abbr: 'SF',
+                    },
+                    {
+                      player_key: '470.p.2',
+                      name: { full: 'Houston' },
+                      display_position: 'DEF',
+                      editorial_team_abbr: 'HOU',
+                    },
+                  ],
+                },
+              },
+            },
+            { team_key: '470.l.855311.t.2', roster: { players: { player: [] } } },
+          ],
+        },
+      },
+    },
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.removeItem('yahoo_access_token');
+    localStorage.removeItem('yahoo_token_expiry');
+  });
+
+  it('populates team.roster with Player objects keyed by Yahoo player key', async () => {
+    localStorage.setItem('yahoo_access_token', 'test-token');
+    localStorage.setItem('yahoo_token_expiry', String(Date.now() + 60 * 60 * 1000));
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const endpoint = decodeURIComponent(String(input).match(/endpoint=([^&]+)/)![1]);
+      if (endpoint === `/league/${KEY}/teams/roster`) {
+        return new Response(JSON.stringify(rosterBody), { status: 200 });
+      }
+      throw new Error(`unexpected endpoint ${endpoint}`);
+    }));
+    const teams = [
+      { id: '470.l.855311.t.1', name: 'Alpha', roster: undefined },
+      { id: '470.l.855311.t.2', name: 'Beta', roster: undefined },
+    ] as any;
+    await fetchCurrentRosters(KEY, teams);
+    expect(teams[0].roster).toHaveLength(2);
+    expect(teams[0].roster[0]).toMatchObject({
+      id: '470.p.1',
+      platformId: '470.p.1',
+      name: 'Test Runner',
+      position: 'RB',
+      team: 'SF',
+    });
+    // Team defenses keep their DEF position for DST resolution downstream.
+    expect(teams[0].roster[1].position).toBe('DEF');
+    expect(teams[1].roster).toHaveLength(0);
+  });
+
+  it('leaves rosters undefined (not crashing) when the call fails', async () => {
+    localStorage.setItem('yahoo_access_token', 'test-token');
+    localStorage.setItem('yahoo_token_expiry', String(Date.now() + 60 * 60 * 1000));
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+    const teams = [{ id: '470.l.855311.t.1', name: 'Alpha' }] as any;
+    await expect(fetchCurrentRosters(KEY, teams)).resolves.toBeUndefined();
+    expect(teams[0].roster).toBeUndefined();
   });
 });
