@@ -165,6 +165,22 @@ describe('TeamsPage playoff race', () => {
       screen.queryByRole('heading', { name: 'Playoff Race' }),
     ).not.toBeInTheDocument();
   });
+
+  it('renders a projected final W-L column from the same simulations', () => {
+    renderPage(league());
+    const table = screen.getByRole('table', { name: /playoff race/i });
+    // New column header sits after the current W-L.
+    const headers = screen.getAllByRole('columnheader');
+    const names = headers.map(h => h.textContent);
+    expect(names).toContain('Proj. W-L');
+    // The dominant team's row names its projected final record, one decimal,
+    // in an accessible label and a hover title.
+    const rows = screen.getAllByRole('row');
+    expect(rows[1]).toHaveTextContent(/9\.[5-9]-[01]\.[0-9]/);
+    expect(
+      screen.getAllByLabelText(/Projected final record: [\d.]+ wins, [\d.]+ losses/),
+    ).toHaveLength(4);
+  });
 });
 
 describe('TeamsPage matchup preview', () => {

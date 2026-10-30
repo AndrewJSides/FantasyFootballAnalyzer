@@ -114,4 +114,35 @@ describe('playoffRace', () => {
     expect(playoffRace(league({ futureSchedule: undefined }))).toEqual([]);
     expect(playoffRace(league({ playoffTeams: undefined }))).toEqual([]);
   });
+
+  it('projects final records from the same simulations', () => {
+    const rows = playoffRace(league(), { simulations: 2000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    const a = byId.get('A')!;
+    const d = byId.get('D')!;
+    // Dominant team nearly sweeps its two soft games; weak team nearly none.
+    expect(a.projectedWins).toBeGreaterThanOrEqual(9.5);
+    expect(a.projectedWins).toBeLessThanOrEqual(10);
+    expect(d.projectedWins).toBeGreaterThanOrEqual(1);
+    expect(d.projectedWins).toBeLessThanOrEqual(1.5);
+    expect(d.projectedLosses).toBeGreaterThanOrEqual(8.5);
+    // Wins + losses + ties must account for every played + remaining game.
+    for (const r of rows) {
+      const total = r.projectedWins + r.projectedLosses + r.ties;
+      expect(total).toBeCloseTo(10, 1);
+    }
+    // One-decimal precision.
+    for (const r of rows) {
+      expect(r.projectedWins).toBe(Math.round(r.projectedWins * 10) / 10);
+      expect(r.projectedLosses).toBe(Math.round(r.projectedLosses * 10) / 10);
+    }
+  });
+
+  it('is deterministic for projected records with a seed', () => {
+    const first = playoffRace(league(), { simulations: 500, seed: 7 });
+    const second = playoffRace(league(), { simulations: 500, seed: 7 });
+    expect(first.map(r => [r.projectedWins, r.projectedLosses])).toEqual(
+      second.map(r => [r.projectedWins, r.projectedLosses]),
+    );
+  });
 });

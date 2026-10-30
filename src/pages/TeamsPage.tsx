@@ -431,14 +431,16 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               {league.playoffTeams} playoff spots · 10,000 simulated seasons
               from each team's season scoring average (shrunk toward the league
               mean). The % next to each opponent is that team's share of sims
-              in which it won that game. Schedule from the owner's latest sync.
+              in which it won that game; Proj. W-L is the projected final
+              record from the same simulations. Schedule from the owner's latest sync.
             </p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix} aria-label="Playoff race: remaining schedule and odds">
+              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, and odds">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
                     <th scope="col">W-L</th>
+                    <th scope="col">Proj. W-L</th>
                     <th scope="col">Remaining</th>
                     <th scope="col">SOS</th>
                     <th scope="col">Playoff odds</th>
@@ -451,6 +453,12 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       <td>
                         {r.wins}-{r.losses}
                         {r.ties > 0 ? `-${r.ties}` : ''}
+                      </td>
+                      <td
+                        title={`Projected final record ${r.projectedWins.toFixed(1)}-${r.projectedLosses.toFixed(1)} from 10,000 simulated seasons`}
+                        aria-label={`Projected final record: ${r.projectedWins.toFixed(1)} wins, ${r.projectedLosses.toFixed(1)} losses`}
+                      >
+                        {r.projectedWins.toFixed(1)}-{r.projectedLosses.toFixed(1)}
                       </td>
                       <td title={remainingTitle(r)}>
                         {r.remaining.length === 0

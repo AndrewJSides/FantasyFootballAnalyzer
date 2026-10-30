@@ -25,6 +25,10 @@ export interface PlayoffRaceEntry {
   sosRank: number;
   /** 0..100, one decimal. */
   playoffProb: number;
+  /** Projected final wins: current wins + mean simulated wins, one decimal. */
+  projectedWins: number;
+  /** Projected final losses: current losses + mean simulated losses, one decimal. */
+  projectedLosses: number;
 }
 
 export interface PlayoffRaceOptions {
@@ -134,6 +138,10 @@ export function playoffRace(
   // a game-by-game win probability priced on the same simulations.
   const team1Wins = new Map<string, number>();
   for (const m of remaining) team1Wins.set(gameKey(m.week, m.team1Id, m.team2Id), 0);
+  // Per-team final win/loss totals, so each team gets a projected final
+  // record from the same simulations (no extra sim cost).
+  const totalWins = new Map<string, number>();
+  const totalLosses = new Map<string, number>();
   const spots = Math.min(playoffTeams, teams.length);
   for (let s = 0; s < sims; s++) {
     const extra = new Map<string, number>();
@@ -146,6 +154,15 @@ export function playoffRace(
       } else {
         extra.set(m.team2Id, (extra.get(m.team2Id) ?? 0) + 1);
       }
+    }
+    for (const t of teams) {
+      const ew = extra.get(t.id) ?? 0;
+      const gamesLeft = remByTeam.get(t.id)?.length ?? 0;
+      totalWins.set(t.id, (totalWins.get(t.id) ?? 0) + (t.wins || 0) + ew);
+      totalLosses.set(
+        t.id,
+        (totalLosses.get(t.id) ?? 0) + (t.losses || 0) + (gamesLeft - ew),
+      );
     }
     const ranked = [...teams].sort((a, b) => {
       const pa = winPct(a, extra.get(a.id) ?? 0);
@@ -194,6 +211,10 @@ export function playoffRace(
       sosRank: sosRank.get(t.id) ?? teams.length,
       playoffProb:
         Math.round(((made.get(t.id) ?? 0) / sims) * 1000) / 10,
+      projectedWins:
+        Math.round(((totalWins.get(t.id) ?? 0) / sims) * 10) / 10,
+      projectedLosses:
+        Math.round(((totalLosses.get(t.id) ?? 0) / sims) * 10) / 10,
     }))
     .sort((a, b) => b.playoffProb - a.playoffProb || b.wins - a.wins);
 }
