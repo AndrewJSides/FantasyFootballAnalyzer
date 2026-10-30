@@ -2,7 +2,8 @@
 // track opponent strength, and seeded runs are deterministic.
 
 import { describe, it, expect } from 'vitest';
-import { playoffRace } from './playoffOdds';
+import { playoffRace, simulateBracketChampion, mulberry32 } from './playoffOdds';
+import type { BracketSeed } from './playoffOdds';
 import type { League, Team, WeeklyMatchup } from '@/types';
 
 function team(
@@ -190,5 +191,98 @@ describe('playoffRace', () => {
     expect(byId.get('Y')!.playoffStatus).toBe('eliminated');
     // Z wins the second spot in some sims and loses it in others: alive.
     expect(byId.get('Z')!.playoffStatus).toBe('alive');
+  });
+
+  it('prices championship odds on fully simulated brackets', () => {
+    const rows = playoffRace(league(), { simulations: 2000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    const a = byId.get('A')!;
+    const b = byId.get('B')!;
+    const c = byId.get('C')!;
+    const d = byId.get('D')!;
+    // Bounds, one-decimal precision.
+    for (const r of rows) {
+      expect(r.championProb).toBeGreaterThanOrEqual(0);
+      expect(r.championProb).toBeLessThanOrEqual(100);
+      expect(r.championProb).toBe(Math.round(r.championProb * 10) / 10);
+    }
+    // The dominant team is the title favorite; C and D never make the
+    // playoff field here, so neither can win the title.
+    expect(a.championProb).toBeGreaterThan(60);
+    expect(a.championProb).toBeGreaterThan(b.championProb);
+    expect(b.championProb).toBeGreaterThanOrEqual(c.championProb);
+    expect(c.championProb).toBeGreaterThanOrEqual(d.championProb);
+    expect(c.championProb).toBe(0);
+    expect(d.championProb).toBe(0);
+    // No title without a playoff berth.
+    for (const r of rows) {
+      expect(r.championProb).toBeLessThanOrEqual(r.playoffProb);
+    }
+    // Every sim crowns exactly one champion: the shares sum to ~100.
+    const total = rows.reduce((sum, r) => sum + r.championProb, 0);
+    expect(total).toBeGreaterThan(99.5);
+    expect(total).toBeLessThan(100.5);
+    // Deterministic with a seed (covers the bracket sim's rand usage).
+    const again = playoffRace(league(), { simulations: 2000, seed: 42 });
+    expect(again.map(r => r.championProb)).toEqual(rows.map(r => r.championProb));
+  });
+
+  it('never crowns a team that misses the playoffs in every sim', () => {
+    const x = team('X', 'Ex', 8, 0, 1200);
+    const z = team('Z', 'Zed', 4, 4, 920);
+    const w = team('W', 'Dub', 4, 4, 896);
+    const y = team('Y', 'Why', 0, 8, 800);
+    const lg = league({
+      teams: [x, z, w, y],
+      playoffTeams: 2,
+      futureSchedule: [matchup(9, 'X', 'Y'), matchup(9, 'Z', 'W'), matchup(10, 'X', 'Y'), matchup(10, 'Z', 'W')],
+    });
+    const rows = playoffRace(lg, { simulations: 2000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    expect(byId.get('Y')!.playoffStatus).toBe('eliminated');
+    expect(byId.get('Y')!.championProb).toBe(0);
+    expect(byId.get('X')!.championProb).toBeGreaterThan(50);
+  });
+});
+
+describe('simulateBracketChampion', () => {
+  const seeds = (n: number): BracketSeed[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `S${i + 1}`,
+      seed: i + 1,
+      rating: 100,
+    }));
+  const favorFirst = () => 1;
+  const favorSecond = () => 0;
+  const fresh = () => mulberry32(1234);
+
+  it('crowns the top seed when it always wins', () => {
+    expect(simulateBracketChampion(seeds(6), favorFirst, fresh())).toBe('S1');
+    expect(simulateBracketChampion(seeds(4), favorFirst, fresh())).toBe('S1');
+    expect(simulateBracketChampion(seeds(5), favorFirst, fresh())).toBe('S1');
+    expect(simulateBracketChampion(seeds(2), favorFirst, fresh())).toBe('S1');
+    expect(simulateBracketChampion(seeds(1), favorFirst, fresh())).toBe('S1');
+  });
+
+  it('follows the standard 6-team shape (3v6, 4v5 quarters; top seeds byed)', () => {
+    // Second side always wins: seed 6 beats seed 3, seed 5 beats seed 4;
+    // then seed 6 beats seed 1, seed 5 beats seed 2; seed 5 wins the final.
+    expect(simulateBracketChampion(seeds(6), favorSecond, fresh())).toBe('S5');
+    // First side always wins: 3 beats 6, 4 beats 5; 1 beats 3, 2 beats 4;
+    // 1 beats 2 in the final.
+    expect(simulateBracketChampion(seeds(6), favorFirst, fresh())).toBe('S1');
+  });
+
+  it('follows the 4-team semifinal shape (1v4, 2v3)', () => {
+    // Seed 4 beats seed 1, seed 3 beats seed 2; seed 3 beats seed 4.
+    expect(simulateBracketChampion(seeds(4), favorSecond, fresh())).toBe('S3');
+  });
+
+  it('always crowns an entrant and returns empty for no entrants', () => {
+    const ids = new Set(seeds(6).map(s => s.id));
+    for (let i = 0; i < 20; i++) {
+      expect(ids.has(simulateBracketChampion(seeds(6), mulberry32(i), fresh()))).toBe(true);
+    }
+    expect(simulateBracketChampion([], favorFirst, fresh())).toBe('');
   });
 });

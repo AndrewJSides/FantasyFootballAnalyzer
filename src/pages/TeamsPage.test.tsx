@@ -166,19 +166,20 @@ describe('TeamsPage playoff race', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders a projected final W-L column from the same simulations', () => {
+  it('renders championship odds column and a projected-champion callout', () => {
     renderPage(league());
     const table = screen.getByRole('table', { name: /playoff race/i });
-    // New column header sits after the current W-L.
     const headers = screen.getAllByRole('columnheader');
     const names = headers.map(h => h.textContent);
-    expect(names).toContain('Proj. W-L');
-    // The dominant team's row names its projected final record, one decimal,
-    // in an accessible label and a hover title.
-    const rows = screen.getAllByRole('row');
-    expect(rows[1]).toHaveTextContent(/9\.[5-9]-[01]\.[0-9]/);
+    expect(names).toContain('Champ %');
+    // The projected champion is named above the table (Alpha is the
+    // runaway favorite in the fixture league).
     expect(
-      screen.getAllByLabelText(/Projected final record: [\d.]+ wins, [\d.]+ losses/),
+      screen.getByText(/Projected champion:/, { exact: false }),
+    ).toHaveTextContent(/Projected champion: Alpha \([\d.]+%\)/);
+    // Every row names its championship odds in an accessible label.
+    expect(
+      screen.getAllByLabelText(/Championship odds: [\d.]+%/),
     ).toHaveLength(4);
   });
 });

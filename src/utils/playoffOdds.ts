@@ -37,6 +37,12 @@ export interface PlayoffRaceEntry {
    * 'alive' otherwise. This is the model's verdict, not league-official.
    */
   playoffStatus: 'clinched' | 'eliminated' | 'alive';
+  /**
+   * 0..100, one decimal — share of the simulated seasons in which this team
+   * won the fully simulated playoff bracket (see simulateBracketChampion).
+   * This is the model's verdict, not league-official.
+   */
+  championProb: number;
 }
 
 export interface PlayoffRaceOptions {
@@ -64,6 +70,60 @@ function winPct(t: Team, extraWins = 0): number {
 
 function winProb(ra: number, rb: number): number {
   return 1 / (1 + Math.pow(10, -(ra - rb) / ELO_SCALE));
+}
+
+/** A playoff entrant: 1-based seed (1 = best) with its scoring rating. */
+export interface BracketSeed {
+  id: string;
+  seed: number;
+  rating: number;
+}
+
+/**
+ * Simulate one single-elimination playoff bracket and return the champion's
+ * id. Seeds drive the pairing (6-team: top two seeds get byes, 3v6 and 4v5
+ * in the quarters; 4-team: 1v4 and 2v3 semifinals; other sizes: generic
+ * top-vs-bottom pairing with a bye for the top seed on odd rounds).
+ * Playoff games use the same rating-based win probability as the regular
+ * season sims — a neutral-site game between the two seeds' ratings.
+ */
+export function simulateBracketChampion(
+  seeds: BracketSeed[],
+  winProbFn: (ra: number, rb: number) => number,
+  rand: () => number,
+): string {
+  if (seeds.length === 0) return '';
+  const sorted = [...seeds].sort((x, y) => x.seed - y.seed);
+  if (sorted.length === 1) return sorted[0].id;
+  const play = (a: BracketSeed, b: BracketSeed): BracketSeed =>
+    rand() < winProbFn(a.rating, b.rating) ? a : b;
+  const n = sorted.length;
+  if (n === 6) {
+    const quarters = [play(sorted[2], sorted[5]), play(sorted[3], sorted[4])];
+    const low = quarters[0].seed > quarters[1].seed ? quarters[0] : quarters[1];
+    const high = quarters[0].seed > quarters[1].seed ? quarters[1] : quarters[0];
+    const semis = [play(sorted[0], low), play(sorted[1], high)];
+    return play(semis[0], semis[1]).id;
+  }
+  if (n === 4) {
+    const semis = [play(sorted[0], sorted[3]), play(sorted[1], sorted[2])];
+    return play(semis[0], semis[1]).id;
+  }
+  let round = sorted;
+  while (round.length > 1) {
+    const next: BracketSeed[] = [];
+    let start = 0;
+    if (round.length % 2 === 1) {
+      next.push(round[0]); // top seed byes an odd-sized round
+      start = 1;
+    }
+    const m = round.length;
+    for (let i = start; i < (start + m) / 2; i++) {
+      next.push(play(round[i], round[m - 1 - (i - start)]));
+    }
+    round = next.sort((x, y) => x.seed - y.seed);
+  }
+  return round[0].id;
 }
 
 /** Deterministic PRNG (mulberry32) so tests get stable probabilities. */
@@ -153,6 +213,10 @@ export function playoffRace(
   // Per-team seed sums, so each team gets a projected playoff seed from the
   // same simulations (1..N in every sim, so the league mean is constant).
   const totalSeed = new Map<string, number>();
+  // Per-team simulated championships: each sim's bracket is played out with
+  // the same rating-based win probabilities, and the champion counted.
+  const champion = new Map<string, number>();
+  for (const t of teams) champion.set(t.id, 0);
   const spots = Math.min(playoffTeams, teams.length);
   for (let s = 0; s < sims; s++) {
     const extra = new Map<string, number>();
@@ -195,6 +259,15 @@ export function playoffRace(
     ranked.forEach((t, i) => {
       totalSeed.set(t.id, (totalSeed.get(t.id) ?? 0) + (i + 1));
     });
+    // Play the bracket out: the seeded entrants (ranked 1..spots in this
+    // sim) face off on the same ratings, and the champion is counted.
+    if (spots >= 1) {
+      const entrants = ranked
+        .slice(0, spots)
+        .map((t, i) => ({ id: t.id, seed: i + 1, rating: ratingOf(t.id) }));
+      const champ = simulateBracketChampion(entrants, winProb, rand);
+      if (champ !== '') champion.set(champ, (champion.get(champ) ?? 0) + 1);
+    }
   }
 
   // Game-by-game win probability per team, from the same simulations:
@@ -237,6 +310,8 @@ export function playoffRace(
           : (made.get(t.id) ?? 0) === 0
             ? 'eliminated'
             : 'alive',
+      championProb:
+        Math.round(((champion.get(t.id) ?? 0) / sims) * 1000) / 10,
     }))
     .sort((a, b) => b.playoffProb - a.playoffProb || b.wins - a.wins);
 }

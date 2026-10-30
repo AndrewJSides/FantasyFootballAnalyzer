@@ -153,6 +153,15 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
         : [],
     [race, league.playoffTeams],
   );
+
+  // Highest championship share across the simulated seasons.
+  const projectedChampion = useMemo(
+    () =>
+      race.length > 0
+        ? race.reduce((best, r) => (r.championProb > best.championProb ? r : best))
+        : null,
+    [race],
+  );
   // Per-owner injury summary: each team's injured rostered players, worst
   // first, from the bundled pool's Sleeper injury data. Hides when the sync
   // fetched no rosters (there's nobody to attribute injuries to).
@@ -444,10 +453,20 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               seed across the sims, and Status is the model's verdict —
               Clinched means the team made the playoffs in every sim,
               Eliminated means it missed in every sim (the model, not the
-              league office). Schedule from the owner's latest sync.
+              league office). Champ % is the share of sims in which the team
+              won the fully simulated playoff bracket. Schedule from the
+              owner's latest sync.
             </p>
+            {projectedChampion && (
+              <p className={styles.sectionHint}>
+                Projected champion: {projectedChampion.teamName}{' '}
+                ({projectedChampion.championProb}%) — the highest championship
+                share across the 10,000 simulated seasons (model verdict, not
+                league-official).
+              </p>
+            )}
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, seed, status, and odds">
+              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, seed, championship odds, status, and odds">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
@@ -457,6 +476,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                     <th scope="col">Remaining</th>
                     <th scope="col">SOS</th>
                     <th scope="col">Playoff odds</th>
+                    <th scope="col">Champ %</th>
                     <th scope="col">Status</th>
                   </tr>
                 </thead>
@@ -496,6 +516,12 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                         {r.playoffProb}%
                       </td>
                       <td
+                        title={`Championship odds: won ${r.championProb}% of 10,000 fully simulated playoff brackets (model verdict, not league-official)`}
+                        aria-label={`Championship odds: ${r.championProb}%`}
+                      >
+                        {r.championProb}%
+                      </td>
+                      <td
                         title={
                           r.playoffStatus === 'clinched'
                             ? 'Clinched: made the playoffs in all 10,000 simulated seasons (model verdict, not league-official)'
@@ -530,7 +556,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                 <p className={styles.sectionHint}>
                   Pairs the projected seeds above; the higher seed is favored
                   in each matchup. Later rounds show winners to be determined —
-                  individual playoff games are not simulated.
+                  the bracket itself does not play individual games, but the
+                  Champ % column in the table above does: it comes from fully
+                  simulating these playoff brackets in each of the 10,000
+                  seasons.
                 </p>
                 {bracket.map(round => (
                   <div key={round.label}>
