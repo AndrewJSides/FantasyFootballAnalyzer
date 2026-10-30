@@ -23,6 +23,8 @@ export interface ScoredPlayer extends OptimalLineupPlayer {
   ppg: number | null;
   last3: number | null;
   projection: WeeklyProjection | null;
+  /** Population std dev of completed-week scores; null with fewer than 2 games. */
+  stdDev: number | null;
   bye: number | null;
   onBye: boolean;
   matchup: MatchupRating | null;
@@ -99,6 +101,18 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
         : null;
     const projection = projectWeeklyPoints(completed, gpCompleted, matchupContext);
     const bye = resolvePoolPlayer(rosterPlayer, poolIndex)?.bye ?? null;
+    // Week-to-week volatility for the Monte Carlo win-probability model:
+    // population std dev of the player's own completed weeks, same series
+    // the consistency ratings summarize. Null before 2 games — the caller
+    // substitutes a position-scaled estimate.
+    const scoredWeeks = completed.map(e => e.pts);
+    let stdDev: number | null = null;
+    if (scoredWeeks.length >= 2) {
+      const mean = scoredWeeks.reduce((a, b) => a + b, 0) / scoredWeeks.length;
+      stdDev = Math.sqrt(
+        scoredWeeks.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / scoredWeeks.length,
+      );
+    }
     return {
       id: rosterPlayer.id,
       name: rosterPlayer.name,
@@ -109,6 +123,7 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
       ppg,
       last3,
       projection,
+      stdDev,
       bye,
       onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
       matchup,

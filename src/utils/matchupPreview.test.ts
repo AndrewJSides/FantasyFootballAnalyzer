@@ -99,12 +99,26 @@ describe('projectTeamScore', () => {
 
 describe('previewWeeklyMatchups', () => {
   it('returns a 50/50 preview for identical rosters', () => {
-    const [p] = previewWeeklyMatchups(league());
+    // Varied weekly lines so every player has real volatility (steady data
+    // would give zero variance and no swing players).
+    const varied: Record<string, Record<number, number>> = {};
+    for (const [id, pts] of [
+      ['qb1', 20], ['rb1', 12], ['rb2', 10], ['wr1', 11], ['wr2', 9], ['te1', 8],
+    ] as const) {
+      const w: Record<number, number> = {};
+      for (let week = 1; week <= 7; week++) w[week] = pts + (week % 3) - 1;
+      varied[id] = w;
+    }
+    const [p] = previewWeeklyMatchups(league({ playerWeeklyPoints: varied }), { seed: 7 });
     expect(p.week).toBe(8);
     expect(p.teamAId).toBe('A');
     expect(p.teamBId).toBe('B');
     expect(p.projA).toBeCloseTo(p.projB, 6);
-    expect(p.winProbA).toBeCloseTo(50, 0);
+    expect(Math.abs(p.winProbA - 50)).toBeLessThan(2);
+    expect(p.swingPlayers).toHaveLength(3);
+    // Both teams own identical rosters, so swing players can come from
+    // either side and carry the same names.
+    expect(new Set(p.swingPlayers.map(s => s.teamId)).size).toBeGreaterThanOrEqual(1);
   });
 
   it('favors the stronger team and keeps probabilities complementary', () => {
@@ -118,7 +132,7 @@ describe('previewWeeklyMatchups', () => {
         bqb: steady(25), brb: steady(20), brb2: steady(18), bwr: steady(19), bwr2: steady(16), bte: steady(14),
       },
     });
-    const [p] = previewWeeklyMatchups(l);
+    const [p] = previewWeeklyMatchups(l, { seed: 7 });
     expect(p.projB).toBeGreaterThan(p.projA);
     expect(p.winProbA).toBeLessThan(50);
     // Team B's probability is the complement of team A's.

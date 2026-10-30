@@ -349,9 +349,12 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               Projected scores from TraderApe&apos;s weekly projection model
               (recency-weighted form blended with the season baseline, nudged
               by this week&apos;s matchup difficulty — the same engine as
-              Start/Sit), priced on completed weeks only. A 30-point projected
-              gap ≈ 91% win probability. Schedule from the owner&apos;s latest
-              sync.
+              Start/Sit), priced on completed weeks only. Win probabilities
+              are Monte Carlo: 10,000 simulated weeks, each starter&apos;s
+              score drawn from his projection ± his own week-to-week
+              volatility. Swing players are the starters carrying the most
+              of the matchup&apos;s variance — the ones most likely to decide
+              it. Schedule from the owner&apos;s latest sync.
             </p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
               <table className={styles.matrix} aria-label="This week's matchup projections">
@@ -360,6 +363,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                     <th scope="col">Matchup</th>
                     <th scope="col">Proj. score</th>
                     <th scope="col">Win probability</th>
+                    <th scope="col">Swing players</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -389,6 +393,23 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                               style={{ width: `${p.winProbA}%` }}
                             />
                           </div>
+                        </td>
+                        <td>
+                          {p.swingPlayers.length === 0 ? (
+                            <span>—</span>
+                          ) : (
+                            <span>
+                              {p.swingPlayers.map((s, i) => (
+                                <span
+                                  key={`${s.teamId}-${s.name}`}
+                                  title={`${s.name} (${teamById.get(s.teamId)?.name ?? s.teamId}) — ±${s.std.toFixed(1)} pts week to week, ~${s.swingShare.toFixed(1)}% of this matchup's swing`}
+                                >
+                                  {s.name}
+                                  {i < p.swingPlayers.length - 1 ? ' · ' : ''}
+                                </span>
+                              ))}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
