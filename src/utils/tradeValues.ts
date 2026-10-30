@@ -110,6 +110,49 @@ export interface PackageVerdict {
 /** Fairness band: within 5 value points the deal is a fair swap. */
 export const PACKAGE_FAIR_BAND = 5;
 
+/** One stored trade value chart snapshot (see scripts/snapshotTradeValues.ts). */
+export interface TradeValueSnapshot {
+  /** Calendar date the snapshot was taken, YYYY-MM-DD. */
+  date: string;
+  /** Player pool id → chart value on the 0-100 scale, one decimal. */
+  values: Record<string, number>;
+}
+
+/** Value-change deltas between the two most recent chart snapshots. */
+export interface TradeValueDeltaInfo {
+  /** Player pool id → value change (current − baseline), one decimal. */
+  deltaByPoolId: Map<string, number>;
+  /** Date of the baseline snapshot. */
+  baselineDate: string;
+  /** Date of the latest snapshot. */
+  currentDate: string;
+}
+
+/**
+ * Value-change deltas between the two most recent chart snapshots. Both
+ * snapshots are priced on the standard 10-team full-PPR scale (see
+ * scripts/snapshotTradeValues.ts), so deltas are apples-to-apples even in
+ * league mode. Returns null with fewer than two snapshots; players missing
+ * from the baseline snapshot get no delta.
+ */
+export function tradeValueDeltas(
+  snapshots: TradeValueSnapshot[],
+): TradeValueDeltaInfo | null {
+  if (snapshots.length < 2) return null;
+  const ordered = [...snapshots].sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+  );
+  const baseline = ordered[ordered.length - 2];
+  const current = ordered[ordered.length - 1];
+  const deltaByPoolId = new Map<string, number>();
+  for (const [id, value] of Object.entries(current.values)) {
+    const base = baseline.values[id];
+    if (typeof base !== 'number') continue;
+    deltaByPoolId.set(id, round1(value - base));
+  }
+  return { deltaByPoolId, baselineDate: baseline.date, currentDate: current.date };
+}
+
 /**
  * Weigh both sides of a package trade by summed chart values. Guidance
  * only: values are a starting point, roster fit decides the deal.

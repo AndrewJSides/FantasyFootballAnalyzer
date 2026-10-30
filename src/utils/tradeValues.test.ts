@@ -4,6 +4,7 @@ import {
   PACKAGE_FAIR_BAND,
   packageTotals,
   tierForValue,
+  tradeValueDeltas,
   tradeValueOf,
   TRADE_VALUE_TIERS,
 } from './tradeValues';
@@ -144,5 +145,46 @@ describe('packageTotals', () => {
   it('values unknown ids at 0', () => {
     const v = packageTotals(values, ['a1', 'unknown'], ['b1']);
     expect(v.sideATotal).toBe(80);
+  });
+});
+
+describe('tradeValueDeltas', () => {
+  const snap = (date: string, values: Record<string, number>) => ({ date, values });
+
+  it('returns null with fewer than two snapshots', () => {
+    expect(tradeValueDeltas([])).toBeNull();
+    expect(tradeValueDeltas([snap('2026-10-30', { a: 100 })])).toBeNull();
+  });
+
+  it('diffs the two most recent snapshots with one-decimal rounding', () => {
+    const info = tradeValueDeltas([
+      snap('2026-10-28', { a: 90, b: 40 }),
+      snap('2026-10-29', { a: 88, b: 40 }),
+      snap('2026-10-30', { a: 95.34, b: 37.76, c: 10 }),
+    ]);
+    expect(info).not.toBeNull();
+    expect(info!.baselineDate).toBe('2026-10-29');
+    expect(info!.currentDate).toBe('2026-10-30');
+    expect(info!.deltaByPoolId.get('a')).toBe(7.3);
+    expect(info!.deltaByPoolId.get('b')).toBe(-2.2);
+  });
+
+  it('skips players missing from the baseline snapshot', () => {
+    const info = tradeValueDeltas([
+      snap('2026-10-29', { a: 90 }),
+      snap('2026-10-30', { a: 95, b: 50 }),
+    ]);
+    expect(info!.deltaByPoolId.has('b')).toBe(false);
+    expect(info!.deltaByPoolId.get('a')).toBe(5);
+  });
+
+  it('handles unsorted input by date', () => {
+    const info = tradeValueDeltas([
+      snap('2026-10-30', { a: 95 }),
+      snap('2026-10-29', { a: 90 }),
+    ]);
+    expect(info!.baselineDate).toBe('2026-10-29');
+    expect(info!.currentDate).toBe('2026-10-30');
+    expect(info!.deltaByPoolId.get('a')).toBe(5);
   });
 });

@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PosBadge } from '@/components';
 import { POOL } from '@/data/draftPool';
+import snapshotsJson from '@/data/tradeValueSnapshots.2026.json';
 import type { League } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { injuryOf } from '@/utils/seasonOutlook';
@@ -19,7 +20,9 @@ import {
   PACKAGE_FAIR_BAND,
   packageTotals,
   TRADE_VALUE_TIERS,
+  tradeValueDeltas,
   type TradeValueRow,
+  type TradeValueSnapshot,
 } from '@/utils/tradeValues';
 import { valueLeagueFor } from '@/utils/tradeAnalysis';
 import { vorConfigFor } from '@/utils/projectionValues';
@@ -30,6 +33,71 @@ const FILTERS: PosFilter[] = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const CHART_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 const SIDE_A_KEY = 'trade-values-side-a';
 const SIDE_B_KEY = 'trade-values-side-b';
+
+/** Stored chart snapshots, oldest first (see scripts/snapshotTradeValues.ts). */
+const SNAPSHOTS: TradeValueSnapshot[] = (
+  snapshotsJson as { snapshots: TradeValueSnapshot[] }
+).snapshots;
+
+const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+const MONTHS_LONG = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/** "2026-10-30" → "Oct 30" (parts parsed directly, no timezone shift). */
+function shortDate(iso: string): string {
+  const [, m, d] = iso.split('-');
+  return `${MONTHS_SHORT[Number(m) - 1]} ${Number(d)}`;
+}
+
+/** "2026-10-30" → "October 30, 2026". */
+function longDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${MONTHS_LONG[Number(m) - 1]} ${Number(d)}, ${y}`;
+}
+
+/**
+ * One cell of the value-change column: the signed delta vs the baseline
+ * snapshot, priced on the standard 10-team full-PPR scale so it compares
+ * apples-to-apples in league mode too.
+ */
+function DeltaCell({
+  name,
+  delta,
+  baselineDate,
+}: {
+  name: string;
+  delta: number | null;
+  baselineDate: string;
+}) {
+  if (delta == null) {
+    return (
+      <span
+        className={styles.deltaNone}
+        title={`${name} was not on the ${shortDate(baselineDate)} baseline chart`}
+      >
+        —
+      </span>
+    );
+  }
+  const cls =
+    delta > 0 ? styles.deltaUp : delta < 0 ? styles.deltaDown : styles.deltaFlat;
+  const signed = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+  const direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'unchanged';
+  return (
+    <span
+      className={cls}
+      title={`${name} trade value ${direction} ${Math.abs(delta).toFixed(1)} since ${longDate(baselineDate)} (standard 10-team full-PPR scale)`}
+      aria-label={`Change since ${longDate(baselineDate)}: ${signed}`}
+    >
+      {signed}
+    </span>
+  );
+}
 
 function injuryTag(player: PoolPlayer): string | null {
   const info = injuryOf(player);
@@ -210,6 +278,11 @@ export function TradeValuesPage({
     [rows, pos],
   );
 
+  // Value-change deltas vs the baseline chart snapshot. The snapshots are
+  // priced on the standard 10-team full-PPR scale, so the delta is shown in
+  // both modes; the Value column itself stays league-shaped in league mode.
+  const deltaInfo = useMemo(() => tradeValueDeltas(SNAPSHOTS), []);
+
   const valueByPoolId = useMemo(
     () => new Map(rows.map(r => [r.player.id, r.value] as const)),
     [rows],
@@ -308,6 +381,14 @@ export function TradeValuesPage({
                     <th scope="col">Pos</th>
                     <th scope="col">NFL</th>
                     <th scope="col">Value</th>
+                    {deltaInfo && (
+                      <th
+                        scope="col"
+                        aria-label={`Change since ${longDate(deltaInfo.baselineDate)}`}
+                      >
+                        Δ since {shortDate(deltaInfo.baselineDate)}
+                      </th>
+                    )}
                     <th scope="col">Tier</th>
                     <th scope="col">Pos rank</th>
                     {live && <th scope="col">Owner</th>}
@@ -328,6 +409,15 @@ export function TradeValuesPage({
                         </td>
                         <td>{row.player.team}</td>
                         <td className={styles.valueCell}>{row.value.toFixed(1)}</td>
+                        {deltaInfo && (
+                          <td>
+                            <DeltaCell
+                              name={row.player.name}
+                              delta={deltaInfo.deltaByPoolId.get(row.player.id) ?? null}
+                              baselineDate={deltaInfo.baselineDate}
+                            />
+                          </td>
+                        )}
                         <td>
                           <span className={`${styles.tier} ${styles[`tier${row.tier}`]}`} title={tierLabel(row)}>
                             {TRADE_VALUE_TIERS[row.tier]}
@@ -392,6 +482,13 @@ export function TradeValuesPage({
           (60+), Core (35+), Starter (15+), Depth (below 15). Deals within{' '}
           {PACKAGE_FAIR_BAND} points are a fair swap. Values compare only
           within one league shape — reprice after trades change the pool.
+          {deltaInfo && (
+            <>
+              {' '}Δ compares the player&rsquo;s value on the standard 10-team
+              full-PPR scale to the {longDate(deltaInfo.baselineDate)}{' '}
+              baseline; the column appears once two chart snapshots exist.
+            </>
+          )}
         </p>
       </div>
     </div>

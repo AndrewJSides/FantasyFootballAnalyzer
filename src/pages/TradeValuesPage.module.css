@@ -94,6 +94,21 @@
   color: var(--lime);
 }
 
+.deltaUp {
+  font-weight: 700;
+  color: var(--lime);
+}
+.deltaDown {
+  font-weight: 700;
+  color: var(--blood-text);
+}
+.deltaFlat {
+  color: var(--bone);
+}
+.deltaNone {
+  color: var(--bone-dim);
+}
+
 .tier {
   font-family: var(--font-mono);
   font-size: 0.72rem;

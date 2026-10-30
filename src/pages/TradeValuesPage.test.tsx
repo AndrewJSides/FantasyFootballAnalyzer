@@ -116,11 +116,20 @@ describe('TradeValuesPage', () => {
   it('ranks the top player at 100 and labels the Elite tier', () => {
     renderPage(guestLeague);
     const table = screen.getByRole('table', { name: /trade value chart/i });
+    // Resolve columns by header so a future Δ column between Value and Tier
+    // can't shift the indices.
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent ?? '');
+    const valueIdx = headers.findIndex(h => h === 'Value');
+    const tierIdx = headers.findIndex(h => h === 'Tier');
+    expect(valueIdx).toBeGreaterThan(-1);
+    expect(tierIdx).toBeGreaterThan(-1);
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows.length).toBeGreaterThan(0);
     const firstCells = within(rows[0]).getAllByRole('cell');
-    expect(firstCells[4]).toHaveTextContent('100.0');
-    expect(firstCells[5]).toHaveTextContent('Elite');
+    expect(firstCells[valueIdx]).toHaveTextContent('100.0');
+    expect(firstCells[tierIdx]).toHaveTextContent('Elite');
   });
 
   it('filters to one position in place', () => {

@@ -14,6 +14,7 @@
     "build:weekly-shape": "tsx scripts/updateWeeklyShape.ts",
     "fetch:rankings": "tsx scripts/fetchRankings.ts",
     "snapshot:projections": "tsx scripts/snapshotProjections.ts",
+    "snapshot:trade-values": "tsx scripts/snapshotTradeValues.ts",
     "fetch:matchups": "tsx scripts/buildMatchupRatings.ts",
     "backtest:projections": "tsx scripts/backtestProjections.ts",
     "grade:predictions": "tsx scripts/gradePredictions.ts",
