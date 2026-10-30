@@ -8,6 +8,14 @@ import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyP
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
 import { round1, scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 import {
+  LINEUP_MODES,
+  modeScore,
+  modeScoreUnit,
+  modeSlotVerb,
+  modeTotalUnit,
+  type LineupMode,
+} from '@/utils/lineupMode';
+import {
   normalizeLineupPos,
   optimalLineup,
   slotEligiblePositions,
@@ -212,18 +220,29 @@ export function StartSitPage({ league }: StartSitPageProps) {
     [roster, weeklyPoints, isGuest, guestWeekly, league.gamesPlayed, league.season, currentWeek],
   );
 
+  // --- Lineup mode: floor/ceiling re-ranking (backlog item 25) ----------------
+  // The optimizer's greedy slot pass ranks on ScoredPlayer.score, so each mode
+  // re-scores the roster on its own basis (projection / P75 upside / P25
+  // floor) before the lineup is built. Switching modes swaps the lineup in
+  // place, like the team picker.
+  const [mode, setMode] = useState<LineupMode>('balanced');
+  const modeScored = useMemo<ScoredPlayer[]>(
+    () => scored.map(s => ({ ...s, score: modeScore(s, mode) })),
+    [scored, mode],
+  );
+
   // Bye-week players score zero this week, so they never start no matter
   // their average — they stay in the bench list with the reason attached.
   const lineup = useMemo(
-    () => optimalLineup(scored.filter(s => !s.onBye), slots),
-    [scored, slots],
+    () => optimalLineup(modeScored.filter(s => !s.onBye), slots),
+    [modeScored, slots],
   );
   const benched: ScoredPlayer[] = useMemo(() => {
     const bench = lineup.bench as ScoredPlayer[];
-    const byeBench = scored.filter(s => s.onBye);
+    const byeBench = modeScored.filter(s => s.onBye);
     return [...bench, ...byeBench].sort((a, b) => (b.ppg ?? 0) - (a.ppg ?? 0));
-  }, [lineup, scored]);
-  const byePlayers = scored.filter(s => s.onBye);
+  }, [lineup, modeScored]);
+  const byePlayers = modeScored.filter(s => s.onBye);
   const starterById = new Map(
     lineup.starters
       .filter(s => s.player)
@@ -238,32 +257,45 @@ export function StartSitPage({ league }: StartSitPageProps) {
       .filter(a => a.player && slotEligiblePositions(a.slot).includes(pos))
       .map(a => a.player as ScoredPlayer)
       .sort((a, b) => a.score - b.score)[0];
-    const sScore = s.projection?.projection ?? s.ppg;
-    if (!displaced || sScore === null || sScore === undefined)
+    const sScore = modeScore(s, mode);
+    if (!displaced || !Number.isFinite(sScore))
       return 'No starting slot at this position.';
-    // Compare on the same basis: projected vs projected, else season average
-    // vs season average, so the gap is never a mixed-unit number.
-    const displacedScore = s.projection
-      ? displaced.score
-      : (displaced.ppg ?? displaced.score);
-    const unit = s.projection ? 'projected pts' : 'pts/game';
-    return `${round1(displacedScore - sScore)} ${unit} behind the ${starterById.get(displaced.id)} starter.`;
+    // Compare on the mode's own basis (projection / P75 upside / P25 floor),
+    // never a mixed-unit number.
+    const unit = modeScoreUnit(mode, s.projection !== null);
+    const modeNote =
+      mode === 'balanced'
+        ? ''
+        : mode === 'ceiling'
+          ? ' P75 upside — the underdog play.'
+          : ' P25 floor — the favorite\u2019s play.';
+    return `${round1(displaced.score - sScore)} ${unit} behind the ${starterById.get(displaced.id)} starter.${modeNote}`;
   };
 
   const starterReason = (s: ScoredPlayer, slot: string): string => {
     const base = slotReason(slot);
-    if (s.projection) return `${base}. ${projectionReason(s.projection, s.matchup?.opponent)}`;
-    return `${base}${trendLabel(s.ppg, s.last3)}.`;
+    const projection = s.projection;
+    if (mode === 'balanced' || !projection) {
+      return projection
+        ? `${base}. ${projectionReason(projection, s.matchup?.opponent)}`
+        : `${base}${trendLabel(s.ppg, s.last3)}.`;
+    }
+    // Ceiling/floor modes: name the mode-adjusted number the ranking ran on,
+    // then the underlying projection reason for checkability.
+    const which = mode === 'ceiling' ? 'Chase ceiling' : 'Protect floor';
+    const pct = mode === 'ceiling' ? 'P75 upside' : 'P25 floor';
+    return `${which}: starts on ${pct} ${modeScore(s, mode)} (${projectionReason(projection, s.matchup?.opponent)})`;
   };
 
   const slotReason = (slot: string): string => {
+    const verb = modeSlotVerb(mode);
     switch (slot) {
       case 'FLEX':
-        return 'Highest average among remaining RB/WR/TE';
+        return `Highest ${verb} among remaining RB/WR/TE`;
       case 'SUPERFLEX':
-        return 'Highest average among remaining QB/RB/WR/TE';
+        return `Highest ${verb} among remaining QB/RB/WR/TE`;
       default:
-        return `Highest average at ${slot}`;
+        return `Highest ${verb} at ${slot}`;
     }
   };
 
@@ -368,9 +400,39 @@ export function StartSitPage({ league }: StartSitPageProps) {
             Waivers/Trade Analyzer in-place swap pattern). Always mounted. */}
         <div aria-live="polite" className="visually-hidden">
           {displayName && !guestDataPending
-            ? `${displayName}: optimal lineup projects ${lineup.totalScore} points.`
+            ? `${displayName}: ${LINEUP_MODES.find(m => m.id === mode)?.label} lineup combines for ${lineup.totalScore} ${modeTotalUnit(mode)}.`
             : ''}
         </div>
+
+        {/* Lineup mode: balanced / chase ceiling / protect floor. Switching
+            re-ranks the lineup in place; the radio labels carry accessible
+            names and the hints explain when each mode is the right call. */}
+        {!guestDataPending && (
+          <fieldset className={styles.modeGroup}>
+            <legend className={styles.modeLegend}>Lineup mode</legend>
+            <div className={styles.modeOptions}>
+              {LINEUP_MODES.map(m => (
+                <label key={m.id} className={styles.modeOption} title={m.hint}>
+                  <input
+                    type="radio"
+                    name="lineup-mode"
+                    value={m.id}
+                    checked={mode === m.id}
+                    onChange={() => setMode(m.id)}
+                    aria-describedby="lineup-mode-hint"
+                  />
+                  {m.label}
+                </label>
+              ))}
+            </div>
+            <p id="lineup-mode-hint" className={styles.modeHint}>
+              A favorite wants steady floors; an underdog needs ceiling.
+              {mode !== 'balanced'
+                ? ` Now ranking on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} from each player\u2019s own week-to-week volatility.`
+                : ''}
+            </p>
+          </fieldset>
+        )}
 
         {isGuest && guestWeeklyState === 'loading' && (
           <div className={styles.empty} role="status">
@@ -410,7 +472,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
               </p>
             )}
             <h2 className={styles.sectionTitle}>
-              Optimal starters · {lineup.totalScore} projected points combined
+              Optimal starters · {lineup.totalScore} {modeTotalUnit(mode)} combined
             </h2>
             <table className={styles.table} aria-label={`Optimal starters for ${displayName ?? 'this roster'}`}>
               <thead>
@@ -505,6 +567,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
               Projected from each player&apos;s last-4-week form blended with
               their season average and nudged by matchup difficulty, so one big
               week can&apos;t over-swing it.
+              {mode !== 'balanced'
+                ? ` ${mode === 'ceiling' ? 'Chase ceiling' : 'Protect floor'} re-ranks the lineup on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} — each player\u2019s projection ${mode === 'ceiling' ? 'plus' : 'minus'} 0.6745 \u00d7 their own week-to-week volatility.`
+                : ''}
               {isGuest
                 ? ' Weekly stats from Sleeper\u2019s public data (full PPR).'
                 : ''}{' '}

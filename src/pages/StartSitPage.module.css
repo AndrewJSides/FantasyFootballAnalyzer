@@ -59,6 +59,47 @@
   margin: 2rem 0 1rem;
 }
 
+/* Lineup mode selector: balanced / chase ceiling / protect floor. Fieldset +
+   legend carry the accessible group name; radios are the native controls. */
+.modeGroup {
+  border: 1px solid var(--bone-dim);
+  padding: 1rem 1.25rem;
+  margin: 0 0 2rem;
+  max-width: 42rem;
+}
+.modeLegend {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--lime);
+  padding: 0 0.5rem;
+}
+.modeOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+.modeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--bone);
+  cursor: pointer;
+}
+.modeOption input {
+  accent-color: var(--lime);
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.modeHint {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
