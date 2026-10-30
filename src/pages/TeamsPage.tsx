@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { DataAsOf } from '@/components/DataAsOf';
 import { TeamCard } from '@/components/TeamCard';
 import { POOL } from '@/data/draftPool';
@@ -11,7 +11,6 @@ import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
-import ScoreDistBars from '@/components/ScoreDistBars';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
@@ -347,89 +346,11 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               This Week&apos;s Matchups
             </h2>
             <p className={styles.sectionHint}>
-              Projected scores from TraderApe&apos;s weekly projection model
-              (recency-weighted form blended with the season baseline, nudged
-              by this week&apos;s matchup difficulty — the same engine as
-              Start/Sit), priced on completed weeks only. Win probabilities
-              are Monte Carlo: 10,000 simulated weeks, each starter&apos;s
-              score drawn from his projection ± his own week-to-week
-              volatility. Swing players are the starters carrying the most
-              of the matchup&apos;s variance — the ones most likely to decide
-              it. Score range shows each team&apos;s P10–P90 band from the
-              same simulation, with a median tick — the matchup&apos;s
-              realistic shootout-or-snoozer band. Schedule from the
-              owner&apos;s latest sync.
+              The full game plan — projected scores, win probabilities, score
+              distributions, swing players, and per-team start/sit close
+              calls — lives on the{' '}
+              <Link to="/matchup">Matchup view</Link>.
             </p>
-            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix} aria-label="This week's matchup projections">
-                <thead>
-                  <tr>
-                    <th scope="col">Matchup</th>
-                    <th scope="col">Proj. score</th>
-                    <th scope="col">Win probability</th>
-                    <th scope="col">Score range</th>
-                    <th scope="col">Swing players</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matchupPreviews.map(p => {
-                    const aName = teamById.get(p.teamAId)?.name ?? '?';
-                    const bName = teamById.get(p.teamBId)?.name ?? '?';
-                    const favA = p.winProbA >= 50;
-                    const favName = favA ? aName : bName;
-                    const favProb = favA ? p.winProbA : 100 - p.winProbA;
-                    return (
-                      <tr key={`${p.week}-${p.teamAId}-${p.teamBId}`}>
-                        <th scope="row">
-                          {aName} vs {bName}
-                        </th>
-                        <td>
-                          {p.projA.toFixed(1)} – {p.projB.toFixed(1)}
-                        </td>
-                        <td>
-                          <span
-                            title={`${aName} ${p.winProbA.toFixed(1)}% · ${bName} ${(100 - p.winProbA).toFixed(1)}%`}
-                          >
-                            {favName} {favProb.toFixed(1)}%
-                          </span>
-                          <div className={styles.skillBarTrack} aria-hidden="true">
-                            <div
-                              className={styles.skillBarFill}
-                              style={{ width: `${p.winProbA}%` }}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <ScoreDistBars
-                            rows={[
-                              { label: aName, dist: p.distA },
-                              { label: bName, dist: p.distB },
-                            ]}
-                          />
-                        </td>
-                        <td>
-                          {p.swingPlayers.length === 0 ? (
-                            <span>—</span>
-                          ) : (
-                            <span>
-                              {p.swingPlayers.map((s, i) => (
-                                <span
-                                  key={`${s.teamId}-${s.name}`}
-                                  title={`${s.name} (${teamById.get(s.teamId)?.name ?? s.teamId}) — ±${s.std.toFixed(1)} pts week to week, ~${s.swingShare.toFixed(1)}% of this matchup's swing`}
-                                >
-                                  {s.name}
-                                  {i < p.swingPlayers.length - 1 ? ' · ' : ''}
-                                </span>
-                              ))}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           </section>
         )}
 

@@ -41,6 +41,7 @@ const StartSitPage = lazyPage(() => import('@/pages/StartSitPage'), 'StartSitPag
 const TradeFinderPage = lazyPage(() => import('@/pages/TradeFinderPage'), 'TradeFinderPage');
 const ComparePage = lazyPage(() => import('@/pages/ComparePage'), 'ComparePage');
 const TeamsPage = lazyPage(() => import('@/pages/TeamsPage'), 'TeamsPage');
+const MatchupPage = lazyPage(() => import('@/pages/MatchupPage'), 'default');
 const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage');
 const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
 const LuckPage = lazyPage(() => import('@/pages/LuckPage'), 'LuckPage');
@@ -125,6 +126,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/waivers': 'Waivers',
   '/start-sit': 'Start/Sit',
   '/teams': 'Teams',
+  '/matchup': 'Matchup',
   '/history': 'History',
   '/awards': 'Awards',
   '/luck': 'Luck',
@@ -975,6 +977,7 @@ function App() {
             element={league ? <StartSitPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
           />
           <Route path="/teams" element={dataRoute(l => <TeamsPage league={l} />)} />
+          <Route path="/matchup" element={dataRoute(l => <MatchupPage league={l} />)} />
           <Route path="/history" element={dataRoute(l => <HistoryPage league={l} />)} />
           <Route path="/awards" element={dataRoute(l => <AwardsPage league={l} />)} />
           <Route path="/luck" element={dataRoute(l => <LuckPage league={l} />)} />

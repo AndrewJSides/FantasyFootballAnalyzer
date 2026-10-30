@@ -1,0 +1,206 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · Matchup Game Plan
+   ───────────────────────────────────────────── */
+
+.matchupPage {
+  padding: 3rem 0 5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pickButton {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--bone-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--bone);
+  cursor: pointer;
+}
+
+.pickButton[aria-pressed="true"] {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.gameCard {
+  border: 1px solid var(--bone-dim);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.gameTitle {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin-bottom: 0.75rem;
+}
+
+.probRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.probTrack {
+  flex: 1;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--bone-faint, rgba(255, 255, 255, 0.1));
+  overflow: hidden;
+}
+
+.probFill {
+  height: 100%;
+  background: var(--lime);
+}
+
+.probLabel {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--bone);
+  white-space: nowrap;
+}
+
+.scoreLine {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.swingList {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--bone);
+  font-size: 0.9rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0 0 0.75rem;
+}
+
+.lineupTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.lineupTable th,
+.lineupTable td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--bone-faint, rgba(255, 255, 255, 0.08));
+  color: var(--bone);
+}
+
+.lineupTable th {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--bone-dim);
+}
+
+.slotCell {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--bone-dim);
+  text-transform: uppercase;
+}
+
+.flagList {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.flag {
+  border-left: 3px solid var(--gold);
+  padding: 0.5rem 0.75rem;
+  background: var(--bone-faint, rgba(255, 255, 255, 0.06));
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: var(--bone);
+  font-size: 0.9rem;
+}
+
+.flagUpgrade {
+  border-left-color: var(--lime);
+}
+
+.flagTitle {
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.flagNote {
+  color: var(--bone-dim);
+}
+
+.allClear {
+  color: var(--bone-dim);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.method {
+  font-size: 0.82rem;
+  color: var(--bone-dim);
+  max-width: 70ch;
+  line-height: 1.5;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bone-faint, rgba(255, 255, 255, 0.08));
+}
+
+.empty {
+  color: var(--bone-dim);
+  font-size: 0.95rem;
+  padding: 2rem 0;
+}

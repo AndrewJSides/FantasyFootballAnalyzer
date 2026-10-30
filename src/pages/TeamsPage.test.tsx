@@ -168,8 +168,10 @@ describe('TeamsPage playoff race', () => {
 });
 
 describe('TeamsPage matchup preview', () => {
-  // Teams need rosters + weekly points for a preview; the base factory has
-  // neither, so the section stays hidden there.
+  // The full matchup table folded into the dedicated Matchup view
+  // (backlog item 24a): the Teams page now just links to it. The base
+  // factory has neither rosters nor a schedule, so the section stays
+  // hidden there.
   function rosteredLeague(): League {
     const mkPlayer = (id: string, pos: string, nfl: string): Player =>
       ({ id, platformId: id, name: id, position: pos, team: nfl }) as Player;
@@ -192,31 +194,18 @@ describe('TeamsPage matchup preview', () => {
     return { ...l, playerWeeklyPoints: weekly, futureSchedule: [matchup(9, 'A', 'B')] };
   }
 
-  it('renders this week\u2019s projected scores and win probability', () => {
+  it('links to the Matchup view when previews exist', () => {
     renderPage(rosteredLeague());
     expect(
       screen.getByRole('heading', { name: "This Week's Matchups" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('table', { name: /matchup projections/i }),
-    ).toBeInTheDocument();
-    // Team B's players score 15/week vs team A's 10, so B is favored
-    // (getAllByText: the Playoff Race row names the same pairing too).
-    expect(screen.getAllByText(/Beta [\d.]+%/).length).toBeGreaterThan(0);
-  });
-
-  it('renders a score-range distribution bar per team in the matchup preview', () => {
-    renderPage(rosteredLeague());
-    const table = screen.getByRole('table', { name: /matchup projections/i });
+      screen.getByRole('link', { name: 'Matchup view' }),
+    ).toHaveAttribute('href', '/matchup');
+    // The table itself moved to /matchup.
     expect(
-      within(table).getByRole('columnheader', { name: 'Score range' }),
-    ).toBeInTheDocument();
-    // Two P10–P90 range bars, one per team, with their accessible summary.
-    expect(within(table).getAllByTestId('dist-band')).toHaveLength(2);
-    const summaries = within(table).getAllByRole('img');
-    expect(summaries[0].getAttribute('aria-label')).toContain(
-      '80% of simulated weeks score between',
-    );
+      screen.queryByRole('table', { name: /matchup projections/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('hides the section when teams have no rosters', () => {

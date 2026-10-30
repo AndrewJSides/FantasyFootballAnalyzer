@@ -400,6 +400,14 @@ export function Header({
               Start/Sit
             </Link>
             <Link
+              to="/matchup"
+              className={`${styles.navLink} ${location.pathname === '/matchup' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/matchup' ? 'page' : undefined}
+            >
+              Matchup
+            </Link>
+            <Link
               to="/teams"
               className={`${styles.navLink} ${location.pathname === '/teams' ? styles.active : ''}`}
               onClick={handleNavClick}
