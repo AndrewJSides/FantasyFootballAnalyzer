@@ -226,3 +226,22 @@
 .injuryTierOther {
   color: var(--bone-dim);
 }
+
+.gradeLetter {
+  display: inline-block;
+  font-weight: 700;
+  min-width: 3ch;
+  text-align: center;
+}
+
+.gradeA {
+  color: var(--lime);
+}
+
+.gradeC {
+  color: var(--bone-dim);
+}
+
+.gradeDF {
+  color: var(--blood-text);
+}

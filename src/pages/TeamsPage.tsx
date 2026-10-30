@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { DataAsOf } from '@/components/DataAsOf';
 import { TeamCard } from '@/components/TeamCard';
 import { POOL } from '@/data/draftPool';
+import { WEEKLY_SHAPE } from '@/data/weeklyShape';
 import type { League } from '@/types';
 import type { DraftPoolFile } from '@/types/draft';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
@@ -11,6 +12,7 @@ import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
+import { buildTeamGrades } from '@/utils/teamGrades';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { InjurySeverityTier } from '@/utils/injuryReport';
 import { TeamDetail } from './TeamDetail';
@@ -156,6 +158,29 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // per matchup, priced on the Start/Sit projection engine. Hides itself
   // when the sync fetched no future schedule (old snapshots, guest mode).
   const matchupPreviews = useMemo(() => previewWeeklyMatchups(league), [league]);
+  // Team grades: mid-season League Analyzer — each team's optimal starters
+  // vs the league median per position group, priced on TraderApe's own
+  // rest-of-season outlook. Hides in guest mode and on snapshots without
+  // rosters or a live week.
+  const teamGrades = useMemo(
+    () =>
+      hasRosters
+        ? buildTeamGrades({
+            league,
+            pool,
+            shape: pool.season === WEEKLY_SHAPE.season ? WEEKLY_SHAPE : undefined,
+          })
+        : undefined,
+    [league, pool, hasRosters],
+  );
+  const gradeClass = (letter: string) =>
+    letter.startsWith('A')
+      ? styles.gradeA
+      : letter.startsWith('B')
+        ? ''
+        : letter.startsWith('C')
+          ? styles.gradeC
+          : styles.gradeDF;
   const teamById = useMemo(
     () => new Map(league.teams.map(t => [t.id, t])),
     [league.teams],
@@ -368,6 +393,76 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {teamGrades && teamGrades.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="team-grades-heading">
+            <h2 id="team-grades-heading" className={styles.sectionTitle}>
+              Team Grades
+            </h2>
+            <p className={styles.sectionHint}>
+              Mid-season roster grades: each team&apos;s optimal starters vs
+              the league median at every position group, priced on
+              TraderApe&apos;s own rest-of-season outlook (draft pace blended
+              with the season projection). Overall weights starters most —
+              bench depth counts, but lightly. K and D/ST are not graded.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table className={styles.matrix} aria-label="Team grades by position group">
+                <thead>
+                  <tr>
+                    <th scope="col">Team</th>
+                    <th scope="col">Overall</th>
+                    <th scope="col">QB</th>
+                    <th scope="col">RB</th>
+                    <th scope="col">WR</th>
+                    <th scope="col">TE</th>
+                    <th scope="col">Bench</th>
+                    <th scope="col">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamGrades.map(g => (
+                    <tr key={g.teamId}>
+                      <th scope="row" title={g.teamName}>{shortName(g.teamName)}</th>
+                      <td>
+                        <span
+                          className={`${styles.gradeLetter} ${gradeClass(g.overall)}`}
+                          title={`Overall grade ${g.overall}: roster at ${Math.round(g.overallRatio * 100)}% of the league-median rest-of-season outlook`}
+                          aria-label={`Overall grade ${g.overall}`}
+                        >
+                          {g.overall}
+                        </span>
+                      </td>
+                      {(['QB', 'RB', 'WR', 'TE'] as const).map(pos => (
+                        <td key={pos}>
+                          <span
+                            className={`${styles.gradeLetter} ${gradeClass(g.groups[pos].letter)}`}
+                            title={`${pos} grade ${g.groups[pos].letter}: ${g.groups[pos].value.toFixed(1)} projected rest-of-season points among starters, ranked ${g.groups[pos].rank} of ${teamGrades.length}`}
+                            aria-label={`${pos} grade ${g.groups[pos].letter}`}
+                          >
+                            {g.groups[pos].letter}
+                          </span>
+                        </td>
+                      ))}
+                      <td>
+                        <span
+                          className={`${styles.gradeLetter} ${gradeClass(g.bench.letter)}`}
+                          title={`Bench depth grade ${g.bench.letter}: top two non-starters at ${g.bench.value.toFixed(1)} projected rest-of-season points, ranked ${g.bench.rank} of ${teamGrades.length}`}
+                          aria-label={`Bench depth grade ${g.bench.letter}`}
+                        >
+                          {g.bench.letter}
+                        </span>
+                      </td>
+                      <td>
+                        {`Strongest: ${g.strength} · Weakest: ${g.weakness}`}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
