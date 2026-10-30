@@ -48,6 +48,7 @@ const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
 const LuckPage = lazyPage(() => import('@/pages/LuckPage'), 'LuckPage');
 const RecapPage = lazyPage(() => import('@/pages/RecapPage'), 'RecapPage');
 const RestOfSeasonPage = lazyPage(() => import('@/pages/RestOfSeasonPage'), 'RestOfSeasonPage');
+const WeeklyRankingsPage = lazyPage(() => import('@/pages/WeeklyRankingsPage'), 'WeeklyRankingsPage');
 const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'PlayerJourneyPage');
 import { useLeague } from '@/hooks/useLeague';
 import {
@@ -133,6 +134,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/luck': 'Luck',
   '/recap': 'Weekly Recap',
   '/rest-of-season': 'Rest-of-Season Rankings',
+  '/weekly-rankings': 'Weekly Rankings',
   '/players': 'Player Journey',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
@@ -994,6 +996,13 @@ function App() {
           <Route
             path="/rest-of-season"
             element={league ? <RestOfSeasonPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
+          />
+          {/* Weekly Rankings works in guest mode on season projections
+              (Sleeper's public weekly stats, no auth), like Compare and
+              Start/Sit. */}
+          <Route
+            path="/weekly-rankings"
+            element={league ? <WeeklyRankingsPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
           />
           <Route path="/players" element={dataRoute(l => <PlayerJourneyPage league={l} />)} />
 

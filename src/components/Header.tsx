@@ -333,6 +333,14 @@ export function Header({
                 >
                   ROS Ranks
                 </Link>
+                <Link
+                  to="/weekly-rankings"
+                  className={`${styles.navLink} ${location.pathname === '/weekly-rankings' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/weekly-rankings' ? 'page' : undefined}
+                >
+                  Weekly Ranks
+                </Link>
               </>
             ) : (
               <>
@@ -398,6 +406,14 @@ export function Header({
               aria-current={location.pathname === '/rest-of-season' ? 'page' : undefined}
             >
               ROS Ranks
+            </Link>
+            <Link
+              to="/weekly-rankings"
+              className={`${styles.navLink} ${location.pathname === '/weekly-rankings' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/weekly-rankings' ? 'page' : undefined}
+            >
+              Weekly Ranks
             </Link>
             <Link
               to="/waivers"
