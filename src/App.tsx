@@ -54,6 +54,7 @@ import {
   claimPairingCode,
   createPairingCode,
   getAuthUrl,
+  getUserLeagues,
   isAuthenticated,
   registerDeviceOnServer,
   saveOAuthReturn,
@@ -263,6 +264,23 @@ function App() {
     if (path !== '/yahoo-success' && path !== '/yahoo-error') takeOAuthReturn();
   }, []);
 
+  // A Yahoo-connected user should see LIVE league data, not the (possibly
+  // stale) PIN snapshot. Single-league mode: when the account has exactly
+  // one league this season, that's ours — load it straight from Yahoo.
+  // Anything ambiguous (zero or several leagues, API hiccup) returns null
+  // and the caller falls back to the PIN snapshot.
+  const loadLiveYahooLeague = useCallback(async (): Promise<League | null> => {
+    try {
+      const season = new Date().getFullYear();
+      const leagues = await getUserLeagues(season);
+      if (leagues.length !== 1) return null;
+      return await load({ platform: 'yahoo', leagueId: leagues[0].id, season });
+    } catch (e) {
+      logger.warn('[App] live Yahoo auto-load failed, falling back:', e);
+      return null;
+    }
+  }, [load]);
+
   // Handle Yahoo OAuth callback. Guarded by oauthHandledRef so React 18
   // StrictMode's double-invoke (and any subsequent location changes) don't
   // re-run the handler — validateOAuthState consumes the stored state, so a
@@ -326,19 +344,28 @@ function App() {
         // The stash deliberately carries no ESPN cookies (see
         // handleYahooConnect); a private ESPN league re-hydrates them from
         // the same-tab sessionStorage copy persisted at connect time.
-        if (ret.credentials.platform === 'espn' && !ret.credentials.espnS2) {
-          const stored = loadESPNCredentials(ret.credentials.leagueId);
-          if (stored) ret.credentials = { ...ret.credentials, ...stored };
+        const stashed = ret.credentials;
+        if (stashed.platform === 'espn' && !stashed.espnS2) {
+          const stored = loadESPNCredentials(stashed.leagueId);
+          if (stored) ret.credentials = { ...stashed, ...stored };
         }
-        load(ret.credentials)
-          .then(loaded => navigate(
-            ret.path || (isEmptyPreseason(loaded) ? '/draft-room' : '/draft'),
-            { replace: true },
-          ))
-          .catch(err => {
+        const creds = ret.credentials;
+        (async () => {
+          try {
+            // A fresh Yahoo login lands on LIVE Yahoo data, not the stashed
+            // (PIN-snapshot) credentials the login started from.
+            const live =
+              creds.platform !== 'yahoo' ? await loadLiveYahooLeague() : null;
+            const loaded = live ?? (await load(creds));
+            navigate(
+              ret.path || (isEmptyPreseason(loaded) ? '/draft-room' : '/draft'),
+              { replace: true },
+            );
+          } catch (err) {
             logger.error('Failed to restore league after Yahoo login:', err);
             navigate('/', { replace: true });
-          });
+          }
+        })();
         return;
       }
       // Use react-router navigate so the router's basename is preserved.
@@ -357,7 +384,7 @@ function App() {
       window.alert('Yahoo login failed. Please try connecting again.');
       navigate('/', { replace: true });
     }
-  }, [location, navigate, load]);
+  }, [location, navigate, load, loadLiveYahooLeague]);
 
   // PIN entry: load a shared league snapshot from the TraderApe DB.
   const handleLoadPin = useCallback(async (pin: string) => {
@@ -382,8 +409,11 @@ function App() {
     if (location.pathname !== '/') return;
     if (league || isLoading) return;
     defaultLoadAttemptedRef.current = true;
-    handleLoadPin(DEFAULT_LEAGUE_PIN);
-  }, [pinTarget, shareTarget, location.pathname, league, isLoading, handleLoadPin]);
+    (async () => {
+      if (isAuthenticated() && (await loadLiveYahooLeague())) return;
+      handleLoadPin(DEFAULT_LEAGUE_PIN);
+    })();
+  }, [pinTarget, shareTarget, location.pathname, league, isLoading, handleLoadPin, loadLiveYahooLeague]);
 
   // Header Yahoo control: connect from anywhere in the app (the login powers
   // the draft board's live Yahoo prices even for Sleeper/ESPN leagues).
