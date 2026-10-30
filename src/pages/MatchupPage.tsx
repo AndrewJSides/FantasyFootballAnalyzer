@@ -13,6 +13,8 @@ import { useMemo, useState } from 'react';
 import type { League } from '@/types';
 import { previewWeeklyMatchups, type MatchupPreview } from '@/utils/matchupPreview';
 import { buildGamePlan, TOSS_UP_THRESHOLD, type SwapFlag } from '@/utils/gamePlan';
+import { completedMatchups } from '@/utils/completedMatchups';
+import { buildHeadToHead, seriesHeadline } from '@/utils/headToHead';
 import ScoreDistBars from '@/components/ScoreDistBars';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
@@ -59,6 +61,32 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
   );
   const focusName = teamById.get(focusId)?.name ?? '?';
 
+  // This season's series record between the two teams, from completed
+  // weeks only (the current week's partial scores don't count yet).
+  const series = useMemo(
+    () => buildHeadToHead(preview.teamAId, preview.teamBId, completedMatchups(league)),
+    [league, preview.teamAId, preview.teamBId],
+  );
+  const seriesAria = useMemo(() => {
+    if (series.games === 0) return null;
+    const parts = [`This season's series: ${seriesHeadline(series, aName, bName)}`];
+    if (series.lastMeeting) {
+      const w =
+        series.lastMeetingWinner === 'a'
+          ? aName
+          : series.lastMeetingWinner === 'b'
+            ? bName
+            : 'a tie';
+      parts.push(
+        `last meeting week ${series.lastMeeting.week}, ${aName} ${series.lastMeeting.aScore.toFixed(1)} to ${bName} ${series.lastMeeting.bScore.toFixed(1)}, ${w} won`,
+      );
+    }
+    if (series.streakSide && series.streak >= 2) {
+      parts.push(`${series.streakSide === 'a' ? aName : bName} has won ${series.streak} straight`);
+    }
+    return parts.join('; ');
+  }, [series, aName, bName]);
+
   return (
     <div aria-live="polite">
       <div className={styles.gameCard}>
@@ -102,6 +130,29 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
                 </li>
               ))}
             </ul>
+          </>
+        )}
+        {series.games > 0 && seriesAria && (
+          <>
+            <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
+              Series history
+            </h3>
+            <p className={styles.scoreLine} title={seriesAria} aria-label={seriesAria}>
+              {seriesHeadline(series, aName, bName)}
+              {series.lastMeeting && (
+                <>
+                  {' · '}Last meeting W{series.lastMeeting.week}: {aName}{' '}
+                  {series.lastMeeting.aScore.toFixed(1)} – {bName}{' '}
+                  {series.lastMeeting.bScore.toFixed(1)}
+                  {series.lastMeetingWinner !== 'tie' && (
+                    <> ({series.lastMeetingWinner === 'a' ? aName : bName} won)</>
+                  )}
+                </>
+              )}
+              {series.streakSide && series.streak >= 2 && (
+                <> · {(series.streakSide === 'a' ? aName : bName)} has won {series.streak} straight</>
+              )}
+            </p>
           </>
         )}
       </div>
@@ -227,7 +278,7 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         players within {TOSS_UP_THRESHOLD} points of a starter&apos;s
         projection — close calls worth a second look, not orders. Guidance
         only: nothing here changes any lineup. Schedule from the owner&apos;s
-        latest sync.
+        latest sync. Series history counts this season&apos;s completed weeks only.
       </p>
     </div>
   );

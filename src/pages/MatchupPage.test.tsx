@@ -141,4 +141,20 @@ describe('MatchupPage', () => {
       screen.queryByRole('heading', { name: /Week 9:/ }),
     ).not.toBeInTheDocument();
   });
+
+  it('shows the series history line when the teams met before', () => {
+    const matchups: WeeklyMatchup[] = [
+      { week: 1, team1Id: 'A', team1Points: 120, team2Id: 'B', team2Points: 100 },
+      { week: 5, team1Id: 'B', team1Points: 118, team2Id: 'A', team2Points: 110 },
+    ];
+    renderPage(league({ matchups }));
+    expect(screen.getByRole('heading', { name: 'Series history' })).toBeInTheDocument();
+    expect(screen.getByText(/Tied 1–1/)).toBeInTheDocument();
+    expect(screen.getByText(/Last meeting W5/)).toBeInTheDocument();
+  });
+
+  it('hides the series history when the teams have never met', () => {
+    renderPage(league({ matchups: [] }));
+    expect(screen.queryByRole('heading', { name: 'Series history' })).not.toBeInTheDocument();
+  });
 });
