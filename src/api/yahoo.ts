@@ -1655,12 +1655,15 @@ export async function enrichPlayersWithStats(
       // best-effort: a schedule failure must not fail the sync
     }
 
-    // 3. Weekly points for players who changed teams midseason (waiver/FA
-    //    adds and traded players). That set is what real since-pickup math
-    //    and Player Journey stint scoring need; fetching every drafted
-    //    player would multiply the call count for little gain.
-    // Traded players go in first: the 150 cap below cuts from the end, and
-    // one uncovered player drops a whole trade back to the full-season basis.
+    // 3. Weekly points for every currently-rostered player plus anyone who
+    //    changed teams midseason (waiver/FA adds and traded players). The
+    //    scoring core (Start/Sit, matchup preview, game plan) prices each
+    //    rostered player from his weekly series — a player with no weekly
+    //    points scores 0.00, so drafted-and-held players need coverage just
+    //    as much as movers do (movers additionally feed since-pickup math
+    //    and Player Journey stint scoring).
+    // Traded players go in first: the cap below cuts from the end, and one
+    // uncovered player drops a whole trade back to the full-season basis.
     const movedKeys = new Set<string>();
     for (const trade of league.trades || []) {
       for (const side of trade.teams) {
@@ -1672,14 +1675,17 @@ export async function enrichPlayersWithStats(
       for (const tx of team.transactions || []) {
         for (const p of tx.adds || []) movedKeys.add(p.id);
       }
+      for (const p of team.roster ?? []) {
+        if (p.id) movedKeys.add(p.id);
+      }
     }
 
     if (weeksResolved && movedKeys.size > 0) {
       // Cap the fetch so a hyperactive league can't queue hundreds of calls;
       // uncovered players fall back to season totals below (weeklyCovered).
-      const keys = Array.from(movedKeys).slice(0, 150);
+      const keys = Array.from(movedKeys).slice(0, 250);
       if (keys.length < movedKeys.size) {
-        logger.warn(`[Yahoo] weekly stats capped at 150 of ${movedKeys.size} moved players`);
+        logger.warn(`[Yahoo] weekly stats capped at 250 of ${movedKeys.size} players`);
       }
       const totalStatCalls = Math.ceil(keys.length / 25) * maxWeek;
       let statCallsDone = 0;

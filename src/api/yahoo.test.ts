@@ -505,10 +505,12 @@ function playerInfoBody(keys: string[]) {
 
 // Weekly league-scored points for the players who moved midseason. Puka was
 // picked up in week 6; the Bijan/Saquon trade landed in week 8.
+// 461.p.999 is a drafted-and-held roster player (roster-coverage test).
 const WEEKLY_POINTS: Record<string, Record<number, number>> = {
   '461.p.200': { 5: 10, 6: 12, 7: 8, 8: 20 },
   '461.p.102': { 8: 15, 9: 25 },
   '461.p.103': { 8: 5, 9: 10 },
+  '461.p.999': { 1: 14, 2: 11, 3: 18, 4: 9, 5: 15, 6: 12, 7: 20, 8: 16, 9: 13 },
 };
 
 function weeklyStatsBody(keys: string[], week: number) {
@@ -610,6 +612,44 @@ describe('yahoo enrichPlayersWithStats (weekly data)', () => {
     expect(side1.pointsLost).toBe(15);
     expect(side1.netValue).toBe(25);
     expect(trade.winner).toBe(TEAM_1);
+  });
+});
+
+// Weekly points must cover currently-rostered players, not just movers.
+// Regression (2026-10-30): the fetch only requested midseason movers, so
+// every drafted-and-held roster player had no weekly series and scored
+// 0.00 in Start/Sit, the matchup preview, and the game plan.
+describe('yahoo weekly points cover current rosters', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.removeItem('yahoo_access_token');
+    localStorage.removeItem('yahoo_token_expiry');
+  });
+
+  it('requests weekly stats for rostered players, not just movers', async () => {
+    localStorage.setItem('yahoo_access_token', 'test-token');
+    localStorage.setItem('yahoo_token_expiry', String(Date.now() + 60 * 60 * 1000));
+    const requestedKeys = new Set<string>();
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const endpoint = decodeURIComponent(url.match(/endpoint=([^&]+)/)![1]);
+      const wk = endpoint.match(
+        new RegExp(`^/league/${LEAGUE_KEY}/players;player_keys=([^/]+)/stats;type=week;week=(\\d+)$`),
+      );
+      if (wk) {
+        wk[1].split(',').forEach(k => requestedKeys.add(k));
+        return jsonResponse(weeklyStatsBody(wk[1].split(','), parseInt(wk[2])));
+      }
+      return jsonResponse(routeYahooEnrich(url));
+    }));
+    const league = await loadLeague(LEAGUE_KEY);
+    // Drafted-and-held: on the roster but in no transaction or trade.
+    league.teams[0].roster = [
+      { id: '461.p.999', platformId: '461.p.999', name: 'Held Star', position: 'WR', team: 'KC' } as any,
+    ];
+    await enrichPlayersWithStats(league);
+    expect(requestedKeys.has('461.p.999')).toBe(true);
+    expect(league.playerWeeklyPoints?.['461.p.999']).toBeDefined();
   });
 });
 
