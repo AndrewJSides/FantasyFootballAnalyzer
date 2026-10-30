@@ -13,6 +13,7 @@ export { SeasonLoadingOverlay } from './SeasonLoadingOverlay';
 export { WaiverTable } from './WaiverTable';
 export { FaabGuidance } from './FaabGuidance';
 export { TrendingAdds } from './TrendingAdds';
+export { BreakoutWatch } from './BreakoutWatch';
 export { AddDropMoves } from './AddDropMoves';
 export { DstStreamers } from './DstStreamers';
 export { HandcuffReport } from './HandcuffReport';

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, DstStreamers, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, StashReport, TrendingAdds, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DstStreamers, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, StashReport, TrendingAdds, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -44,6 +44,10 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* League-wide waiver momentum, filtered to players this league can
             actually add — priced with TraderApe's own projection + matchup. */}
         <TrendingAdds league={league} />
+
+        {/* Players whose last-3 average is surging vs their own earlier
+            pace — role expansions the season rankings haven't caught yet. */}
+        <BreakoutWatch league={league} />
 
         {/* Best available team defenses to stream this week, ranked by how
             generous each opponent's offense has been to opposing defenses. */}
