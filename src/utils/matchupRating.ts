@@ -150,3 +150,44 @@ export function leagueAvgAllowed(position: string | null | undefined): number | 
   if (avgs.length === 0) return null;
   return Math.round((avgs.reduce((s, a) => s + a, 0) / avgs.length) * 100) / 100;
 }
+
+export interface MatchupCalendarEntry {
+  week: number;
+  /** Null on the team's bye week. */
+  opponent: string | null;
+  /** Null on bye weeks, and for positions the rating doesn't cover (K/DST). */
+  rating: MatchupRating | null;
+}
+
+/**
+ * Season matchup calendar (backlog item 31): one entry per week from
+ * `fromWeek` through the regular season (default 18), priced on the same
+ * season-to-date allowed-vs-position averages as the weekly rating —
+ * exactly the FantasyPros Matchup Calendar shape, built from TraderApe's
+ * own bundled data. A difficulty map, not a forecast: every future week
+ * prices the same completed-week average. Bye weeks carry null entries.
+ */
+export function buildMatchupCalendar(
+  team: string | null | undefined,
+  position: string | null | undefined,
+  fromWeek: number,
+  toWeek: number = 18,
+  schedule: ScheduleFile = SCHEDULE,
+  allowed: AllowedFile = ALLOWED,
+): MatchupCalendarEntry[] {
+  const scheduleWeeks = Object.keys(schedule.weeks)
+    .map(Number)
+    .filter(n => Number.isFinite(n) && n >= fromWeek && n <= toWeek)
+    .sort((a, b) => a - b);
+  if (scheduleWeeks.length === 0) return [];
+  return scheduleWeeks.map(week => {
+    const game = schedule.weeks[String(week)]?.find(([h, a]) => h === team || a === team);
+    if (!game) return { week, opponent: null, rating: null };
+    const rating = getMatchupRating(team, position, week, schedule, allowed);
+    return {
+      week,
+      opponent: game[0] === team ? game[1] : game[0],
+      rating,
+    };
+  });
+}

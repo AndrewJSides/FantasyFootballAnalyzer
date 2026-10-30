@@ -132,3 +132,41 @@ describe('Player Journey points-by-week chart', () => {
     expect(screen.queryByText('Points By Week')).toBeNull();
   });
 });
+
+describe('Player Journey matchup calendar', () => {
+  function selectPlayer() {
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
+    );
+  }
+
+  it('renders a week-by-week calendar with rated rows and a bye row', () => {
+    // GB RB, current week 8: week 8 is CAR (favorable vs RB), week 11 is GB's bye.
+    renderPage(league([player({})], WEEK));
+    selectPlayer();
+    expect(screen.getByText('Matchup Calendar')).toBeTruthy();
+    const table = screen.getByRole('table', {
+      name: /remaining matchups, weeks 8–18/i,
+    });
+    // Week-8 row carries the same rating as the weekly card.
+    const week8Row = within(table).getByText('W8').closest('tr') as HTMLElement;
+    const chip = within(week8Row).getByText(/^vs CAR · /);
+    expect(chip.getAttribute('aria-label')).toContain('Favorable');
+    // Bye week renders a "Bye" row.
+    const byeRow = within(table).getByText('W11').closest('tr') as HTMLElement;
+    expect(within(byeRow).getByText('Bye')).toBeTruthy();
+    expect(
+      within(byeRow).getByLabelText(/No matchup rating — bye week/i),
+    ).toHaveTextContent('-');
+    // Method footnote names the completed-weeks range behind the averages.
+    expect(
+      screen.getByText(/A difficulty map, not a forecast/, { selector: 'p' }),
+    ).toHaveTextContent(/completed weeks 1–7/);
+  });
+
+  it('hides the calendar for kickers', () => {
+    renderPage(league([player({ position: 'K', team: 'GB' })], WEEK));
+    selectPlayer();
+    expect(screen.queryByText('Matchup Calendar')).toBeNull();
+  });
+});

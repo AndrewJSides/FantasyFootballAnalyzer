@@ -6,6 +6,7 @@ import { DataAsOf } from '@/components/DataAsOf';
 import { WeeklyPointsChart } from '@/components/WeeklyPointsChart';
 import { nflTeamInfo } from '@/data/nflTeams';
 import {
+  buildMatchupCalendar,
   currentWeekEstimate,
   getMatchupRating,
   matchupDataWeeks,
@@ -255,6 +256,20 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
       : matchupRating.label === 'tough'
         ? styles.muTough
         : styles.muNeutral;
+
+  // Season matchup calendar (backlog item 31): every remaining week with
+  // that week's opponent and the same favorable/tough/neutral rating as the
+  // weekly card. A difficulty map, not a forecast — every future week
+  // prices the same season-to-date allowed averages. Hidden for K/DST and
+  // when no week carries a rating (unknown team).
+  const matchupCalendar = selectedPlayer
+    ? buildMatchupCalendar(
+        selectedPlayer.player.team,
+        selectedPlayer.player.position,
+        matchupWeek,
+      )
+    : [];
+  const showMatchupCalendar = matchupCalendar.some(e => e.rating !== null);
 
   // Weekly points series for the value-over-time chart (backlog item 8)
   // and the per-stint scoring below — the same series drives both. Absent
@@ -666,6 +681,73 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                       {consistency.boomBar}/≤{consistency.bustBar}; floor and
                       ceiling are the 25th/75th percentile of his played
                       weeks — bye weeks and DNPs excluded).
+                    </p>
+                  </div>
+                )}
+
+                {/* Season matchup calendar (backlog item 31): week-by-week
+                    remaining matchups with the same rating as the weekly
+                    card. Renders a "Bye" row for the team's bye week. */}
+                {showMatchupCalendar && (
+                  <div className={styles.timeline}>
+                    <h3 className={styles.timelineTitle}>Matchup Calendar</h3>
+                    <table className={styles.calendarTable}>
+                      <caption>
+                        {selectedPlayer.player.name}&apos;s remaining matchups,
+                        weeks {matchupCalendar[0].week}–
+                        {matchupCalendar[matchupCalendar.length - 1].week}
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Week</th>
+                          <th scope="col">Opponent</th>
+                          <th scope="col">Matchup</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matchupCalendar.map(entry => (
+                          <tr key={entry.week}>
+                            <th scope="row">W{entry.week}</th>
+                            <td>{entry.opponent ?? 'Bye'}</td>
+                            <td>
+                              {entry.rating ? (
+                                <span
+                                  className={
+                                    entry.rating.label === 'favorable'
+                                      ? styles.muFav
+                                      : entry.rating.label === 'tough'
+                                        ? styles.muTough
+                                        : styles.muNeutral
+                                  }
+                                  title={matchupLabel(
+                                    entry.rating,
+                                    selectedPlayer.player.position,
+                                  )}
+                                  aria-label={matchupLabel(
+                                    entry.rating,
+                                    selectedPlayer.player.position,
+                                  )}
+                                >
+                                  {matchupShort(entry.rating)}
+                                </span>
+                              ) : (
+                                <span
+                                  className={styles.matchupDash}
+                                  aria-label="No matchup rating — bye week"
+                                >
+                                  -
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p className={styles.matchupFootnote}>
+                      A difficulty map, not a forecast: every future week
+                      prices the same season-to-date opponent points allowed
+                      to the position (completed weeks{' '}
+                      {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}).
                     </p>
                   </div>
                 )}

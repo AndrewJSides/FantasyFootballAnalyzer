@@ -5,6 +5,7 @@ import {
   leagueAvgAllowed,
   matchupLabel,
   matchupShort,
+  buildMatchupCalendar,
   type AllowedFile,
   type ScheduleFile,
 } from './matchupRating';
@@ -105,5 +106,43 @@ describe('currentWeekEstimate', () => {
   it('returns one past the last completed week in the bundled data', () => {
     // Bundled data: weeks [1, 7] complete in Oct 2026 → week 8 estimate.
     expect(currentWeekEstimate()).toBe(8);
+  });
+});
+
+describe('buildMatchupCalendar', () => {
+  it('emits one entry per week with the weekly rating', () => {
+    const cal = buildMatchupCalendar('GB', 'RB', 8, 9, schedule, allowed);
+    expect(cal).toHaveLength(2);
+    expect(cal[0]).toMatchObject({
+      week: 8,
+      opponent: 'CAR',
+      rating: expect.objectContaining({ opponent: 'CAR', rank: 2, label: 'favorable' }),
+    });
+    // KC vs DEN in week 9: GB has no game → bye
+    expect(cal[1]).toMatchObject({ week: 9, opponent: null, rating: null });
+  });
+
+  it('marks bye weeks with null opponent and rating', () => {
+    const cal = buildMatchupCalendar('GB', 'RB', 9, 9, schedule, allowed);
+    expect(cal).toEqual([{ week: 9, opponent: null, rating: null }]);
+  });
+
+  it('returns no ratings for K/DST (ratings only cover skill positions)', () => {
+    const cal = buildMatchupCalendar('GB', 'K', 8, 8, schedule, allowed);
+    expect(cal).toHaveLength(1);
+    expect(cal[0].opponent).toBe('CAR');
+    expect(cal[0].rating).toBeNull();
+  });
+
+  it('returns an empty calendar when the season is over', () => {
+    expect(buildMatchupCalendar('GB', 'RB', 19, 18, schedule, allowed)).toEqual([]);
+  });
+
+  it('marks every week as a bye without a team', () => {
+    const cal = buildMatchupCalendar(null, 'RB', 8, 9, schedule, allowed);
+    expect(cal).toEqual([
+      { week: 8, opponent: null, rating: null },
+      { week: 9, opponent: null, rating: null },
+    ]);
   });
 });

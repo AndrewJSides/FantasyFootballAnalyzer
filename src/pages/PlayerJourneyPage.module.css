@@ -504,3 +504,32 @@ button.moreResults:hover {
   font-size: 0.68rem;
   color: var(--bone-dim);
 }
+
+/* Season matchup calendar (backlog item 31): compact week-by-week grid. */
+.calendarTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.calendarTable caption {
+  text-align: left;
+  color: var(--bone-dim);
+  font-size: 0.75rem;
+  padding-bottom: 0.35rem;
+}
+
+.calendarTable th,
+.calendarTable td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.calendarTable thead th {
+  color: var(--bone-dim);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
