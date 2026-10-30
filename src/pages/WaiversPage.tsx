@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, DstStreamers, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, TrendingAdds, WaiverTable } from '@/components';
+import { AddDropMoves, DstStreamers, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, StashReport, TrendingAdds, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -57,6 +57,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
             ownership — the league-wide answer to which handcuffs are worth
             stashing. */}
         <HandcuffReport league={league} />
+
+        {/* Available players with real rest-of-season value and a short-term
+            reason they are cheap this week — the "stash him before the waiver
+            rush" answer. */}
+        <StashReport league={league} />
 
         {/* Every injured startable player, worst first, with league
             ownership — the league-wide answer to "who is hurt and who
