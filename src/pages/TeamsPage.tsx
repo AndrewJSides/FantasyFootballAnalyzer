@@ -11,6 +11,7 @@ import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
 import { playoffRace } from '@/utils/playoffOdds';
 import { buildPlayoffBracket } from '@/utils/playoffBracket';
+import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
@@ -153,6 +154,49 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
         : [],
     [race, league.playoffTeams],
   );
+
+  // Round-by-round advancement odds on the projected bracket (backlog item
+  // 37): each known team slot shows its modeled chance to win each playoff
+  // round, from the same 10,000 simulated seasons as Champ %. Only the
+  // standard 4/6-team brackets render lines — their displayed rounds align
+  // 1:1 with the simulated rounds; other sizes keep the bracket as-is.
+  const entryById = useMemo(() => new Map(race.map(r => [r.teamId, r])), [race]);
+  const advancementFor = (
+    slot: BracketSlot,
+  ): { text: string; detail: string } | null => {
+    if (!slot.teamId || !league.playoffTeams) return null;
+    const probs = entryById.get(slot.teamId)?.roundProbs ?? [];
+    const spots = league.playoffTeams;
+    const short = (label: string): string | null =>
+      label === 'Quarterfinals'
+        ? 'QF'
+        : label === 'Semifinals'
+          ? 'SF'
+          : label === 'Final'
+            ? 'Title'
+            : null;
+    if (
+      probs.length === 0 ||
+      bracket.length !== probs.length ||
+      bracket.length < 2 ||
+      !(spots === 4 || spots === 6) ||
+      !bracket.every(r => short(r.label) !== null)
+    ) {
+      return null;
+    }
+    // The 6-team bracket's top two seeds bye the quarterfinal: their line
+    // starts at the semifinal.
+    const offset = spots === 6 && slot.seed <= 2 ? 1 : 0;
+    const parts = bracket
+      .slice(offset)
+      .map((r, i) => `${short(r.label)} ${probs[offset + i]}%`);
+    return {
+      text: parts.join(' · '),
+      detail:
+        `Modeled chance to win each playoff round — share of 10,000 ` +
+        `simulated brackets (a bye counts as a won round): ${parts.join(', ')}.`,
+    };
+  };
 
   // Highest championship share across the simulated seasons.
   const projectedChampion = useMemo(
@@ -559,7 +603,8 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                   the bracket itself does not play individual games, but the
                   Champ % column in the table above does: it comes from fully
                   simulating these playoff brackets in each of the 10,000
-                  seasons.
+                  seasons. Each team's line names its modeled chance to win
+                  each round (QF/SF/Title) from those same simulations.
                 </p>
                 {bracket.map(round => (
                   <div key={round.label}>
@@ -572,22 +617,49 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                             : m.favoredTeamId === m.slotB.teamId
                               ? m.slotB.name
                               : null;
+                        const advA = advancementFor(m.slotA);
+                        const advB = advancementFor(m.slotB);
+                        const slotLabel = (
+                          slot: BracketSlot,
+                          adv: { detail: string } | null,
+                        ) =>
+                          `${slot.seed > 0 ? `${slot.seed}-seed ` : ''}${slot.name}` +
+                          (adv ? ` — ${adv.detail}` : '');
                         return (
                           <li
                             key={i}
                             aria-label={
-                              `${m.slotA.seed > 0 ? `${m.slotA.seed}-seed ` : ''}${m.slotA.name} versus ` +
-                              `${m.slotB.seed > 0 ? `${m.slotB.seed}-seed ` : ''}${m.slotB.name}` +
-                              (favoredName ? `, ${favoredName} favored as the higher seed` : '')
+                              `${slotLabel(m.slotA, advA)} versus ${slotLabel(m.slotB, advB)}` +
+                              (favoredName
+                                ? `, ${favoredName} favored as the higher seed`
+                                : '')
                             }
                           >
                             {m.slotA.seed > 0 ? `${m.slotA.seed}. ` : ''}
                             {m.slotA.name}
+                            {advA && (
+                              <span
+                                className={styles.bracketOdds}
+                                title={advA.detail}
+                              >
+                                {' '}· {advA.text}
+                              </span>
+                            )}
                             {' vs '}
                             {m.slotB.seed > 0 ? `${m.slotB.seed}. ` : ''}
                             {m.slotB.name}
+                            {advB && (
+                              <span
+                                className={styles.bracketOdds}
+                                title={advB.detail}
+                              >
+                                {' '}· {advB.text}
+                              </span>
+                            )}
                             {favoredName !== null && (
-                              <span title={`${favoredName} favored as the higher seed`}>
+                              <span
+                                title={`${favoredName} favored as the higher seed`}
+                              >
                                 {' '}· {favoredName} favored
                               </span>
                             )}

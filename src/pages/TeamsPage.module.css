@@ -61,6 +61,13 @@
   margin: 0 0 0.75rem;
 }
 
+/* Round-by-round advancement odds on a projected-bracket team slot. */
+.bracketOdds {
+  color: var(--bone-dim);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
 .skillSection {
   margin-bottom: 2rem;
 }

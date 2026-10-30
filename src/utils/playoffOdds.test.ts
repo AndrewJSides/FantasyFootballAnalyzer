@@ -2,7 +2,12 @@
 // track opponent strength, and seeded runs are deterministic.
 
 import { describe, it, expect } from 'vitest';
-import { playoffRace, simulateBracketChampion, mulberry32 } from './playoffOdds';
+import {
+  playoffRace,
+  simulateBracketChampion,
+  simulateBracketRounds,
+  mulberry32,
+} from './playoffOdds';
 import type { BracketSeed } from './playoffOdds';
 import type { League, Team, WeeklyMatchup } from '@/types';
 
@@ -242,6 +247,115 @@ describe('playoffRace', () => {
     expect(byId.get('Y')!.playoffStatus).toBe('eliminated');
     expect(byId.get('Y')!.championProb).toBe(0);
     expect(byId.get('X')!.championProb).toBeGreaterThan(50);
+  });
+
+  it('records per-round advancement odds aligned with the bracket rounds', () => {
+    const lg = league({
+      teams: [
+        team('A', 'Alpha', 8, 0, 1200),
+        team('B', 'Beta', 5, 3, 1000),
+        team('C', 'Gamma', 4, 4, 960),
+        team('D', 'Delta', 3, 5, 920),
+        team('E', 'Epsilon', 2, 6, 880),
+        team('F', 'Zeta', 1, 7, 840),
+      ],
+      totalTeams: 6,
+      playoffTeams: 6,
+      futureSchedule: [
+        matchup(9, 'A', 'F'),
+        matchup(9, 'B', 'E'),
+        matchup(9, 'C', 'D'),
+        matchup(10, 'A', 'E'),
+        matchup(10, 'B', 'D'),
+        matchup(10, 'C', 'F'),
+      ],
+    });
+    const rows = playoffRace(lg, { simulations: 2000, seed: 42 });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    for (const r of rows) {
+      // 6-team bracket: quarterfinal, semifinal, final.
+      expect(r.roundProbs).toHaveLength(3);
+      for (const p of r.roundProbs) {
+        expect(p).toBeGreaterThanOrEqual(0);
+        expect(p).toBeLessThanOrEqual(100);
+        expect(p).toBe(Math.round(p * 10) / 10);
+      }
+      // Nested counts: no later-round win without the earlier one.
+      expect(r.roundProbs[0]).toBeGreaterThanOrEqual(r.roundProbs[1]);
+      expect(r.roundProbs[1]).toBeGreaterThanOrEqual(r.roundProbs[2]);
+      // The final round's winners are the champions.
+      expect(r.roundProbs[2]).toBe(r.championProb);
+    }
+    // Dominant A is always a top-two seed, so it byes the quarters.
+    expect(byId.get('A')!.roundProbs[0]).toBe(100);
+    expect(byId.get('A')!.roundProbs[2]).toBeGreaterThan(
+      byId.get('F')!.roundProbs[2],
+    );
+    // Deterministic with a seed.
+    const again = playoffRace(lg, { simulations: 2000, seed: 42 });
+    expect(again.map(r => r.roundProbs)).toEqual(rows.map(r => r.roundProbs));
+  });
+
+  it('aligns roundProbs with championProb on the 2-team bracket', () => {
+    const rows = playoffRace(league(), { simulations: 2000, seed: 42 });
+    for (const r of rows) {
+      expect(r.roundProbs).toHaveLength(1);
+      expect(r.roundProbs[0]).toBe(r.championProb);
+    }
+  });
+});
+
+describe('simulateBracketRounds', () => {
+  const seeds = (n: number): BracketSeed[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `S${i + 1}`,
+      seed: i + 1,
+      rating: 100,
+    }));
+  const favorFirst = () => 1;
+  const favorSecond = () => 0;
+  const fresh = () => mulberry32(1234);
+  const ids = (rounds: BracketSeed[][]) =>
+    rounds.map(r => r.map(s => s.id));
+
+  it('returns empty for no entrants and a single round for one entrant', () => {
+    expect(simulateBracketRounds([], favorFirst, fresh())).toEqual([]);
+    expect(ids(simulateBracketRounds(seeds(1), favorFirst, fresh()))).toEqual([
+      ['S1'],
+    ]);
+  });
+
+  it('plays the 6-team shape round by round, byeing the top two seeds', () => {
+    // First side always wins: 3 beats 6, 4 beats 5; 1 beats 3, 2 beats 4;
+    // 1 beats 2 in the final.
+    expect(ids(simulateBracketRounds(seeds(6), favorFirst, fresh()))).toEqual([
+      ['S1', 'S2', 'S3', 'S4'],
+      ['S1', 'S2'],
+      ['S1'],
+    ]);
+    // Second side always wins: 6 beats 3, 5 beats 4; then 6 beats 1,
+    // 5 beats 2; 5 beats 6 in the final.
+    expect(ids(simulateBracketRounds(seeds(6), favorSecond, fresh()))).toEqual(
+      [['S1', 'S2', 'S5', 'S6'], ['S5', 'S6'], ['S5']],
+    );
+  });
+
+  it('plays the 4-team semifinal shape round by round', () => {
+    expect(ids(simulateBracketRounds(seeds(4), favorSecond, fresh()))).toEqual([
+      ['S3', 'S4'],
+      ['S3'],
+    ]);
+  });
+
+  it('agrees with simulateBracketChampion on the champion', () => {
+    for (let i = 0; i < 20; i++) {
+      const rounds = simulateBracketRounds(seeds(6), mulberry32(i), fresh());
+      const last = rounds[rounds.length - 1];
+      expect(last).toHaveLength(1);
+      expect(simulateBracketChampion(seeds(6), mulberry32(i), fresh())).toBe(
+        last[0].id,
+      );
+    }
   });
 });
 

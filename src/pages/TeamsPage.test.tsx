@@ -368,4 +368,20 @@ describe('TeamsPage projected bracket', () => {
       screen.queryByRole('heading', { name: 'Projected Bracket' }),
     ).not.toBeInTheDocument();
   });
+
+  it('shows modeled round-by-round advancement odds on each bracket team', () => {
+    renderPage(league({ playoffTeams: 4 }));
+    const semis = screen.getByRole('list', { name: 'Semifinals matchups' });
+    const items = within(semis).getAllByRole('listitem');
+    // Every known team slot carries its SF/Title advancement line, priced
+    // on the same 10,000 simulated seasons as Champ %.
+    for (const item of items) {
+      expect(item.textContent).toMatch(/SF \d+(\.\d+)?% · Title \d+(\.\d+)?%/);
+    }
+    // The odds are explained on hover and to assistive tech.
+    const alpha = items.find(i => i.textContent?.includes('Alpha'))!;
+    expect(alpha.getAttribute('aria-label')).toMatch(
+      /Modeled chance to win each playoff round/,
+    );
+  });
 });

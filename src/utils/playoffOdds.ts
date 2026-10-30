@@ -43,6 +43,16 @@ export interface PlayoffRaceEntry {
    * This is the model's verdict, not league-official.
    */
   championProb: number;
+  /**
+   * Per playoff round, 0..100 one decimal — the share of the simulated
+   * seasons in which this team won that round (a bye counts as a won
+   * round). One entry per bracket round for this league's playoff size:
+   * 6-team → [quarterfinal, semifinal, final], 4-team → [semifinal,
+   * final], 2-team → [final]. The last entry equals championProb; teams
+   * that never made a simulated bracket read all zeros. This is the
+   * model's verdict, not league-official.
+   */
+  roundProbs: number[];
 }
 
 export interface PlayoffRaceOptions {
@@ -80,34 +90,64 @@ export interface BracketSeed {
 }
 
 /**
- * Simulate one single-elimination playoff bracket and return the champion's
- * id. Seeds drive the pairing (6-team: top two seeds get byes, 3v6 and 4v5
- * in the quarters; 4-team: 1v4 and 2v3 semifinals; other sizes: generic
- * top-vs-bottom pairing with a bye for the top seed on odd rounds).
- * Playoff games use the same rating-based win probability as the regular
- * season sims — a neutral-site game between the two seeds' ratings.
+ * How many rounds a single-elimination bracket with n entrants plays.
+ * Mirrors simulateBracketRounds' shape logic (6 → QF/SF/F, 4 → SF/F,
+ * generic sizes halve each round with a top-seed bye on odd rounds).
  */
-export function simulateBracketChampion(
+export function bracketRoundCount(n: number): number {
+  if (n <= 1) return n;
+  if (n === 6) return 3;
+  if (n === 4) return 2;
+  let rounds = 0;
+  let m = n;
+  while (m > 1) {
+    rounds++;
+    m = m % 2 === 1 ? Math.ceil(m / 2) : m / 2;
+  }
+  return rounds;
+}
+
+/**
+ * Simulate one single-elimination playoff bracket and return the winners of
+ * each round played, in order (round 0 = the first round). A bye counts as a
+ * won round — the 6-team bracket's top two seeds appear in the quarterfinal
+ * winners without playing. Seeds drive the pairing (6-team: top two seeds
+ * get byes, 3v6 and 4v5 in the quarters; 4-team: 1v4 and 2v3 semifinals;
+ * other sizes: generic top-vs-bottom pairing with a bye for the top seed on
+ * odd rounds). Playoff games use the same rating-based win probability as
+ * the regular season sims — a neutral-site game between the two seeds'
+ * ratings.
+ */
+export function simulateBracketRounds(
   seeds: BracketSeed[],
   winProbFn: (ra: number, rb: number) => number,
   rand: () => number,
-): string {
-  if (seeds.length === 0) return '';
+): BracketSeed[][] {
+  if (seeds.length === 0) return [];
   const sorted = [...seeds].sort((x, y) => x.seed - y.seed);
-  if (sorted.length === 1) return sorted[0].id;
+  if (sorted.length === 1) return [[sorted[0]]];
   const play = (a: BracketSeed, b: BracketSeed): BracketSeed =>
     rand() < winProbFn(a.rating, b.rating) ? a : b;
+  const bySeed = (x: BracketSeed, y: BracketSeed) => x.seed - y.seed;
+  const rounds: BracketSeed[][] = [];
   const n = sorted.length;
   if (n === 6) {
     const quarters = [play(sorted[2], sorted[5]), play(sorted[3], sorted[4])];
+    rounds.push([sorted[0], sorted[1], ...quarters].sort(bySeed));
     const low = quarters[0].seed > quarters[1].seed ? quarters[0] : quarters[1];
     const high = quarters[0].seed > quarters[1].seed ? quarters[1] : quarters[0];
     const semis = [play(sorted[0], low), play(sorted[1], high)];
-    return play(semis[0], semis[1]).id;
+    rounds.push([...semis].sort(bySeed));
+    // Final plays the semifinal winners in bracket order, not seed order —
+    // the win probability is directional, so argument order matters.
+    rounds.push([play(semis[0], semis[1])]);
+    return rounds;
   }
   if (n === 4) {
     const semis = [play(sorted[0], sorted[3]), play(sorted[1], sorted[2])];
-    return play(semis[0], semis[1]).id;
+    rounds.push([...semis].sort(bySeed));
+    rounds.push([play(semis[0], semis[1])]);
+    return rounds;
   }
   let round = sorted;
   while (round.length > 1) {
@@ -121,9 +161,26 @@ export function simulateBracketChampion(
     for (let i = start; i < (start + m) / 2; i++) {
       next.push(play(round[i], round[m - 1 - (i - start)]));
     }
-    round = next.sort((x, y) => x.seed - y.seed);
+    const ordered = [...next].sort(bySeed);
+    rounds.push(ordered);
+    round = ordered;
   }
-  return round[0].id;
+  return rounds;
+}
+
+/**
+ * Simulate one single-elimination playoff bracket and return the champion's
+ * id. Same bracket as simulateBracketRounds — the champion is the last
+ * round's only winner.
+ */
+export function simulateBracketChampion(
+  seeds: BracketSeed[],
+  winProbFn: (ra: number, rb: number) => number,
+  rand: () => number,
+): string {
+  const rounds = simulateBracketRounds(seeds, winProbFn, rand);
+  if (rounds.length === 0) return '';
+  return rounds[rounds.length - 1][0].id;
 }
 
 /** Deterministic PRNG (mulberry32) so tests get stable probabilities. */
@@ -217,7 +274,14 @@ export function playoffRace(
   // the same rating-based win probabilities, and the champion counted.
   const champion = new Map<string, number>();
   for (const t of teams) champion.set(t.id, 0);
+  // Per-team per-round bracket wins: the same sim records every round's
+  // winners, so each team gets a modeled chance to win each playoff round
+  // at no extra sim cost. Index 0 is the first round played. Arrays are
+  // pre-sized to the bracket's round count so non-qualifiers read zeros.
   const spots = Math.min(playoffTeams, teams.length);
+  const roundsPerBracket = bracketRoundCount(spots);
+  const roundWins = new Map<string, number[]>();
+  for (const t of teams) roundWins.set(t.id, new Array(roundsPerBracket).fill(0));
   for (let s = 0; s < sims; s++) {
     const extra = new Map<string, number>();
     for (const t of teams) extra.set(t.id, 0);
@@ -260,12 +324,21 @@ export function playoffRace(
       totalSeed.set(t.id, (totalSeed.get(t.id) ?? 0) + (i + 1));
     });
     // Play the bracket out: the seeded entrants (ranked 1..spots in this
-    // sim) face off on the same ratings, and the champion is counted.
+    // sim) face off on the same ratings; every round's winners are counted
+    // for the advancement odds, and the champion is counted.
     if (spots >= 1) {
       const entrants = ranked
         .slice(0, spots)
         .map((t, i) => ({ id: t.id, seed: i + 1, rating: ratingOf(t.id) }));
-      const champ = simulateBracketChampion(entrants, winProb, rand);
+      const rounds = simulateBracketRounds(entrants, winProb, rand);
+      rounds.forEach((winners, ri) => {
+        for (const w of winners) {
+          const arr = roundWins.get(w.id);
+          if (arr && ri < arr.length) arr[ri] += 1;
+        }
+      });
+      const champ =
+        rounds.length > 0 ? rounds[rounds.length - 1][0].id : '';
       if (champ !== '') champion.set(champ, (champion.get(champ) ?? 0) + 1);
     }
   }
@@ -312,6 +385,9 @@ export function playoffRace(
             : 'alive',
       championProb:
         Math.round(((champion.get(t.id) ?? 0) / sims) * 1000) / 10,
+      roundProbs: (roundWins.get(t.id) ?? []).map(c =>
+        Math.round((c / sims) * 1000) / 10,
+      ),
     }))
     .sort((a, b) => b.playoffProb - a.playoffProb || b.wins - a.wins);
 }
