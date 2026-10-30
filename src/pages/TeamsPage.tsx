@@ -15,6 +15,7 @@ import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
+import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { InjurySeverityTier } from '@/utils/injuryReport';
 import { TeamDetail } from './TeamDetail';
@@ -242,6 +243,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
         : letter.startsWith('C')
           ? styles.gradeC
           : styles.gradeDF;
+  // Lineup efficiency: each team's actual starter points vs the best legal
+  // lineup, summed over completed weeks. Hides when the sync fetched no
+  // weekly lineups (Yahoo, old snapshots, guest mode) or in best-ball.
+  const lineupEfficiency = useMemo(() => buildLineupEfficiency(league), [league]);
   const teamById = useMemo(
     () => new Map(league.teams.map(t => [t.id, t])),
     [league.teams],
@@ -477,6 +482,54 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       <td>
                         {`Strongest: ${g.strength} · Weakest: ${g.weakness}`}
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {lineupEfficiency.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="lineup-efficiency-heading">
+            <h2 id="lineup-efficiency-heading" className={styles.sectionTitle}>
+              Lineup Efficiency
+            </h2>
+            <p className={styles.sectionHint}>
+              Each manager's actual starter points vs the best legal lineup he
+              could have fielded, summed over completed weeks. 100% means he
+              never left a point on the bench.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="Lineup efficiency: actual starter points vs best legal lineup, completed weeks"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Weeks</th>
+                    <th scope="col">Efficiency</th>
+                    <th scope="col">Started</th>
+                    <th scope="col">Best possible</th>
+                    <th scope="col">Left on bench</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineupEfficiency.map((r, i) => (
+                    <tr key={r.teamId}>
+                      <td>{i + 1}</td>
+                      <td>{r.teamName}</td>
+                      <td>{r.weeks}</td>
+                      <td
+                        title={`Started ${r.actual} of a possible ${r.best} over ${r.weeks} completed week${r.weeks === 1 ? '' : 's'}`}
+                      >
+                        {r.efficiency.toFixed(1)}%
+                      </td>
+                      <td>{r.actual.toFixed(1)}</td>
+                      <td>{r.best.toFixed(1)}</td>
+                      <td>{r.leftOnBench.toFixed(1)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -385,3 +385,80 @@ describe('TeamsPage projected bracket', () => {
     );
   });
 });
+
+describe('TeamsPage lineup efficiency', () => {
+  const lp = (
+    id: string,
+    name: string,
+    pos: string,
+    points: number,
+  ): import('@/types').LineupPlayer => ({ id, name, pos, points });
+
+  const efficiencyLeague = (): League =>
+    league({
+      status: 'live',
+      currentWeek: 3,
+      weeklyLineups: [
+        // Alpha week 1: 15 started, 30 possible = 50%.
+        {
+          week: 1,
+          teamId: 'A',
+          slots: ['RB', 'FLEX'],
+          starters: [lp('r1', 'RB One', 'RB', 10), lp('w1', 'WR One', 'WR', 5)],
+          bench: [lp('w2', 'WR Two', 'WR', 20)],
+        },
+        // Alpha week 2 (current week): excluded as in-progress.
+        {
+          week: 3,
+          teamId: 'A',
+          slots: ['RB', 'FLEX'],
+          starters: [lp('r1', 'RB One', 'RB', 1), lp('w1', 'WR One', 'WR', 1)],
+          bench: [lp('w2', 'WR Two', 'WR', 99)],
+        },
+        // Beta week 1: already optimal, 30/30 = 100%.
+        {
+          week: 1,
+          teamId: 'B',
+          slots: ['RB', 'FLEX'],
+          starters: [lp('r2', 'RB Two', 'RB', 18), lp('w3', 'WR Three', 'WR', 12)],
+          bench: [lp('w4', 'WR Four', 'WR', 8)],
+        },
+      ] as import('@/types').WeeklyLineup[],
+    });
+
+  it('ranks teams by actual vs best-legal lineup, excluding the live week', () => {
+    renderPage(efficiencyLeague());
+    expect(screen.getByRole('heading', { name: 'Lineup Efficiency' })).toBeInTheDocument();
+    const table = screen.getByRole('table', {
+      name: /lineup efficiency/i,
+    });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3); // header + 2 teams
+    // Beta first at 100%, Alpha second at 50% — week 3's partial scores
+    // never enter the math.
+    expect(rows[1]).toHaveTextContent('Beta');
+    expect(rows[1]).toHaveTextContent('100.0%');
+    expect(rows[2]).toHaveTextContent('Alpha');
+    expect(rows[2]).toHaveTextContent('50.0%');
+    expect(rows[2]).toHaveTextContent('15.0'); // left on bench
+    // The efficiency cell explains itself on hover.
+    const betaEff = within(rows[1]).getByTitle(/30 of a possible 30/);
+    expect(betaEff).toHaveTextContent('100.0%');
+  });
+
+  it('hides the section when the sync fetched no weekly lineups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'Lineup Efficiency' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the section in best-ball leagues', () => {
+    const l = efficiencyLeague();
+    l.isBestBall = true;
+    renderPage(l);
+    expect(
+      screen.queryByRole('heading', { name: 'Lineup Efficiency' }),
+    ).not.toBeInTheDocument();
+  });
+});
