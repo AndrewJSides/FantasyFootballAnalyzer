@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -44,6 +44,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* The league-wide money picture — who still has budget to outbid
             you, with trade-moved FAAB counted where the sync reports it. */}
         <FaabBudgets league={league} />
+
+        {/* Who is winning the waiver wire: per-team claims, summed
+            points-above-replacement from the synced transactions, best and
+            worst pickup, and a league-relative grade. */}
+        <WaiverReportCard league={league} />
 
         {/* League-wide waiver momentum, filtered to players this league can
             actually add — priced with TraderApe's own projection + matchup. */}
