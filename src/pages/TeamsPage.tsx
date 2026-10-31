@@ -16,6 +16,10 @@ import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
 import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
+import {
+  buildAllPlayRecord,
+  formatRecord,
+} from '@/utils/allPlayRecord';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { InjurySeverityTier } from '@/utils/injuryReport';
 import { TeamDetail } from './TeamDetail';
@@ -247,6 +251,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // lineup, summed over completed weeks. Hides when the sync fetched no
   // weekly lineups (Yahoo, old snapshots, guest mode) or in best-ball.
   const lineupEfficiency = useMemo(() => buildLineupEfficiency(league), [league]);
+  // All-play record: each team's record if it had played every other team
+  // every week. Hides when the sync fetched no matchups (old snapshots,
+  // guest mode) or no week is complete yet.
+  const allPlay = useMemo(() => buildAllPlayRecord(league), [league]);
   const teamById = useMemo(
     () => new Map(league.teams.map(t => [t.id, t])),
     [league.teams],
@@ -484,6 +492,70 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {allPlay.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="all-play-heading">
+            <h2 id="all-play-heading" className={styles.sectionTitle}>
+              All-Play Record
+            </h2>
+            <p className={styles.sectionHint}>
+              Each team's record if it had played every other team every
+              completed week. A team outscoring its actual record was lucky
+              with the schedule; one trailing it was robbed.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="All-play record: each team's record vs every opponent each completed week"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">All-play</th>
+                    <th scope="col">Actual</th>
+                    <th scope="col">Schedule luck</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allPlay.map((r, i) => {
+                    const luck =
+                      r.luckDiff == null
+                        ? '—'
+                        : r.luckDiff > 0
+                          ? `+${r.luckDiff.toFixed(1)} lucky`
+                          : r.luckDiff < 0
+                            ? `${r.luckDiff.toFixed(1)} unlucky`
+                            : 'even';
+                    return (
+                      <tr key={r.teamId}>
+                        <td>{i + 1}</td>
+                        <td>{r.teamName}</td>
+                        <td
+                          title={`${r.allWins} wins, ${r.allLosses} losses${r.allTies ? `, ${r.allTies} ties` : ''} over ${r.weeks} completed week${r.weeks === 1 ? '' : 's'} — ${r.allPlayPct.toFixed(1)}% win rate`}
+                        >
+                          {formatRecord(r.allWins, r.allLosses, r.allTies)}
+                        </td>
+                        <td>
+                          {formatRecord(r.actualWins, r.actualLosses, r.actualTies)}
+                        </td>
+                        <td
+                          title={
+                            r.luckDiff == null
+                              ? 'Actual record unavailable'
+                              : `Actual win rate ${r.actualPct!.toFixed(1)}% vs all-play win rate ${r.allPlayPct.toFixed(1)}%`
+                          }
+                        >
+                          {luck}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -462,3 +462,50 @@ describe('TeamsPage lineup efficiency', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('TeamsPage all-play record', () => {
+  function allPlayLeague(): League {
+    // 4 teams, two completed weeks (currentWeek 9 is excluded as live).
+    return league({
+      status: 'live',
+      teams: [
+        team('A', 'Alpha', 2, 0, 260),
+        team('B', 'Beta', 0, 2, 180),
+        team('C', 'Gamma', 1, 1, 220),
+        team('D', 'Delta', 1, 1, 240),
+      ],
+      matchups: [
+        { week: 7, team1Id: 'A', team1Points: 130, team2Id: 'B', team2Points: 90 },
+        { week: 7, team1Id: 'C', team1Points: 110, team2Id: 'D', team2Points: 120 },
+        { week: 8, team1Id: 'A', team1Points: 130, team2Id: 'C', team2Points: 110 },
+        { week: 8, team1Id: 'B', team1Points: 90, team2Id: 'D', team2Points: 120 },
+        // Week 9 (live): partial scores never count.
+        { week: 9, team1Id: 'A', team1Points: 999, team2Id: 'B', team2Points: 1 },
+      ],
+    });
+  }
+
+  it('ranks teams by all-play win rate and prices schedule luck', () => {
+    renderPage(allPlayLeague());
+    expect(screen.getByRole('heading', { name: 'All-Play Record' })).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /all-play record/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(5); // header + 4 teams
+    // Alpha beat everyone both weeks: 6-0 all-play, 2-0 actual → even.
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(rows[1]).toHaveTextContent('6-0');
+    expect(rows[1]).toHaveTextContent('2-0');
+    expect(rows[1]).toHaveTextContent('even');
+    // Beta lost to everyone both weeks: 0-6 all-play, 0-2 actual → even.
+    expect(rows[4]).toHaveTextContent('Beta');
+    expect(rows[4]).toHaveTextContent('0-6');
+    expect(rows[4]).toHaveTextContent('even');
+  });
+
+  it('hides the section when the sync fetched no matchups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'All-Play Record' }),
+    ).not.toBeInTheDocument();
+  });
+});
