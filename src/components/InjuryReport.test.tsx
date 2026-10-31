@@ -90,7 +90,7 @@ describe('InjuryReport', () => {
   });
 });
 
-describe('InjuryReport handcuff column', () => {
+describe('InjuryReport next-man-up column', () => {
   function backfieldPool(): DraftPoolFile {
     const mk = (
       id: string, name: string, depth: number, overallRank: number, injuryStatus?: string
@@ -119,13 +119,86 @@ describe('InjuryReport handcuff column', () => {
     };
   }
 
-  it('names the replacement handcuff for an injured lead RB and dashes the rest', () => {
+  it('names the next man up for an injured lead RB and dashes the rest', () => {
     render(<InjuryReport league={{ teams: [] } as League} pool={backfieldPool()} />);
     const table = screen.getByRole('table');
-    expect(within(table).getByRole('columnheader', { name: 'Handcuff' })).toBeTruthy();
+    expect(within(table).getByRole('columnheader', { name: 'Next man up' })).toBeTruthy();
     const row = within(table)
       .getAllByRole('row')
       .find(r => r.textContent?.includes('Lead Back'));
-    expect(within(row!).getByLabelText('Backup Back, replacement handcuff')).toBeTruthy();
+    expect(within(row!).getByLabelText('Backup Back, next man up')).toBeTruthy();
+  });
+
+  function qbPool(): DraftPoolFile {
+    const mk = (
+      id: string, name: string, depth: number, overallRank: number, injuryStatus?: string
+    ): PoolPlayer => ({
+      id,
+      name,
+      team: 'PHI',
+      pos: 'QB',
+      posRank: depth,
+      overallRank,
+      depthChartOrder: depth,
+      tier: 1,
+      bye: 7,
+      baseValue: null,
+      projPtsPpr: 100,
+      ...(injuryStatus ? { injuryStatus, injuryBodyPart: 'Shoulder' } : {}),
+    }) as PoolPlayer;
+    return {
+      season: 2026,
+      generatedAt: 'test',
+      baseline: { budget: 200, teams: 10, rounds: 15 },
+      players: [
+        mk('qb1', 'Hurt QB1', 1, 25, 'Out'),
+        mk('qb2', 'Backup QB', 2, 180),
+      ],
+    };
+  }
+
+  function qbLeague(rosteredIds: string[]): League {
+    const teamA: Team = {
+      id: 't1',
+      name: 'Team A',
+      roster: rosteredIds.map(id => leaguePlayer(id, id === 'qb1' ? 'Hurt QB1' : 'Backup QB')),
+    } as Team;
+    return { teams: [teamA] } as League;
+  }
+
+  it('tags an unrostered next man up as FA in league mode', () => {
+    render(<InjuryReport league={qbLeague(['qb1'])} pool={qbPool()} />);
+    const table = screen.getByRole('table');
+    const row = within(table)
+      .getAllByRole('row')
+      .find(r => r.textContent?.includes('Hurt QB1'));
+    expect(within(row!).getByLabelText('Backup QB, next man up, free agent on waivers')).toBeTruthy();
+    expect(within(row!).getByText('FA')).toBeTruthy();
+  });
+
+  it('tags a rostered next man up with his owner', () => {
+    const league = qbLeague(['qb1']);
+    league.teams.push({
+      id: 't2',
+      name: 'Team B',
+      roster: [leaguePlayer('qb2', 'Backup QB')],
+    } as Team);
+    render(<InjuryReport league={league} pool={qbPool()} />);
+    const table = screen.getByRole('table');
+    const row = within(table)
+      .getAllByRole('row')
+      .find(r => r.textContent?.includes('Hurt QB1'));
+    expect(within(row!).getByLabelText('Backup QB, next man up, owned by Team B')).toBeTruthy();
+    expect(within(row!).getByText('Team B')).toBeTruthy();
+  });
+
+  it('shows no availability tag in guest mode', () => {
+    render(<InjuryReport league={{ teams: [] } as League} pool={qbPool()} />);
+    const table = screen.getByRole('table');
+    expect(table.textContent).not.toContain('FA');
+    const row = within(table)
+      .getAllByRole('row')
+      .find(r => r.textContent?.includes('Hurt QB1'));
+    expect(within(row!).getByLabelText('Backup QB, next man up')).toBeTruthy();
   });
 });

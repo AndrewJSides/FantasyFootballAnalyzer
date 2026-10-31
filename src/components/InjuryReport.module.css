@@ -95,6 +95,25 @@
   color: var(--bone);
 }
 
+.faTag,
+.heldTag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.35rem;
+  border: 1px solid var(--lime);
+  color: var(--lime);
+  white-space: nowrap;
+}
+
+.heldTag {
+  border-color: var(--bone-faint, rgba(255, 255, 255, 0.14));
+  color: var(--bone-dim);
+}
+
 .ownerCell {
   font-size: 0.78rem;
 }

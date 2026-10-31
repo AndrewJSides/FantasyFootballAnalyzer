@@ -48,9 +48,9 @@ function tierClass(tier: InjurySeverityTier): string {
 
 // League Injury Report: every startable QB/RB/WR/TE with a current Sleeper
 // injury designation, worst first, with league ownership resolved — the
-// league-wide answer to "who is hurt and who owns them". Priced on
-// TraderApe's own bundled pool data; waiver research only, nothing here
-// moves a roster.
+// league-wide answer to "who is hurt and who owns them", plus the next man
+// up for each hurt starter. Priced on TraderApe's own bundled pool data;
+// waiver research only, nothing here moves a roster.
 export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) {
   const [pool] = useState(() => poolOverride ?? POOL);
   const [owners] = useState(() => leagueOwners(league, pool));
@@ -74,8 +74,8 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
         <table className={styles.table}>
           <caption className="visually-hidden">
             Injured players sorted by severity, with injury detail, the
-            replacement handcuff for hurt lead running backs, and the
-            fantasy team that owns each one
+            next man up for hurt starters with his waiver availability,
+            and the fantasy team that owns each one
           </caption>
           <thead>
             <tr>
@@ -87,7 +87,7 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
               <th scope="col">Pos</th>
               <th scope="col">Status</th>
               <th scope="col">Detail</th>
-              <th scope="col">Handcuff</th>
+              <th scope="col">Next man up</th>
               <th scope="col">Owner</th>
             </tr>
           </thead>
@@ -116,16 +116,44 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
                   className={styles.replacement}
                   aria-label={
                     row.replacement
-                      ? `${row.replacement.name}, replacement handcuff`
-                      : 'No handcuff replacement'
+                      ? `${row.replacement.name}, next man up${
+                          hasRosters
+                            ? row.replacementOwner
+                              ? `, owned by ${row.replacementOwner}`
+                              : ', free agent on waivers'
+                            : ''
+                        }`
+                      : 'No next man up'
                   }
                   title={
                     row.replacement
-                      ? `Next man up per Sleeper depth-chart order — see the Handcuff Report for availability`
+                      ? `Next man up per Sleeper depth-chart order${
+                          hasRosters
+                            ? row.replacementOwner
+                              ? ` — owned by ${row.replacementOwner}`
+                              : ' — free agent on waivers'
+                            : ''
+                        }`
                       : undefined
                   }
                 >
-                  {row.replacement ? row.replacement.name : '—'}
+                  {row.replacement ? (
+                    <>
+                      {row.replacement.name}
+                      {hasRosters &&
+                        (row.replacementOwner ? (
+                          <span className={styles.heldTag} aria-hidden="true">
+                            {row.replacementOwner}
+                          </span>
+                        ) : (
+                          <span className={styles.faTag} aria-hidden="true">
+                            FA
+                          </span>
+                        ))}
+                    </>
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className={styles.ownerCell}>
                   {hasRosters ? row.owner ?? 'Free agent' : '—'}
@@ -138,11 +166,12 @@ export function InjuryReport({ league, pool: poolOverride }: InjuryReportProps) 
 
       <p className={styles.footnote}>
         Designations from Sleeper&apos;s injury data in the bundled pool,
-        refreshed twice daily. The Handcuff column names the direct backup
-        who would inherit the lead job for an injured lead running back
-        (per Sleeper depth-chart order, same pairing as the Handcuff
-        Report — availability there). Ownership resolves from the last
-        /admin sync. Waiver research only — nothing here moves a roster.
+        refreshed twice daily. The Next man up column names the direct
+        backup who would inherit the job for an injured depth-chart leader
+        at QB/RB/WR/TE (per Sleeper depth-chart order, with a positional-
+        rank fallback) — FA means he&apos;s on waivers, a team name means
+        he&apos;s already rostered. Ownership resolves from the last /admin
+        sync. Waiver research only — nothing here moves a roster.
       </p>
     </section>
   );

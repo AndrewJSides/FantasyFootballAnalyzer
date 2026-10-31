@@ -83,6 +83,84 @@ describe('buildInjuryReport', () => {
   });
 });
 
+describe('next man up across positions', () => {
+  function squad(
+    id: string,
+    name: string,
+    pos: 'QB' | 'RB' | 'WR' | 'TE',
+    depth: number | undefined,
+    posRank: number,
+    overallRank: number,
+    injuryStatus?: string
+  ): PoolPlayer {
+    return {
+      id,
+      name,
+      team: 'KC',
+      pos,
+      posRank,
+      overallRank,
+      ...(depth !== undefined ? { depthChartOrder: depth } : {}),
+      tier: 1,
+      bye: 7,
+      baseValue: null,
+      projPtsPpr: 100,
+      ...(injuryStatus ? { injuryStatus, injuryBodyPart: 'Knee' } : {}),
+    } as PoolPlayer;
+  }
+  const squadPool: DraftPoolFile = {
+    season: 2026,
+    generatedAt: 'test',
+    baseline: { budget: 200, teams: 10, rounds: 15 },
+    players: [
+      squad('qb1', 'Hurt QB1', 'QB', 1, 1, 25, 'Out'),
+      squad('qb2', 'Backup QB', 'QB', 2, 2, 180),
+      squad('wr1', 'Hurt WR1', 'WR', 1, 1, 12, 'Questionable'),
+      squad('wr2', 'Next WR', 'WR', 2, 2, 90),
+      // No depth-chart data: posRank decides.
+      squad('te1', 'Hurt TE1', 'TE', undefined, 1, 40, 'Doubtful'),
+      squad('te2', 'Backup TE', 'TE', undefined, 2, 150),
+      // Hurt non-leader: no next man up named.
+      squad('wr3', 'Hurt WR3', 'WR', 3, 3, 120, 'Out'),
+      // Lone TE on another team: no pair at all.
+      { ...squad('te9', 'Lone TE', 'TE', 1, 1, 60, 'Out'), team: 'FA' } as PoolPlayer,
+    ],
+  };
+
+  it('names the backup QB for a hurt QB1', () => {
+    const rows = buildInjuryReport({ pool: squadPool });
+    expect(rows.find(r => r.player.id === 'qb1')!.replacement?.name).toBe('Backup QB');
+  });
+
+  it('names the WR2 for a hurt WR1', () => {
+    const rows = buildInjuryReport({ pool: squadPool });
+    expect(rows.find(r => r.player.id === 'wr1')!.replacement?.name).toBe('Next WR');
+  });
+
+  it('falls back to positional rank without depth-chart data', () => {
+    const rows = buildInjuryReport({ pool: squadPool });
+    expect(rows.find(r => r.player.id === 'te1')!.replacement?.name).toBe('Backup TE');
+  });
+
+  it('shows no next man up for a hurt non-leader or a lone starter', () => {
+    const rows = buildInjuryReport({ pool: squadPool });
+    expect(rows.find(r => r.player.id === 'wr3')!.replacement).toBeNull();
+    expect(rows.find(r => r.player.id === 'te9')!.replacement).toBeNull();
+  });
+
+  it('resolves the replacement owner, null for free agents and guest mode', () => {
+    const owners = new Map([
+      ['qb1', 'Team A'],
+      ['qb2', 'Team B'],
+    ]);
+    const rows = buildInjuryReport({ pool: squadPool, ownerByPoolId: owners });
+    expect(rows.find(r => r.player.id === 'qb1')!.replacementOwner).toBe('Team B');
+    expect(rows.find(r => r.player.id === 'wr1')!.replacementOwner).toBeNull();
+    const guest = buildInjuryReport({ pool: squadPool });
+    expect(guest.find(r => r.player.id === 'qb1')!.replacementOwner).toBeNull();
+  });
+});
+
 describe('replacement handcuff', () => {
   function back(
     id: string,
