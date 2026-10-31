@@ -21,7 +21,7 @@ import {
 } from '@/utils/matchupRating';
 import { leagueOwnerMap } from '@/utils/rosRankings';
 import { injuryOf } from '@/utils/seasonOutlook';
-import { buildWeeklyRankings } from '@/utils/weeklyRankings';
+import { buildWeeklyRankings, type WeeklyRankRow } from '@/utils/weeklyRankings';
 import styles from './WeeklyRankingsPage.module.css';
 
 type PosFilter = 'ALL' | 'QB' | 'RB' | 'WR' | 'TE';
@@ -62,6 +62,34 @@ function MatchupCell({ team, pos, week }: { team: string; pos: string; week: num
   return (
     <td className={styles.num} title={label} aria-label={label}>
       <span className={cls}>{matchupShort(rating)}</span>
+    </td>
+  );
+}
+
+// Item-20 consistency verdict on the weekly board: the same Steady/Mixed/
+// Volatile rating the Player Journey page shows, priced on this player's
+// completed weeks. Steady = low week-to-week variance, Volatile = high.
+function ConsistencyCell({ row }: { row: WeeklyRankRow }) {
+  const c = row.consistency;
+  if (!c)
+    return (
+      <td className={`${styles.num} ${styles.dim}`} aria-label="Not enough games for a consistency rating">
+        -
+      </td>
+    );
+  const cls =
+    c.verdict === 'Steady'
+      ? styles.volSteady
+      : c.verdict === 'Volatile'
+        ? styles.volVolatile
+        : styles.volMixed;
+  const label =
+    `${c.verdict}: floor ${c.floor} / ceiling ${c.ceiling} (P25–P75 of ${c.games} ` +
+    `completed weeks), ${c.boomWeeks} boom and ${c.bustWeeks} bust weeks ` +
+    `(boom ≥ ${c.boomBar}, bust ≤ ${c.bustBar})`;
+  return (
+    <td className={styles.num} title={label} aria-label={label}>
+      <span className={cls}>{c.verdict}</span>
     </td>
   );
 }
@@ -203,6 +231,11 @@ export function WeeklyRankingsPage({
                         <abbr title="Average points over the last three completed weeks">Last 3</abbr>
                       </th>
                       <th scope="col">Matchup</th>
+                      <th scope="col">
+                        <abbr title="Week-to-week reliability from the player's completed weeks: floor/ceiling percentiles, boom and bust week counts">
+                          Consistency
+                        </abbr>
+                      </th>
                       {live && <th scope="col">Owner</th>}
                     </tr>
                   </thead>
@@ -232,6 +265,7 @@ export function WeeklyRankingsPage({
                           <td className={styles.num}>{fmt(r.ppg)}</td>
                           <td className={styles.num}>{fmt(r.last3)}</td>
                           <MatchupCell team={r.player.team} pos={r.player.pos} week={week} />
+                          <ConsistencyCell row={r} />
                           {live && (
                             <td className={styles.owner}>
                               {r.owner ?? <span className={styles.freeAgent}>Free agent</span>}
@@ -250,7 +284,9 @@ export function WeeklyRankingsPage({
               nudged by this week&apos;s matchup difficulty), priced on full-PPR
               scoring from Sleeper&apos;s free weekly stats. Matchup ratings are
               priced on the opponent&apos;s fantasy points allowed per position
-              over weeks {dataStart}–{dataEnd}. Players on bye this week are
+              over weeks {dataStart}–{dataEnd}. Consistency reuses the
+              Player Journey boom/bust engine (P25 floor / P75 ceiling, TraderApe&apos;s
+              own per-position bars). Players on bye this week are
               excluded. Top 40 per position. Trade research only — nothing here
               moves a roster.
             </p>

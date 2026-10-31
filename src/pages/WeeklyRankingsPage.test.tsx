@@ -99,6 +99,34 @@ describe('WeeklyRankingsPage', () => {
     expect(names).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Delta Dolphin']);
   });
 
+  it('shows a Consistency column with verdict chips and a dash for data-less players', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+    const table = screen.getByRole('table');
+    expect(
+      within(table).getByRole('columnheader', { name: /consistency/i }),
+    ).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    const alpha = rows.find(r =>
+      within(r).queryByRole('rowheader', { name: 'Alpha Aardvark' }),
+    );
+    expect(alpha).toBeDefined();
+    // The mock returns 7 identical weeks at 25 pts for Alpha: Steady, with
+    // the full floor/ceiling story in the hover label.
+    const chip = within(alpha!).getByText('Steady');
+    expect(chip).toBeInTheDocument();
+    expect(chip.closest('td')).toHaveAttribute('aria-label', expect.stringContaining('Steady'));
+    // Delta has no weekly stats: a dash with the no-games explanation.
+    const delta = rows.find(r =>
+      within(r).queryByRole('rowheader', { name: 'Delta Dolphin' }),
+    );
+    expect(
+      within(delta!).getByLabelText('Not enough games for a consistency rating'),
+    ).toBeInTheDocument();
+  });
+
   it('filters by position with an aria-pressed button', async () => {
     renderPage();
     await waitFor(() => {

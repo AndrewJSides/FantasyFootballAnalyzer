@@ -14,6 +14,7 @@ import {
   leagueAvgAllowed,
   type MatchupRating,
 } from '@/utils/matchupRating';
+import { consistencySummary, type ConsistencySummary } from '@/utils/consistency';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
@@ -28,6 +29,8 @@ export interface WeeklyRankRow {
   /** This week's TraderApe projection; null when no completed-week data. */
   projection: number | null;
   matchup: MatchupRating | null;
+  /** Item-20 consistency verdict from this player's completed weeks; null under 3 games. */
+  consistency: ConsistencySummary | null;
   /** League mode: owning fantasy team name; null when on waivers. Absent in guest mode. */
   owner: string | null;
   /** 1-based rank within his position, priced on the same context. */
@@ -80,6 +83,11 @@ function rowFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, currentWeek:
     projectWeeklyPoints(entries, gpCompleted.length > 0 ? gpCompleted.length : null, matchupContext)
       ?.projection ?? null;
 
+  // Consistency prices only completed weeks — the in-progress week never
+  // counts, same as the projection entries above.
+  const completedWeeks: Record<number, number> = {};
+  for (const e of entries) completedWeeks[e.week] = e.pts;
+
   return {
     player: p,
     total,
@@ -88,6 +96,10 @@ function rowFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, currentWeek:
     last3,
     projection: projection === null ? null : round1(projection),
     matchup,
+    consistency: consistencySummary(
+      Object.keys(completedWeeks).length > 0 ? completedWeeks : undefined,
+      p.pos,
+    ),
     owner: null,
     sortScore: projection ?? ppg ?? -1,
     sortGroup: projection === null ? 1 : 0,
@@ -126,6 +138,7 @@ export function buildWeeklyRankings({
         last3: r.last3,
         projection: r.projection,
         matchup: r.matchup,
+        consistency: r.consistency,
         owner: ownerByPoolId?.get(r.player.id) ?? null,
         posRank: i + 1,
       });

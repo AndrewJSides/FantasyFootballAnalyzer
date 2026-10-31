@@ -145,4 +145,54 @@ describe('buildWeeklyRankings', () => {
     const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
     expect(rows[0].matchup).toBeNull();
   });
+
+  it('attaches a consistency verdict from completed weeks', () => {
+    const pool = {
+      players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' })],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly(
+      { 's-a': { 1: 4, 2: 5, 3: 22, 4: 3 } },
+      { 's-a': [1, 2, 3, 4] },
+    );
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    const c = rows[0].consistency;
+    expect(c).not.toBeNull();
+    // High week-to-week variance: cv well above 0.5 → Volatile.
+    expect(c!.verdict).toBe('Volatile');
+    expect(c!.games).toBe(4);
+    // RB bars are boom ≥ 20 / bust ≤ 7: one boom week (22), three busts.
+    expect(c!.boomWeeks).toBe(1);
+    expect(c!.bustWeeks).toBe(3);
+    expect(c!.floor).toBe(3);
+    expect(c!.ceiling).toBe(5);
+  });
+
+  it('attaches null consistency under 3 completed games', () => {
+    const pool = {
+      players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' })],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly({ 's-a': { 3: 12, 4: 14 } }, { 's-a': [3, 4] });
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    expect(rows[0].consistency).toBeNull();
+  });
+
+  it('excludes the in-progress week from the consistency verdict', () => {
+    const pool = {
+      players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' })],
+      season: SEASON,
+    } as DraftPoolFile;
+    // Week 5 is in progress (currentWeek 5): the 40-point line there must
+    // not turn four steady weeks into a volatile verdict.
+    const wk = weekly(
+      { 's-a': { 1: 10, 2: 11, 3: 9, 4: 10, 5: 40 } },
+      { 's-a': [1, 2, 3, 4, 5] },
+    );
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    const c = rows[0].consistency;
+    expect(c).not.toBeNull();
+    expect(c!.games).toBe(4);
+    expect(c!.verdict).toBe('Steady');
+  });
 });

@@ -128,6 +128,27 @@
   white-space: nowrap;
 }
 
+/* Consistency verdict chips on the Weekly Rankings board (backlog item 49):
+   same color language as the matchup chips. */
+.volSteady,
+.volMixed,
+.volVolatile {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.volSteady {
+  color: var(--lime);
+}
+
+.volVolatile {
+  color: var(--blood-text);
+}
+
+.volMixed {
+  color: var(--bone-dim);
+}
+
 .muFav {
   color: var(--lime);
 }
