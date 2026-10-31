@@ -27,6 +27,7 @@ import {
   slotEligiblePositions,
 } from '@/utils/optimalLineup';
 import { projectionReason } from '@/utils/weeklyProjection';
+import { consistencySummary } from '@/utils/consistency';
 import { planLineupWeeks, type PlannedWeek } from '@/utils/lineupPlanner';
 import {
   byeWeekStreamerPicks,
@@ -222,6 +223,24 @@ export function StartSitPage({ league }: StartSitPageProps) {
     [isGuest, guestRoster, team],
   );
   const weeklyPoints = isGuest ? guestWeekly?.pointsBySleeperId : league.playerWeeklyPoints;
+
+  // Projected range (backlog item 62): each starter's P25–P75 weekly band
+  // from their own played weeks (the consistency engine's percentiles), so
+  // a steady projection and a volatile one read differently at a glance.
+  // Dash when fewer than 3 played weeks — the percentiles are noise before
+  // that, same bar as the consistency util itself.
+  const rangeInfo = (
+    s: ScoredPlayer,
+  ): { label: string; title: string | undefined } => {
+    const weekly =
+      weeklyPoints?.[s.player.platformId] ?? weeklyPoints?.[s.player.id];
+    const c = consistencySummary(weekly, s.position);
+    if (!c) return { label: '—', title: undefined };
+    return {
+      label: `${round1(c.floor)}–${round1(c.ceiling)}`,
+      title: `Typical range: P25–P75 of ${c.games} played weeks`,
+    };
+  };
 
   const scored = useMemo<ScoredPlayer[]>(
     () =>
@@ -693,6 +712,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Slot</th>
                   <th scope="col">Player</th>
                   <th scope="col">Proj.</th>
+                  <th scope="col">Range</th>
                   <th scope="col">Pts/game</th>
                   <th scope="col">Last 3</th>
                   <th scope="col">Matchup</th>
@@ -703,6 +723,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
               <tbody>
                 {lineup.starters.map((a, i) => {
                   const s = a.player as ScoredPlayer | null;
+                  const range = s ? rangeInfo(s) : null;
                   return (
                     <tr key={`${a.slot}-${i}`}>
                       <th scope="row">{a.slot}</th>
@@ -717,6 +738,13 @@ export function StartSitPage({ league }: StartSitPageProps) {
                         )}
                       </td>
                       <td>{s?.projection?.projection ?? '—'}</td>
+                      <td>
+                        {range ? (
+                          <span title={range.title ?? undefined}>{range.label}</span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td>{s?.ppg ?? '—'}</td>
                       <td>{s?.last3 ?? '—'}</td>
                       <td>
@@ -799,7 +827,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
             <p className={styles.note}>
               Projected from each player&apos;s last-4-week form blended with
               their season average and nudged by matchup difficulty, so one big
-              week can&apos;t over-swing it.
+              week can&apos;t over-swing it. Range is each starter&apos;s
+              P25–P75 scoring band from their own played weeks (3+ needed) —
+              a steady 14 and a volatile 14 are very different start calls.
               {mode !== 'balanced'
                 ? ` ${mode === 'ceiling' ? 'Chase ceiling' : 'Protect floor'} re-ranks the lineup on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} — each player\u2019s projection ${mode === 'ceiling' ? 'plus' : 'minus'} 0.6745 \u00d7 their own week-to-week volatility.`
                 : ''}
