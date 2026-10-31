@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -36,6 +36,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
             {league.season} pickups and free agent adds
           </p>
         </div>
+
+        {/* The ranked "claim THIS first" list: value × positional need ×
+            upcoming bye-week gaps, priced against this league's FAAB norms —
+            the single answer to "who do I put a claim on tonight". */}
+        <WaiverPriority league={league} />
 
         {/* Bid guidance prices the top available targets against this
             league's own FAAB norms — before the historical pickup table. */}

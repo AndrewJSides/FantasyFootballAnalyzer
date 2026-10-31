@@ -13,6 +13,7 @@ export { SeasonLoadingOverlay } from './SeasonLoadingOverlay';
 export { WaiverTable } from './WaiverTable';
 export { FaabGuidance } from './FaabGuidance';
 export { FaabBudgets } from './FaabBudgets';
+export { WaiverPriority } from './WaiverPriority';
 export { WaiverReportCard } from './WaiverReportCard';
 export { TrendingAdds } from './TrendingAdds';
 export { TrendingDrops } from './TrendingDrops';
