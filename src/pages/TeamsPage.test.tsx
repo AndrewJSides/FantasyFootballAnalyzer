@@ -509,3 +509,44 @@ describe('TeamsPage all-play record', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('TeamsPage clinch watch', () => {
+  // One playoff spot, A (8-0) hosts B (7-1) in week 9: A clinches with a
+  // win, B is out with a loss (same airtight fixture as the clinchWatch
+  // util test).
+  const bubble = (): League =>
+    league({
+      teams: [
+        team('A', 'Alpha', 8, 0, 1200),
+        team('B', 'Beta', 7, 1, 1120),
+        team('C', 'Gamma', 0, 8, 800),
+        team('D', 'Delta', 0, 8, 800),
+      ],
+      playoffTeams: 1,
+      currentWeek: 9,
+      futureSchedule: [
+        matchup(9, 'A', 'B'),
+        matchup(9, 'C', 'D'),
+        matchup(10, 'A', 'C'),
+        matchup(10, 'B', 'D'),
+      ],
+    });
+
+  it('renders this-week clinch scenarios on the Playoff Race table', () => {
+    renderPage(bubble());
+    const table = screen.getByRole('table', {
+      name: /Playoff race: remaining schedule/,
+    });
+    expect(
+      within(table).getByRole('columnheader', { name: 'This week' }),
+    ).toBeTruthy();
+    const rows = within(table).getAllByRole('row');
+    const alpha = rows.find(r => within(r).queryByText('Alpha'));
+    const beta = rows.find(r => within(r).queryByText('Beta'));
+    expect(within(alpha!).getByText('Clinches with a win')).toBeTruthy();
+    expect(within(beta!).getByText('Out with a loss')).toBeTruthy();
+    // Decided teams get the dim dash.
+    const gamma = rows.find(r => within(r).queryByText('Gamma'));
+    expect(within(gamma!).getAllByText('—').length).toBeGreaterThan(0);
+  });
+});

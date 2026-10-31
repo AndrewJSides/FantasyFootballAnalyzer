@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   playoffRace,
+  clinchWatch,
   simulateBracketChampion,
   simulateBracketRounds,
   mulberry32,
@@ -398,5 +399,123 @@ describe('simulateBracketChampion', () => {
       expect(ids.has(simulateBracketChampion(seeds(6), mulberry32(i), fresh()))).toBe(true);
     }
     expect(simulateBracketChampion([], favorFirst, fresh())).toBe('');
+  });
+});
+
+describe('forceNextGame', () => {
+  // Two winless teams, one game, one playoff spot: a coin flip by default.
+  const duel = (): League =>
+    league({
+      teams: [
+        team('X', 'Ex', 0, 8, 800),
+        team('Y', 'Why', 0, 8, 800),
+      ],
+      totalTeams: 2,
+      playoffTeams: 1,
+      currentWeek: 9,
+      futureSchedule: [matchup(9, 'X', 'Y')],
+    });
+
+  it('decides the forced team\'s next game by fiat', () => {
+    const won = playoffRace(duel(), {
+      simulations: 500,
+      seed: 11,
+      forceNextGame: { teamId: 'X', result: 'win' },
+    });
+    const byId = new Map(won.map(r => [r.teamId, r]));
+    expect(byId.get('X')!.playoffProb).toBe(100);
+    expect(byId.get('Y')!.playoffProb).toBe(0);
+
+    const lost = playoffRace(duel(), {
+      simulations: 500,
+      seed: 11,
+      forceNextGame: { teamId: 'X', result: 'loss' },
+    });
+    const byLoss = new Map(lost.map(r => [r.teamId, r]));
+    expect(byLoss.get('X')!.playoffProb).toBe(0);
+    expect(byLoss.get('Y')!.playoffProb).toBe(100);
+  });
+
+  it('is a no-op for a team with no remaining games', () => {
+    const rows = playoffRace(duel(), {
+      simulations: 500,
+      seed: 11,
+      forceNextGame: { teamId: 'ZZZ', result: 'win' },
+    });
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    // Still a coin flip: the force targeted nobody.
+    expect(byId.get('X')!.playoffProb).toBeGreaterThan(30);
+    expect(byId.get('X')!.playoffProb).toBeLessThan(70);
+  });
+});
+
+describe('clinchWatch', () => {
+  // One playoff spot. A (8-0) hosts B (7-1) in week 9, then both play
+  // cupcakes in week 10. A win in week 9 puts A at 9-0 with B capped at
+  // 8-2: a lock. A loss leaves the door open (B 9-1 beats A 8-2). B's loss
+  // is fatal (A is at least 9-1, B caps at 8-2); B's win is not a lock
+  // (9-1 each goes to the points tiebreak, which A wins).
+  const bubble = (): League =>
+    league({
+      teams: [
+        team('A', 'Alpha', 8, 0, 1200),
+        team('B', 'Beta', 7, 1, 1120),
+        team('C', 'Gamma', 0, 8, 800),
+        team('D', 'Delta', 0, 8, 800),
+      ],
+      playoffTeams: 1,
+      currentWeek: 9,
+      futureSchedule: [
+        matchup(9, 'A', 'B'),
+        matchup(9, 'C', 'D'),
+        matchup(10, 'A', 'C'),
+        matchup(10, 'B', 'D'),
+      ],
+    });
+
+  it('flags the airtight clinch and elimination scenarios', () => {
+    const l = bubble();
+    const base = playoffRace(l, { simulations: 2000, seed: 42 });
+    const byId = new Map(base.map(r => [r.teamId, r]));
+    // Both contenders are genuinely alive in the base race.
+    expect(byId.get('A')!.playoffStatus).toBe('alive');
+    expect(byId.get('B')!.playoffStatus).toBe('alive');
+    expect(byId.get('C')!.playoffStatus).toBe('eliminated');
+    expect(byId.get('D')!.playoffStatus).toBe('eliminated');
+
+    const watch = clinchWatch(l, base, {
+      forcedSimulations: 5000,
+      seed: 42,
+    });
+    const watchById = new Map(watch.map(c => [c.teamId, c]));
+    // Already-decided teams are skipped.
+    expect(watch.map(c => c.teamId).sort()).toEqual(['A', 'B']);
+    // A at 9-0 beats B's 8-2 ceiling: clinches with a win.
+    expect(watchById.get('A')!.clinchesWithWin).toBe(true);
+    // A can still miss after a week-9 loss (B 9-1 over A 8-2).
+    expect(watchById.get('A')!.eliminatedWithLoss).toBe(false);
+    // B at 9-1 ties A on a week-9 win and loses the points tiebreak.
+    expect(watchById.get('B')!.clinchesWithWin).toBe(false);
+    // B's week-9 loss leaves A at 9-1 minimum vs B's 8-2 ceiling: fatal.
+    expect(watchById.get('B')!.eliminatedWithLoss).toBe(true);
+  });
+
+  it('is deterministic for a fixed seed', () => {
+    const l = bubble();
+    const base = playoffRace(l, { simulations: 500, seed: 7 });
+    const run = () =>
+      clinchWatch(l, base, { forcedSimulations: 200, seed: 7 });
+    expect(run()).toEqual(run());
+  });
+
+  it('returns nothing when nobody is alive', () => {
+    const l = bubble();
+    const base = playoffRace(l, { simulations: 10, seed: 1 }).map(r => ({
+      ...r,
+      playoffStatus: 'clinched' as const,
+    }));
+    expect(clinchWatch(l, base, { forcedSimulations: 10, seed: 1 })).toEqual(
+      [],
+    );
   });
 });

@@ -60,6 +60,13 @@ export interface PlayoffRaceOptions {
   simulations?: number;
   /** Seed for deterministic runs (tests). Default: random. */
   seed?: number;
+  /**
+   * Force this team's next (earliest) remaining game to the given result
+   * instead of drawing it, then simulate the rest of the season normally.
+   * Used by clinchWatch to price "clinches with a win" / "eliminated with
+   * a loss" scenarios. A team with no remaining games is unaffected.
+   */
+  forceNextGame?: { teamId: string; result: 'win' | 'loss' };
 }
 
 /** A 30-pt scoring gap ≈ 91% win probability — calibrated to typical
@@ -285,6 +292,28 @@ export function playoffRace(
   const sims = opts.simulations ?? 10000;
   const rand =
     opts.seed === undefined ? Math.random : mulberry32(opts.seed);
+
+  // Forced-result game: the forced team's earliest remaining matchup is
+  // decided by fiat, everything else draws normally. Precomputed once so
+  // the sim loop just compares identity.
+  const forced = (() => {
+    const f = opts.forceNextGame;
+    if (!f) return null;
+    const games = remByTeam.get(f.teamId);
+    if (!games || games.length === 0) return null;
+    const g = games[0];
+    return {
+      week: g.week,
+      a: f.teamId,
+      b: g.opponentId,
+      winner: f.result === 'win' ? f.teamId : g.opponentId,
+    };
+  })();
+  const isForcedGame = (week: number, team1Id: string, team2Id: string) =>
+    forced !== null &&
+    week === forced.week &&
+    ((team1Id === forced.a && team2Id === forced.b) ||
+      (team1Id === forced.b && team2Id === forced.a));
   const made = new Map<string, number>();
   // Per-game wins for team1 of each remaining matchup, so each team sees
   // a game-by-game win probability priced on the same simulations.
@@ -314,7 +343,13 @@ export function playoffRace(
     for (const t of teams) extra.set(t.id, 0);
     for (const m of remaining) {
       const key = gameKey(m.week, m.team1Id, m.team2Id);
-      if (rand() < winProb(ratingOf(m.team1Id), ratingOf(m.team2Id))) {
+      let team1Won: boolean;
+      if (isForcedGame(m.week, m.team1Id, m.team2Id)) {
+        team1Won = forced!.winner === m.team1Id;
+      } else {
+        team1Won = rand() < winProb(ratingOf(m.team1Id), ratingOf(m.team2Id));
+      }
+      if (team1Won) {
         extra.set(m.team1Id, (extra.get(m.team1Id) ?? 0) + 1);
         team1Wins.set(key, (team1Wins.get(key) ?? 0) + 1);
       } else {
@@ -417,4 +452,62 @@ export function playoffRace(
       ),
     }))
     .sort((a, b) => b.playoffProb - a.playoffProb || b.wins - a.wins);
+}
+
+/**
+ * This week's clinch scenarios: for each still-alive team, re-sim the
+ * season with its next game forced to a win (then to a loss) and check
+ * whether the forced result locks the outcome.
+ *
+ * - clinchesWithWin: the team made the playoffs in EVERY forced-win sim
+ *   (the model says a win this week clinches a berth).
+ * - eliminatedWithLoss: the team missed the playoffs in EVERY forced-loss
+ *   sim (the model says a loss this week ends it).
+ *
+ * Both are the model's verdict, not league-official. Forced runs use
+ * forcedSimulations (default 2000) — enough to detect the 100%/0% lock
+ * without the full 10,000-season cost per team. Teams already clinched or
+ * eliminated, and teams with no remaining games, are skipped.
+ */
+export interface ClinchWatch {
+  teamId: string;
+  clinchesWithWin: boolean;
+  eliminatedWithLoss: boolean;
+}
+
+export interface ClinchWatchOptions {
+  /** Sims per forced run. Default 2000. */
+  forcedSimulations?: number;
+  /** Seed for deterministic runs (tests). Default: random. */
+  seed?: number;
+}
+
+export function clinchWatch(
+  league: Pick<League, 'teams' | 'futureSchedule' | 'playoffTeams' | 'currentWeek'>,
+  baseRace: PlayoffRaceEntry[],
+  opts: ClinchWatchOptions = {},
+): ClinchWatch[] {
+  const forcedSims = opts.forcedSimulations ?? 2000;
+  const alive = baseRace.filter(r => r.playoffStatus === 'alive');
+  return alive.map((r, i): ClinchWatch => {
+    const seedBase = opts.seed === undefined ? undefined : opts.seed + i * 2;
+    const won = playoffRace(league, {
+      simulations: forcedSims,
+      seed: seedBase,
+      forceNextGame: { teamId: r.teamId, result: 'win' },
+    });
+    const lost = playoffRace(league, {
+      simulations: forcedSims,
+      seed: seedBase === undefined ? undefined : seedBase + 1,
+      forceNextGame: { teamId: r.teamId, result: 'loss' },
+    });
+    const wonEntry = won.find(e => e.teamId === r.teamId);
+    const lostEntry = lost.find(e => e.teamId === r.teamId);
+    return {
+      teamId: r.teamId,
+      clinchesWithWin: wonEntry !== undefined && wonEntry.playoffProb === 100,
+      eliminatedWithLoss:
+        lostEntry !== undefined && lostEntry.playoffProb === 0,
+    };
+  });
 }

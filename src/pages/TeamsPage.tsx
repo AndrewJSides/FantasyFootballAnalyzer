@@ -9,7 +9,7 @@ import type { DraftPoolFile } from '@/types/draft';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
-import { playoffRace } from '@/utils/playoffOdds';
+import { playoffRace, clinchWatch } from '@/utils/playoffOdds';
 import { buildPlayoffBracket } from '@/utils/playoffBracket';
 import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
@@ -152,6 +152,13 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // Playoff race: needs the future schedule the owner's last sync fetched.
   // Absent on old snapshots and in guest mode — the section hides itself.
   const race = useMemo(() => playoffRace(league), [league]);
+  // Clinch watch (backlog item 55): for each still-alive team, re-sim with
+  // this week's game forced to a win / a loss and flag the locks. Runs on
+  // fewer sims than the main race — it's a scenario check, not a forecast.
+  const clinch = useMemo(
+    () => new Map(clinchWatch(league, race).map(c => [c.teamId, c])),
+    [league, race],
+  );
   const bracket = useMemo(
     () =>
       race.length > 0 && league.playoffTeams
@@ -623,8 +630,13 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               Clinched means the team made the playoffs in every sim,
               Eliminated means it missed in every sim (the model, not the
               league office). Champ % is the share of sims in which the team
-              won the fully simulated playoff bracket. Schedule from the
-              owner's latest sync.
+              won the fully simulated playoff bracket. "This week" names the
+              clinch scenarios the model found by re-simulating each alive
+              team's season with this week's game forced to a win and to a
+              loss — "Clinches with a win" means the team made the playoffs
+              in every forced-win season, "Out with a loss" means it missed
+              in every forced-loss season (model verdict, not league-official).
+              Schedule from the owner's latest sync.
             </p>
             {projectedChampion && (
               <p className={styles.sectionHint}>
@@ -635,7 +647,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               </p>
             )}
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, seed, championship odds, status, and odds">
+              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, seed, championship odds, status, this week's clinch scenarios, and odds">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
@@ -647,6 +659,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                     <th scope="col">Playoff odds</th>
                     <th scope="col">Champ %</th>
                     <th scope="col">Status</th>
+                    <th scope="col">This week</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -711,6 +724,44 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                           : r.playoffStatus === 'eliminated'
                             ? 'Eliminated'
                             : '—'}
+                      </td>
+                      <td
+                        title={(() => {
+                          const c = clinch.get(r.teamId);
+                          const bits: string[] = [];
+                          if (c?.clinchesWithWin)
+                            bits.push(
+                              'Clinches a playoff berth with a win this week: made the playoffs in every forced-win simulated season (model verdict, not league-official)',
+                            );
+                          if (c?.eliminatedWithLoss)
+                            bits.push(
+                              'Eliminated with a loss this week: missed the playoffs in every forced-loss simulated season (model verdict, not league-official)',
+                            );
+                          return bits.length > 0
+                            ? bits.join(' ')
+                            : 'No clinch or elimination scenario this week';
+                        })()}
+                        aria-label={(() => {
+                          const c = clinch.get(r.teamId);
+                          const bits: string[] = [];
+                          if (c?.clinchesWithWin)
+                            bits.push('clinches a playoff berth with a win');
+                          if (c?.eliminatedWithLoss)
+                            bits.push('eliminated with a loss');
+                          return bits.length > 0
+                            ? `This week's scenarios, per the model: ${bits.join(' and ')}`
+                            : 'No clinch or elimination scenario this week';
+                        })()}
+                      >
+                        {(() => {
+                          const c = clinch.get(r.teamId);
+                          if (!c) return '—';
+                          const bits: string[] = [];
+                          if (c.clinchesWithWin) bits.push('Clinches with a win');
+                          if (c.eliminatedWithLoss)
+                            bits.push('Out with a loss');
+                          return bits.length > 0 ? bits.join(' · ') : '—';
+                        })()}
                       </td>
                     </tr>
                   ))}
