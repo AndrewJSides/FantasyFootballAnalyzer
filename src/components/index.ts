@@ -15,6 +15,7 @@ export { FaabGuidance } from './FaabGuidance';
 export { FaabBudgets } from './FaabBudgets';
 export { WaiverReportCard } from './WaiverReportCard';
 export { TrendingAdds } from './TrendingAdds';
+export { TrendingDrops } from './TrendingDrops';
 export { BreakoutWatch } from './BreakoutWatch';
 export { AddDropMoves } from './AddDropMoves';
 export { DstStreamers } from './DstStreamers';

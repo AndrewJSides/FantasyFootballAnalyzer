@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fetchTrendingAdds } from './sleeperTrending';
+import { fetchTrendingAdds, fetchTrendingDrops } from './sleeperTrending';
 
 vi.mock('@/utils/logger', () => ({ logger: { warn: vi.fn(), debug: vi.fn() } }));
 
@@ -63,5 +63,24 @@ describe('fetchTrendingAdds', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(String(spy.mock.calls[0][0])).toContain('lookback_hours=12');
     expect(String(spy.mock.calls[0][0])).toContain('limit=10');
+  });
+});
+
+describe('fetchTrendingDrops', () => {
+  it('hits the drop feed and maps player_id/count rows', async () => {
+    const spy = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => [{ player_id: 'xyz', count: 640 }],
+    }));
+    vi.stubGlobal('fetch', spy);
+    const r = await fetchTrendingDrops(24, 25);
+    expect(r).toEqual([{ playerId: 'xyz', count: 640 }]);
+    expect(String(spy.mock.calls[0][0])).toContain('trending/drop');
+  });
+
+  it('throws on HTTP errors so the UI can show an explicit error state', async () => {
+    mockFetch({ error: 'boom' }, false, 503);
+    await expect(fetchTrendingDrops(24, 25)).rejects.toThrow('HTTP 503');
   });
 });
