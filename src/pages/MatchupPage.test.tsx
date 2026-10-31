@@ -157,4 +157,28 @@ describe('MatchupPage', () => {
     renderPage(league({ matchups: [] }));
     expect(screen.queryByRole('heading', { name: 'Series history' })).not.toBeInTheDocument();
   });
+
+  it('shows position battles comparing the two optimal lineups by position', () => {
+    renderPage(league());
+    expect(screen.getByRole('heading', { name: 'Position battles' })).toBeInTheDocument();
+    const table = screen.getByRole('table', {
+      name: /Position-group projection comparison, Alpha vs Beta/,
+    });
+    // Header + QB/RB/WR/TE rows (no K or DST players rostered, so those
+    // groups are skipped).
+    expect(within(table).getAllByRole('row')).toHaveLength(5);
+    const qbRow = within(table).getByRole('rowheader', { name: 'QB' }).closest('tr')!;
+    // Both quarterbacks project 20.0 — scored even.
+    expect(within(qbRow).getByText('Even')).toBeInTheDocument();
+    // The RB battle renders whatever verdict the projections earn — an
+    // edge for one side or Even inside the band.
+    const rbRow = within(table).getByRole('rowheader', { name: 'RB' }).closest('tr')!;
+    const rbCells = within(rbRow).getAllByRole('cell');
+    expect(rbCells[rbCells.length - 1].textContent).toMatch(/^(Even|(Alpha|Beta) \+\d)/);
+  });
+
+  it('hides the position battles when a matchup cannot be priced', () => {
+    renderPage(league({ playerWeeklyPoints: {} }));
+    expect(screen.queryByRole('heading', { name: 'Position battles' })).not.toBeInTheDocument();
+  });
 });

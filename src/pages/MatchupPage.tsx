@@ -15,10 +15,28 @@ import { previewWeeklyMatchups, type MatchupPreview } from '@/utils/matchupPrevi
 import { buildGamePlan, TOSS_UP_THRESHOLD, type SwapFlag } from '@/utils/gamePlan';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { buildHeadToHead, seriesHeadline } from '@/utils/headToHead';
+import { buildPositionBattles, EVEN_BAND, type PositionBattle } from '@/utils/positionBattles';
 import ScoreDistBars from '@/components/ScoreDistBars';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './MatchupPage.module.css';
+
+function sidePlayers(side: PositionBattle['a']): string {
+  return side.players.map(p => `${p.name} ${p.proj.toFixed(1)}`).join(', ') || '—';
+}
+
+function battleEdgeShort(bt: PositionBattle, aName: string, bName: string): string {
+  if (bt.edge === 'even') return 'Even';
+  const m = Math.abs(bt.margin).toFixed(1);
+  return bt.edge === 'a' ? `${aName} +${m}` : `${bName} +${m}`;
+}
+
+function battleEdgeLabel(bt: PositionBattle, aName: string, bName: string): string {
+  if (bt.edge === 'even')
+    return `${bt.group}: even — ${aName} ${bt.a.proj.toFixed(1)}, ${bName} ${bt.b.proj.toFixed(1)} (within ${EVEN_BAND})`;
+  const winner = bt.edge === 'a' ? aName : bName;
+  return `${bt.group}: ${winner} by ${Math.abs(bt.margin).toFixed(1)} projected points`;
+}
 
 interface MatchupPageProps {
   league: League;
@@ -67,6 +85,17 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
     () => buildHeadToHead(preview.teamAId, preview.teamBId, completedMatchups(league)),
     [league, preview.teamAId, preview.teamBId],
   );
+  // Position-group battles: each optimal lineup's starters grouped by
+  // position, compared on summed weekly projections — same pricing as the
+  // preview above, so the two can't disagree.
+  const battles = useMemo(() => {
+    const a = teamById.get(preview.teamAId);
+    const b = teamById.get(preview.teamBId);
+    return a && b ? buildPositionBattles(a, b, league) : null;
+  }, [league, preview, teamById]);
+
+  // This season's series record between the two teams, from completed
+  // weeks only (the current week's partial scores don't count yet).
   const seriesAria = useMemo(() => {
     if (series.games === 0) return null;
     const parts = [`This season's series: ${seriesHeadline(series, aName, bName)}`];
@@ -130,6 +159,53 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
                 </li>
               ))}
             </ul>
+          </>
+        )}
+        {battles && battles.length > 0 && (
+          <>
+            <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
+              Position battles
+            </h3>
+            <table
+              className={styles.lineupTable}
+              aria-label={`Position-group projection comparison, ${aName} vs ${bName}`}
+            >
+              <thead>
+                <tr>
+                  <th scope="col">Pos</th>
+                  <th scope="col">{aName}</th>
+                  <th scope="col">{bName}</th>
+                  <th scope="col">Edge</th>
+                </tr>
+              </thead>
+              <tbody>
+                {battles.map(bt => (
+                  <tr key={bt.group}>
+                    <th scope="row" className={styles.slotCell}>
+                      {bt.group}
+                    </th>
+                    <td
+                      title={sidePlayers(bt.a)}
+                      aria-label={`${aName} ${bt.group}: ${sidePlayers(bt.a)}, ${bt.a.proj.toFixed(1)} projected`}
+                    >
+                      {bt.a.proj.toFixed(1)}
+                    </td>
+                    <td
+                      title={sidePlayers(bt.b)}
+                      aria-label={`${bName} ${bt.group}: ${sidePlayers(bt.b)}, ${bt.b.proj.toFixed(1)} projected`}
+                    >
+                      {bt.b.proj.toFixed(1)}
+                    </td>
+                    <td
+                      aria-label={battleEdgeLabel(bt, aName, bName)}
+                      title={battleEdgeLabel(bt, aName, bName)}
+                    >
+                      {battleEdgeShort(bt, aName, bName)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </>
         )}
         {series.games > 0 && seriesAria && (
@@ -274,7 +350,9 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         priced on completed weeks only. Win probabilities are Monte Carlo:
         10,000 simulated weeks, each starter&apos;s score drawn from his
         projection ± his own week-to-week volatility. Swing players carry the
-        most of the matchup&apos;s variance. Start/sit flags name bench
+        most of the matchup&apos;s variance. Position battles group each
+        optimal lineup&apos;s starters by position and compare summed weekly
+        projections (flexed players count in their own position group). Start/sit flags name bench
         players within {TOSS_UP_THRESHOLD} points of a starter&apos;s
         projection — close calls worth a second look, not orders. Guidance
         only: nothing here changes any lineup. Schedule from the owner&apos;s
