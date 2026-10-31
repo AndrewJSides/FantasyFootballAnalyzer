@@ -27,12 +27,29 @@ export interface PlannedStarter {
   score: number;
 }
 
+/**
+ * A rostered player who would have started this week if he weren't on bye
+ * (or otherwise excluded from the lineup pass): the lineup hole that week.
+ */
+export interface ByeHole {
+  name: string;
+  position: string;
+  nflTeam: string;
+}
+
 export interface PlannedWeek {
   week: number;
   projectedTotal: number;
   starters: PlannedStarter[];
   /** Rostered players on bye that week — excluded from every lineup. */
   onBye: string[];
+  /**
+   * On-bye players who would have started (the unfiltered optimal lineup
+   * starts them, so the week loses a starter at their position). The
+   * Streamer Planner's per-week engines price the replacement for
+   * streamable positions (QB / TE / K / DST).
+   */
+  byeHoles: ByeHole[];
   toughCount: number;
   favorableCount: number;
 }
@@ -50,6 +67,21 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
     const scored = scoreRosterPlayers({ ...scoreInputs, currentWeek: week });
     const eligible = scored.filter(s => !s.onBye);
     const lineup = optimalLineup(eligible, slots);
+    // Twice-pass (same pattern as the Roster Alerts scan): run the greedy
+    // pass once with the bye players allowed, so an on-bye player who
+    // would have started shows up as the hole that week rather than
+    // silently vanishing behind his backup.
+    const fullLineup = optimalLineup(scored, slots);
+    const byeHoles: ByeHole[] = [];
+    for (const assignment of fullLineup.starters) {
+      const player = assignment.player as ScoredPlayer | null;
+      if (!player || !player.onBye) continue;
+      byeHoles.push({
+        name: player.name,
+        position: player.position,
+        nflTeam: player.nflTeam,
+      });
+    }
     const starters: PlannedStarter[] = [];
     for (const assignment of lineup.starters) {
       const player = assignment.player as ScoredPlayer | null;
@@ -69,6 +101,7 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
       projectedTotal: round1(starters.reduce((sum, s) => sum + s.score, 0)),
       starters,
       onBye: scored.filter(s => s.onBye).map(s => s.name),
+      byeHoles,
       toughCount: starters.filter(s => s.matchupLabel === 'tough').length,
       favorableCount: starters.filter(s => s.matchupLabel === 'favorable').length,
     });

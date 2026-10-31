@@ -94,4 +94,21 @@ describe('StartSitPage plan-ahead section', () => {
       screen.queryByRole('table', { name: /Optimal lineups for weeks/ }),
     ).not.toBeInTheDocument();
   });
+
+  it('renders a Streamer pick column with a dash when no starter is on bye', () => {
+    renderPage(league());
+    const table = screen.getByRole('table', {
+      name: /Optimal lineups for weeks 9 through 14/,
+    });
+    expect(
+      within(table).getByRole('columnheader', { name: 'Streamer pick' }),
+    ).toBeInTheDocument();
+    // XXX teams have no bye weeks: every row's streamer cell is a dash.
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(6);
+    for (const row of rows) {
+      const cells = within(row).getAllByRole('cell');
+      expect(cells[cells.length - 1]).toHaveTextContent('—');
+    }
+  });
 });

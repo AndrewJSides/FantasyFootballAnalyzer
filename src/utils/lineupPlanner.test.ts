@@ -70,6 +70,28 @@ describe('planLineupWeeks', () => {
     expect(week11.starters.some(s => s.nflTeam === 'ATL')).toBe(false);
   });
 
+  it('names the bye-week holes: on-bye players who would have started', () => {
+    // Tua is the clear QB1 on points, so the unfiltered week-11 pass
+    // starts him and he shows up as the hole; week 10 has no holes.
+    const boosted: Record<string, Record<string, number>> = {};
+    for (const p of roster) {
+      boosted[p.id] = {};
+      for (let w = 1; w <= 7; w++) boosted[p.id][String(w)] = 10 + w;
+    }
+    for (let w = 1; w <= 7; w++) boosted['tua-tagovailoa-qb'][String(w)] = 20 + w;
+    const [week10, , week11] = planLineupWeeks({
+      ...base,
+      weeklyPoints: boosted,
+      fromWeek: 9,
+      toWeek: 11,
+    });
+    expect(week10.byeHoles).toEqual([]);
+    const tuaHole = week11.byeHoles.find(h => h.name === 'Tua Tagovailoa');
+    expect(tuaHole).toMatchObject({ position: 'QB', nflTeam: 'ATL' });
+    // Josh Allen (not on bye) is no hole even though he starts in week 11.
+    expect(week11.byeHoles.some(h => h.name === 'Josh Allen')).toBe(false);
+  });
+
   it('prices each week on that week\'s matchup', () => {
     const [week10] = planLineupWeeks({ ...base, fromWeek: 10, toWeek: 10 });
     const rated = week10.starters.filter(s => s.opponent !== null);

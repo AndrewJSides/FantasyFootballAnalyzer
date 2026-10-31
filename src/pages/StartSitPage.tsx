@@ -29,6 +29,17 @@ import {
 import { projectionReason } from '@/utils/weeklyProjection';
 import { planLineupWeeks, type PlannedWeek } from '@/utils/lineupPlanner';
 import {
+  byeWeekStreamerPicks,
+  EMPTY_STREAMER_EXCLUSIONS,
+  type ByeWeekStreamerPick,
+  type StreamerExclusions,
+} from '@/utils/byeWeekStreamers';
+import {
+  rosteredDefenseTeams,
+  rosteredKickerTeams,
+  rosteredSkillPlayerIds,
+} from '@/utils/streamerPlanner';
+import {
   currentWeekEstimate,
   matchupDataWeeks,
   matchupLabel,
@@ -399,6 +410,57 @@ export function StartSitPage({ league }: StartSitPageProps) {
       parts.push(`Tough: ${tough.map(s => `${s.name} (vs ${s.opponent})`).join(', ')}`);
     return parts.length > 0 ? parts.join(' · ') : '—';
   };
+  // --- Bye-week streamer picks (backlog item 61) ---------------------------
+  // For each planned week, name the best available streamer at each
+  // streamable position (D/ST, K, QB, TE) where a rostered starter is on
+  // bye — the same opponent-generosity engines as the Waivers page's
+  // streamer sections, priced per week like the Streamer Planner.
+  // Availability is league-wide (same as the Waivers page); guest mode
+  // has no rostered exclusion.
+  const streamerExclusions = useMemo<StreamerExclusions>(
+    () =>
+      isGuest
+        ? EMPTY_STREAMER_EXCLUSIONS
+        : {
+            rosteredDefenses: rosteredDefenseTeams(league),
+            rosteredKickerTeams: rosteredKickerTeams(league),
+            rosteredSkillIds: rosteredSkillPlayerIds(league),
+          },
+    [isGuest, league],
+  );
+  const planStreamerPicks = useMemo(
+    () =>
+      new Map<number, ByeWeekStreamerPick[]>(
+        lineupPlan.map(
+          (w): [number, ByeWeekStreamerPick[]] => [
+            w.week,
+            byeWeekStreamerPicks(w.week, w.byeHoles, streamerExclusions),
+          ],
+        ),
+      ),
+    [lineupPlan, streamerExclusions],
+  );
+  const streamerPickCell = (w: PlannedWeek): string => {
+    const picks = planStreamerPicks.get(w.week) ?? [];
+    if (picks.length === 0) return '—';
+    return picks
+      .map(p => `${p.position}: ${p.pickName} (vs ${p.opponent} · ${p.label})`)
+      .join(' · ');
+  };
+  const streamerPickAria = (w: PlannedWeek): string | undefined => {
+    const picks = planStreamerPicks.get(w.week) ?? [];
+    if (picks.length === 0) return undefined;
+    return (
+      `Week ${w.week} streamer picks: ` +
+      picks
+        .map(
+          p =>
+            `stream ${p.pickName} at ${p.position} while ${p.holeName} is on bye — ` +
+            `versus ${p.opponent}, ${p.label} matchup`,
+        )
+        .join('; ')
+    );
+  };
 
   // --- Late-swap watch: kickoff times + game-time-decision alerts ---------
   // A starter locks at HIS kickoff, so a Questionable starter can only be
@@ -767,6 +829,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <th scope="col">Proj. pts</th>
                       <th scope="col">Optimal starters</th>
                       <th scope="col">Watch</th>
+                      <th scope="col">Streamer pick</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -781,6 +844,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           {w.starters.map(s => `${s.position} ${s.name}`).join(' · ')}
                         </td>
                         <td>{planWatch(w)}</td>
+                        <td aria-label={streamerPickAria(w)}>{streamerPickCell(w)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -789,8 +853,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   Each week is priced on today&apos;s form plus that week&apos;s
                   matchup — the model does not decay form over time, so treat
                   far weeks as directional. Bye-week players sit automatically.
-                  Priced on the balanced projection; lineup modes apply to this
-                  week&apos;s call only.
+                  Streamer picks name the week&apos;s best available D/ST, K,
+                  QB, or TE when a rostered starter is on bye at that
+                  position, priced on opponent generosity like the Waivers
+                  page&apos;s streamer sections. Priced on the balanced
+                  projection; lineup modes apply to this week&apos;s call only.
                 </p>
               </>
             )}
