@@ -341,6 +341,14 @@ export function Header({
                 >
                   Weekly Ranks
                 </Link>
+                <Link
+                  to="/news"
+                  className={`${styles.navLink} ${location.pathname === '/news' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/news' ? 'page' : undefined}
+                >
+                  News
+                </Link>
               </>
             ) : (
               <>
@@ -490,6 +498,14 @@ export function Header({
               aria-current={location.pathname === '/players' ? 'page' : undefined}
             >
               Players
+            </Link>
+            <Link
+              to="/news"
+              className={`${styles.navLink} ${location.pathname === '/news' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/news' ? 'page' : undefined}
+            >
+              News
             </Link>
             <button type="button"
               onClick={handleExportPdf}
