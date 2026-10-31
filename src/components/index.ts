@@ -12,6 +12,7 @@ export { YearSelector } from './YearSelector';
 export { SeasonLoadingOverlay } from './SeasonLoadingOverlay';
 export { WaiverTable } from './WaiverTable';
 export { FaabGuidance } from './FaabGuidance';
+export { FaabBudgets } from './FaabBudgets';
 export { TrendingAdds } from './TrendingAdds';
 export { BreakoutWatch } from './BreakoutWatch';
 export { AddDropMoves } from './AddDropMoves';

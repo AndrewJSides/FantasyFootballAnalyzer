@@ -238,3 +238,70 @@ export function suggestBid(
 
   return { low, high, reasons, estRemaining };
 }
+
+// ---------------------------------------------------------------------------
+// FAAB budget tracker (added Oct 30, 2026): the bid guidance prices
+// individual targets; this answers the league-wide money question — who
+// still has budget to outbid you. FAAB that changed hands in completed
+// trades adjusts the remaining estimate, since those dollars are real.
+// League mode only; undefined when the league has no recorded bids, in
+// which case the UI hides the section.
+// ---------------------------------------------------------------------------
+
+export interface FaabBudgetRow {
+  teamId: string;
+  teamName: string;
+  // Waiver/free-agent claims with a recorded bid ($0 winning claims included).
+  claims: number;
+  spent: number;
+  biggestBid: number;
+  // FAAB that changed hands in completed trades (Sleeper's waiver_budget;
+  // other platforms may not report it).
+  faabReceived: number;
+  faabSent: number;
+  // ASSUMED_FAAB_BUDGET - spent + received - sent. Can go negative when a
+  // team outspends the assumed budget (trades-in inflate it, or the league
+  // runs a different budget).
+  estRemaining: number;
+}
+
+export function faabBudgets(league: League): FaabBudgetRow[] | undefined {
+  if (faabNorms(league) === undefined) return undefined;
+
+  const tradeFaab = new Map<string, { received: number; sent: number }>();
+  for (const trade of league.trades ?? []) {
+    for (const side of trade.teams) {
+      const entry = tradeFaab.get(side.teamId) ?? { received: 0, sent: 0 };
+      entry.received += side.faabReceived ?? 0;
+      entry.sent += side.faabSent ?? 0;
+      tradeFaab.set(side.teamId, entry);
+    }
+  }
+
+  const rows: FaabBudgetRow[] = league.teams.map(team => {
+    const bids = (team.transactions ?? [])
+      .filter(tx => tx.type === 'waiver' || tx.type === 'free_agent')
+      .map(tx => tx.waiverBudgetSpent)
+      .filter((b): b is number => b != null && Number.isFinite(b));
+    const spent = bids.reduce((sum, b) => sum + b, 0);
+    const tf = tradeFaab.get(team.id) ?? { received: 0, sent: 0 };
+    return {
+      teamId: team.id,
+      teamName: team.name,
+      claims: bids.length,
+      spent,
+      biggestBid: bids.length > 0 ? Math.max(...bids) : 0,
+      faabReceived: tf.received,
+      faabSent: tf.sent,
+      estRemaining:
+        ASSUMED_FAAB_BUDGET - spent + tf.received - tf.sent,
+    };
+  });
+
+  // Poorest first — the most interesting rows are the ones out of money.
+  rows.sort(
+    (a, b) =>
+      a.estRemaining - b.estRemaining || a.teamName.localeCompare(b.teamName),
+  );
+  return rows;
+}

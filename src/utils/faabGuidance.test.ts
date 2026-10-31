@@ -7,6 +7,7 @@ import { teamProfiles } from './tradeFinder';
 import {
   ASSUMED_FAAB_BUDGET,
   availableTargets,
+  faabBudgets,
   faabNorms,
   faabSpentBy,
   suggestBid,
@@ -230,5 +231,67 @@ describe('suggestBid', () => {
     expect(suggestion.reasons[0]).toMatch(/Going rate/);
     expect(suggestion.low).toBeGreaterThanOrEqual(1);
     expect(suggestion.high).toBeGreaterThanOrEqual(suggestion.low);
+  });
+});
+
+describe('faabBudgets', () => {
+  it('builds per-team rows sorted poorest first, with claims/spent/biggest bid', () => {
+    const l = league([
+      team('a', 'A', [], [
+        waiverTx('a', 2, 10, [{ id: 'RB10', pos: 'RB' }]),
+        waiverTx('a', 3, 25, [{ id: 'WR10', pos: 'WR' }]),
+      ]),
+      team('b', 'B', [], [waiverTx('b', 2, 5, [{ id: 'RB11', pos: 'RB' }])]),
+    ]);
+    const rows = faabBudgets(l)!;
+    expect(rows).toHaveLength(2);
+    // A spent 35 → 65 remaining; B spent 5 → 95 remaining: poorest first.
+    expect(rows[0].teamId).toBe('a');
+    expect(rows[0]).toMatchObject({
+      claims: 2,
+      spent: 35,
+      biggestBid: 25,
+      faabReceived: 0,
+      faabSent: 0,
+      estRemaining: ASSUMED_FAAB_BUDGET - 35,
+    });
+    expect(rows[1].teamId).toBe('b');
+    expect(rows[1].estRemaining).toBe(ASSUMED_FAAB_BUDGET - 5);
+  });
+
+  it('counts FAAB that changed hands in completed trades', () => {
+    const a = team('a', 'A', [], [waiverTx('a', 2, 20, [{ id: 'RB10', pos: 'RB' }])]);
+    const b = team('b', 'B', [], [waiverTx('b', 2, 10, [{ id: 'RB11', pos: 'RB' }])]);
+    const l = league([a, b]);
+    l.trades = [
+      {
+        id: 't1',
+        timestamp: 1,
+        week: 2,
+        status: 'completed',
+        teams: [
+          { teamId: 'a', teamName: 'A', playersReceived: [], playersSent: [], faabReceived: 15, parGained: 0, parLost: 0, netPAR: 0, pointsGained: 0, pointsLost: 0, netValue: 0 },
+          { teamId: 'b', teamName: 'B', playersReceived: [], playersSent: [], faabSent: 15, parGained: 0, parLost: 0, netPAR: 0, pointsGained: 0, pointsLost: 0, netValue: 0 },
+        ],
+      },
+    ] as League['trades'];
+    const rows = faabBudgets(l)!;
+    expect(rows.find(r => r.teamId === 'a')).toMatchObject({
+      spent: 20,
+      faabReceived: 15,
+      estRemaining: ASSUMED_FAAB_BUDGET - 20 + 15,
+    });
+    expect(rows.find(r => r.teamId === 'b')).toMatchObject({
+      spent: 10,
+      faabSent: 15,
+      estRemaining: ASSUMED_FAAB_BUDGET - 10 - 15,
+    });
+  });
+
+  it('returns undefined when no bids are recorded', () => {
+    const l = league([
+      team('a', 'A', [], [waiverTx('a', 2, undefined, [{ id: 'RB10', pos: 'RB' }])]),
+    ]);
+    expect(faabBudgets(l)).toBeUndefined();
   });
 });
