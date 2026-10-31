@@ -510,6 +510,48 @@ describe('TeamsPage all-play record', () => {
   });
 });
 
+describe('TeamsPage power rankings', () => {
+  function powerLeague(): League {
+    // Weeks 6-8 completed; week 9 is live and excluded.
+    return league({
+      status: 'live',
+      teams: [
+        team('A', 'Alpha', 2, 0, 390),
+        team('B', 'Beta', 0, 2, 270),
+      ],
+      matchups: [
+        { week: 6, team1Id: 'A', team1Points: 120, team2Id: 'B', team2Points: 90 },
+        { week: 7, team1Id: 'A', team1Points: 130, team2Id: 'B', team2Points: 90 },
+        { week: 8, team1Id: 'A', team1Points: 140, team2Id: 'B', team2Points: 90 },
+        // Week 9 (live): partial scores never count.
+        { week: 9, team1Id: 'A', team1Points: 999, team2Id: 'B', team2Points: 1 },
+      ],
+    });
+  }
+
+  it('ranks teams by the shrunk scoring rating with a form trend', () => {
+    renderPage(powerLeague());
+    expect(screen.getByRole('heading', { name: 'Power Rankings' })).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /power rankings/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3); // header + 2 teams
+    // Alpha: season avg 130 over 3 completed weeks, shrunk toward the
+    // league mean — still ahead of Beta's 90.
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(rows[1]).toHaveTextContent('130.0');
+    // Last-3 equals the season average → Steady.
+    expect(rows[1]).toHaveTextContent('Steady');
+    expect(rows[2]).toHaveTextContent('Beta');
+  });
+
+  it('hides the section when the sync fetched no matchups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'Power Rankings' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('TeamsPage clinch watch', () => {
   // One playoff spot, A (8-0) hosts B (7-1) in week 9: A clinches with a
   // win, B is out with a loss (same airtight fixture as the clinchWatch

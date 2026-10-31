@@ -16,6 +16,7 @@ import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
 import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
+import { buildPowerRankings } from '@/utils/powerRankings';
 import {
   buildAllPlayRecord,
   formatRecord,
@@ -262,6 +263,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // every week. Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
   const allPlay = useMemo(() => buildAllPlayRecord(league), [league]);
+  // Power rankings: each team's season scoring average shrunk toward the
+  // league mean (the same rating the Playoff Race sims run on), with a
+  // last-3-weeks form trend. Hides with no completed matchups.
+  const powerRankings = useMemo(() => buildPowerRankings(league), [league]);
   const teamById = useMemo(
     () => new Map(league.teams.map(t => [t.id, t])),
     [league.teams],
@@ -499,6 +504,73 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {powerRankings.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="power-rankings-heading">
+            <h2 id="power-rankings-heading" className={styles.sectionTitle}>
+              Power Rankings
+            </h2>
+            <p className={styles.sectionHint}>
+              Each team's season scoring average over completed weeks, shrunk
+              toward the league mean — the same rating the Playoff Race sims
+              run on, so a one-week explosion can't over-swing it. Team
+              Grades answers the forward-looking version of this question
+              (projected points from here); this is what each team has
+              actually done.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="Team power rankings: shrunk scoring rating over completed weeks"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Power rating</th>
+                    <th scope="col">Avg pts</th>
+                    <th scope="col">Last 3</th>
+                    <th scope="col">Trend</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {powerRankings.map((r, i) => {
+                    const trend =
+                      r.trend == null
+                        ? '—'
+                        : r.trend === 'hot'
+                          ? '🔥 Hot'
+                          : r.trend === 'cold'
+                            ? '❄️ Cold'
+                            : 'Steady';
+                    return (
+                      <tr key={r.teamId}>
+                        <td>{i + 1}</td>
+                        <td>{r.teamName}</td>
+                        <td
+                          title={`Season scoring average ${r.avg.toFixed(1)} over ${r.weeks} completed week${r.weeks === 1 ? '' : 's'}, pulled toward the league mean`}
+                        >
+                          {r.rating.toFixed(1)}
+                        </td>
+                        <td>{r.avg.toFixed(1)}</td>
+                        <td>{r.last3 != null ? r.last3.toFixed(1) : '—'}</td>
+                        <td
+                          title={
+                            r.trend == null
+                              ? 'Fewer than 3 completed weeks'
+                              : `Last-3 average ${r.last3!.toFixed(1)} vs season average ${r.avg.toFixed(1)}`
+                          }
+                        >
+                          {trend}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
