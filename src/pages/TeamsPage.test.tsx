@@ -510,6 +510,60 @@ describe('TeamsPage all-play record', () => {
   });
 });
 
+describe('TeamsPage record book', () => {
+  function recordLeague(): League {
+    // Weeks 7-8 completed; week 9 is live and excluded.
+    return league({
+      status: 'live',
+      teams: [
+        team('A', 'Alpha', 2, 0, 260),
+        team('B', 'Beta', 0, 2, 180),
+        team('C', 'Gamma', 1, 1, 220),
+        team('D', 'Delta', 1, 1, 240),
+      ],
+      matchups: [
+        { week: 7, team1Id: 'A', team1Points: 150, team2Id: 'B', team2Points: 100 },
+        { week: 7, team1Id: 'C', team1Points: 120, team2Id: 'D', team2Points: 110 },
+        { week: 8, team1Id: 'A', team1Points: 160, team2Id: 'C', team2Points: 90 },
+        { week: 8, team1Id: 'B', team1Points: 105, team2Id: 'D', team2Points: 104.5 },
+        // Week 9 (live): partial scores never count.
+        { week: 9, team1Id: 'B', team1Points: 999, team2Id: 'D', team2Points: 1 },
+      ],
+    });
+  }
+
+  it('renders the season extremes from completed weeks', () => {
+    renderPage(recordLeague());
+    expect(screen.getByRole('heading', { name: 'Record Book' })).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /record book/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(7); // header + 6 records
+    // Alpha holds the high score (160, W8) and the 4-game... 2-game win streak.
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(rows[1]).toHaveTextContent('160.0 pts');
+    expect(rows[1]).toHaveTextContent('W8');
+    // Biggest blowout: Alpha 160 over Gamma 90, won by 70.
+    expect(rows[3]).toHaveTextContent('Alpha over Gamma');
+    expect(rows[3]).toHaveTextContent('won by 70.0');
+    // Closest game: Beta 105 over Delta 104.5, won by 0.5 (the live 998-pt blowout is excluded).
+    expect(rows[4]).toHaveTextContent('Beta over Delta');
+    expect(rows[4]).toHaveTextContent('won by 0.5');
+    // Alpha won W7 and W8: the longest win streak, 2 games.
+    expect(rows[5]).toHaveTextContent('Alpha');
+    expect(rows[5]).toHaveTextContent('2 games');
+    // Delta lost W7 and W8: the longest losing streak, 2 games.
+    expect(rows[6]).toHaveTextContent('Delta');
+    expect(rows[6]).toHaveTextContent('2 games');
+  });
+
+  it('hides the section when the sync fetched no matchups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'Record Book' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('TeamsPage power rankings', () => {
   function powerLeague(): League {
     // Weeks 6-8 completed; week 9 is live and excluded.

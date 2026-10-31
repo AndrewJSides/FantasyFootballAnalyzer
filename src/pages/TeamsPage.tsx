@@ -17,6 +17,7 @@ import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
 import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
 import { buildPowerRankings } from '@/utils/powerRankings';
+import { buildRecordBook } from '@/utils/recordBook';
 import {
   buildAllPlayRecord,
   formatRecord,
@@ -263,6 +264,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // every week. Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
   const allPlay = useMemo(() => buildAllPlayRecord(league), [league]);
+  // Record book: the season's extremes (highs, lows, blowouts, squeakers,
+  // streaks). Hides when the sync fetched no matchups (old snapshots,
+  // guest mode) or no week is complete yet.
+  const recordBook = useMemo(() => buildRecordBook(league), [league]);
   // Power rankings: each team's season scoring average shrunk toward the
   // league mean (the same rating the Playoff Race sims run on), with a
   // last-3-weeks form trend. Hides with no completed matchups.
@@ -635,6 +640,119 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {recordBook && (
+          <section className={styles.raceSection} aria-labelledby="record-book-heading">
+            <h2 id="record-book-heading" className={styles.sectionTitle}>
+              Record Book
+            </h2>
+            <p className={styles.sectionHint}>
+              The season's extremes from the {recordBook.weeks} completed
+              week{recordBook.weeks === 1 ? '' : 's'}' scores — the
+              in-progress week is excluded, so a half-played game can never
+              hold a record.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="League record book: highest and lowest single-week scores, biggest blowout, closest game, and longest win and losing streaks"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Record</th>
+                    <th scope="col">Holder</th>
+                    <th scope="col">Mark</th>
+                    <th scope="col">Week</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Highest single-week score</th>
+                    <td>{recordBook.highestWeek.teamName}</td>
+                    <td
+                      title={`Week ${recordBook.highestWeek.week}: ${recordBook.highestWeek.teamName} scored ${recordBook.highestWeek.points.toFixed(1)}`}
+                    >
+                      {recordBook.highestWeek.points.toFixed(1)} pts
+                    </td>
+                    <td>W{recordBook.highestWeek.week}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Lowest single-week score</th>
+                    <td>{recordBook.lowestWeek.teamName}</td>
+                    <td
+                      title={`Week ${recordBook.lowestWeek.week}: ${recordBook.lowestWeek.teamName} scored ${recordBook.lowestWeek.points.toFixed(1)}`}
+                    >
+                      {recordBook.lowestWeek.points.toFixed(1)} pts
+                    </td>
+                    <td>W{recordBook.lowestWeek.week}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Biggest blowout</th>
+                    <td>
+                      {recordBook.biggestBlowout.winnerName} over{' '}
+                      {recordBook.biggestBlowout.loserName}
+                    </td>
+                    <td
+                      title={`${recordBook.biggestBlowout.winnerName} ${recordBook.biggestBlowout.winnerPoints.toFixed(1)} – ${recordBook.biggestBlowout.loserName} ${recordBook.biggestBlowout.loserPoints.toFixed(1)}`}
+                    >
+                      won by {recordBook.biggestBlowout.margin.toFixed(1)}
+                    </td>
+                    <td>W{recordBook.biggestBlowout.week}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Closest game</th>
+                    <td>
+                      {recordBook.closestGame.winnerName}
+                      {recordBook.closestGame.tie
+                        ? ` tied ${recordBook.closestGame.loserName}`
+                        : ` over ${recordBook.closestGame.loserName}`}
+                    </td>
+                    <td
+                      title={
+                        recordBook.closestGame.tie
+                          ? `Tied ${recordBook.closestGame.winnerPoints.toFixed(1)} – ${recordBook.closestGame.loserPoints.toFixed(1)}`
+                          : `${recordBook.closestGame.winnerName} ${recordBook.closestGame.winnerPoints.toFixed(1)} – ${recordBook.closestGame.loserName} ${recordBook.closestGame.loserPoints.toFixed(1)}`
+                      }
+                    >
+                      {recordBook.closestGame.tie
+                        ? 'tied'
+                        : `won by ${recordBook.closestGame.margin.toFixed(1)}`}
+                    </td>
+                    <td>W{recordBook.closestGame.week}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Longest win streak</th>
+                    <td>{recordBook.longestWinStreak.teamName}</td>
+                    <td
+                      title={`Weeks ${recordBook.longestWinStreak.fromWeek}–${recordBook.longestWinStreak.toWeek}`}
+                    >
+                      {recordBook.longestWinStreak.length} game
+                      {recordBook.longestWinStreak.length === 1 ? '' : 's'}
+                    </td>
+                    <td>
+                      W{recordBook.longestWinStreak.fromWeek}–W
+                      {recordBook.longestWinStreak.toWeek}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Longest losing streak</th>
+                    <td>{recordBook.longestLossStreak.teamName}</td>
+                    <td
+                      title={`Weeks ${recordBook.longestLossStreak.fromWeek}–${recordBook.longestLossStreak.toWeek}`}
+                    >
+                      {recordBook.longestLossStreak.length} game
+                      {recordBook.longestLossStreak.length === 1 ? '' : 's'}
+                    </td>
+                    <td>
+                      W{recordBook.longestLossStreak.fromWeek}–W
+                      {recordBook.longestLossStreak.toWeek}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
