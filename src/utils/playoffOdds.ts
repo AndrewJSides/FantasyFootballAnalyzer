@@ -82,6 +82,33 @@ function winProb(ra: number, rb: number): number {
   return 1 / (1 + Math.pow(10, -(ra - rb) / ELO_SCALE));
 }
 
+/**
+ * Analytic win probability for one game (0..100, one decimal) on the same
+ * shrunk-scoring-rating model the Playoff Race sims: team's per-game
+ * average pulled toward the league mean so a two-week hot streak can't
+ * over-swing the rating. No sims — cheap enough for per-team schedule
+ * sections (backlog item 47).
+ */
+export function gameWinProb(
+  league: Pick<League, 'teams'>,
+  teamAId: string,
+  teamBId: string,
+): number {
+  const teams = league.teams;
+  const avgs = teams.map(t => (t.pointsFor || 0) / gamesPlayed(t));
+  const leagueMean =
+    avgs.reduce((sum, a) => sum + a, 0) / Math.max(1, avgs.length);
+  const ratingOf = (id: string): number => {
+    const i = teams.findIndex(t => t.id === id);
+    if (i < 0) return leagueMean;
+    const gp = gamesPlayed(teams[i]);
+    return (
+      (avgs[i] * gp + leagueMean * SHRINK_GAMES) / (gp + SHRINK_GAMES)
+    );
+  };
+  return Math.round(winProb(ratingOf(teamAId), ratingOf(teamBId)) * 1000) / 10;
+}
+
 /** A playoff entrant: 1-based seed (1 = best) with its scoring rating. */
 export interface BracketSeed {
   id: string;

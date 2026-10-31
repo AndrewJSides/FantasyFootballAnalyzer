@@ -127,13 +127,15 @@
 }
 
 .weekWin,
-.weekLoss {
+.weekLoss,
+.weekTie {
   font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 700;
   width: 1.4rem;
   text-align: center;
   padding: 0.1rem 0;
+  display: inline-block;
 }
 
 .weekWin {
@@ -145,6 +147,38 @@
   color: var(--bone-dim);
   background: var(--ink-2);
   border: 1px solid var(--rule);
+}
+
+.weekTie {
+  color: var(--ink);
+  background: var(--gold);
+}
+
+/* Season schedule table (backlog item 47). */
+.schedTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.schedTable caption {
+  text-align: left;
+  padding-bottom: 0.35rem;
+  color: var(--bone-dim);
+}
+
+.schedTable th,
+.schedTable td {
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.schedTable thead th {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bone-dim);
 }
 
 .columns {

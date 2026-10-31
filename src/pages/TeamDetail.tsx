@@ -8,6 +8,7 @@ import { POOL } from '@/data/draftPool';
 import { calculateAllAwards } from '@/utils/awards';
 import { calculateLuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
+import { buildTeamSchedule } from '@/utils/teamSchedule';
 import { isPlaceholderPlayer } from '@/utils/placeholders';
 import { alertWeeks, teamRosterAlerts, type RosterAlert } from '@/utils/rosterAlerts';
 import styles from './TeamDetail.module.css';
@@ -91,6 +92,11 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
     }
     return rows.sort((a, b) => a.week - b.week);
   }, [league, team.id]);
+
+  const schedule = useMemo(
+    () => buildTeamSchedule(league, team.id),
+    [league, team.id],
+  );
 
   const gradedPicks = useMemo(
     () =>
@@ -242,6 +248,55 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           <p className={styles.alertFootnote}>
             Scans weeks {scannedWeeks.join(', ')} against the bundled preseason
             pool projections; bye info comes from the pool.
+          </p>
+        </section>
+      )}
+
+      {(schedule.past.length > 0 || schedule.future.length > 0) && (
+        <section className={styles.section} aria-label={`${team.name} season schedule`}>
+          <h3 className={styles.sectionTitle}>Schedule</h3>
+          <table className={styles.schedTable}>
+            <caption>
+              {team.name}'s completed and remaining regular-season games
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Week</th>
+                <th scope="col">Opponent</th>
+                <th scope="col">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schedule.past.map(g => (
+                <tr key={`past-${g.week}`}>
+                  <th scope="row">W{g.week}</th>
+                  <td>{g.opponentName}</td>
+                  <td>
+                    <span
+                      className={g.result === 'W' ? styles.weekWin : g.result === 'L' ? styles.weekLoss : styles.weekTie}
+                      aria-label={`${g.result === 'W' ? 'Win' : g.result === 'L' ? 'Loss' : 'Tie'}, ${g.teamScore.toFixed(1)} to ${g.oppScore.toFixed(1)} against ${g.opponentName}`}
+                    >
+                      {g.result}
+                    </span>{' '}
+                    {g.teamScore.toFixed(1)}–{g.oppScore.toFixed(1)}
+                  </td>
+                </tr>
+              ))}
+              {schedule.future.map(g => (
+                <tr key={`future-${g.week}`}>
+                  <th scope="row">W{g.week}</th>
+                  <td>{g.opponentName}</td>
+                  <td title={`TraderApe's model gives ${team.name} a ${g.winProb}% chance to beat ${g.opponentName} in week ${g.week}.`}>
+                    {g.winProb.toFixed(1)}% win probability
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className={styles.alertFootnote}>
+            Past results from completed league weeks; upcoming win
+            probabilities come from the same shrunk-rating model as the
+            Playoff Race, priced analytically.
           </p>
         </section>
       )}
