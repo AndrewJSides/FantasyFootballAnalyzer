@@ -13,6 +13,11 @@ import {
   type FullTradeAnalysis,
 } from '@/utils/tradeAnalysis';
 import {
+  fixBlurb,
+  suggestFairnessFixes,
+  type FairnessFix,
+} from '@/utils/tradeFairness';
+import {
   currentWeekEstimate,
   getMatchupRating,
   matchupDataWeeks,
@@ -487,6 +492,10 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const [queryA, setQueryA] = useState('');
   const [queryB, setQueryB] = useState('');
   const [result, setResult] = useState<FullTradeAnalysis | null>(null);
+  // "Make it fair" counter-offer suggestions (backlog item 53): single-
+  // player tweaks that would even the analyzed trade out. Priced at
+  // analysis time, cleared everywhere the verdict clears.
+  const [fixes, setFixes] = useState<FairnessFix[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
 
   // Title the tab with the verdict once a trade is analyzed: tabs and
@@ -547,6 +556,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setQueryA('');
     setQueryB('');
     setResult(null);
+    setFixes([]);
     setWarnings([]);
     setSkippedShared(0);
   }, [leagueKey]);
@@ -653,6 +663,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         if (prev.some(e => sameEntry(e, p))) return prev;
         if (otherEntries.some(e => sameEntry(e, p))) return prev;
         setResult(null);
+        setFixes([]);
         setWarnings([]);
         setSkippedShared(0);
         clearCopyStatusTimer();
@@ -666,6 +677,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       setter(prev => {
         if (idx < 0 || idx >= prev.length) return prev;
         setResult(null);
+        setFixes([]);
         setWarnings([]);
         setSkippedShared(0);
         clearCopyStatusTimer();
@@ -713,6 +725,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         entriesSetter([]);
         querySetter('');
         setResult(null);
+        setFixes([]);
         setWarnings([]);
         setSkippedShared(0);
         clearCopyStatusTimer();
@@ -746,6 +759,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setQueryA(queryB);
     setQueryB(queryA);
     setResult(null);
+    setFixes([]);
     setWarnings([]);
     setSkippedShared(0);
     clearCopyStatusTimer();
@@ -766,6 +780,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setSideA([]);
     setSideB([]);
     setResult(null);
+    setFixes([]);
     setWarnings([]);
     setSkippedShared(0);
     clearCopyStatusTimer();
@@ -800,8 +815,46 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         teamB,
       }),
     );
+    // "Make it fair" counter-offers (backlog item 53): priced on the
+    // resolved sides at analysis time. Add candidates come from the losing
+    // side's team roster in league mode, the bundled pool in manual mode.
+    setFixes(
+      suggestFairnessFixes({
+        sideA: ra.players,
+        sideB: rb.players,
+        valueLeague,
+        rosterA: teamA?.roster,
+        rosterB: teamB?.roster,
+      }),
+    );
     setWarnings(warns);
     syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId);
+  };
+
+  // One-tap "make it fair": apply a counter-offer suggestion to the
+  // builder and re-run the analysis, so the tap lands on the new verdict
+  // (the competitor's "tap a suggestion to add it"). The add/remove
+  // helpers clear the stale verdict/hash like any builder edit; the
+  // re-analysis prices the adjusted sides.
+  const applyFix = (fix: FairnessFix) => {
+    if (fix.action === 'add') {
+      const adder = fix.side === 'A' ? addTo(setSideA, sideB) : addTo(setSideB, sideA);
+      adder(fix.player);
+      runAnalysis({
+        a: fix.side === 'A' ? [...sideA, fix.player] : sideA,
+        b: fix.side === 'B' ? [...sideB, fix.player] : sideB,
+      });
+      return;
+    }
+    const entries = fix.side === 'A' ? sideA : sideB;
+    const idx = entries.findIndex(e => sameEntry(e, fix.player));
+    if (idx < 0) return;
+    const remover = fix.side === 'A' ? removeFrom(setSideA) : removeFrom(setSideB);
+    remover(idx);
+    runAnalysis({
+      a: fix.side === 'A' ? sideA.filter((_, i) => i !== idx) : sideA,
+      b: fix.side === 'B' ? sideB.filter((_, i) => i !== idx) : sideB,
+    });
   };
 
   // A shared #trade= link should land on the verdict, not a populated but
@@ -1062,7 +1115,15 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             appears so screen readers announce it. Announcing only the
             verdict, not the builder/search chatter, keeps it noise-free. */}
         <div ref={resultsRef} aria-live="polite">
-          {result && <Results result={result} leagueLoaded={leagueLoaded} week={week} />}
+          {result && (
+            <Results
+              result={result}
+              leagueLoaded={leagueLoaded}
+              week={week}
+              fixes={fixes}
+              onApplyFix={applyFix}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -1097,10 +1158,14 @@ function Results({
   result,
   leagueLoaded,
   week,
+  fixes,
+  onApplyFix,
 }: {
   result: FullTradeAnalysis;
   leagueLoaded: boolean;
   week: number;
+  fixes: FairnessFix[];
+  onApplyFix: (fix: FairnessFix) => void;
 }) {
   const teamAName = result.teamAImpact?.teamName ?? '';
   const teamBName = result.teamBImpact?.teamName ?? '';
@@ -1125,6 +1190,53 @@ function Results({
           <span className={`${styles.totalNum}${result.winner === 'A' ? ` ${styles.totalLose}` : ''}`}>{result.sideBTotal}</span>
         </div>
       </div>
+
+      {fixes.length > 0 && (
+        // "Make it fair" counter-offer suggestions (backlog item 53): the
+        // single-player tweaks that would even a lopsided trade out,
+        // priced on the same VOR values as the verdict. One tap applies the
+        // tweak to the builder and re-runs the analysis. The list renders
+        // inside the results live region, so the verdict announcement
+        // includes the fix count.
+        <section className={styles.fairness} aria-label="Make it fair">
+          <h3 className={styles.fairnessTitle}>Make it fair</h3>
+          <ul className={styles.fixList} aria-label="Suggested tweaks to even the trade">
+            {fixes.map((fix, i) => {
+              const sideName = fix.side === 'A' ? teamAName || 'Side A' : teamBName || 'Side B';
+              const blurb = fixBlurb(fix, teamAName || 'Side A', teamBName || 'Side B');
+              const actionLabel =
+                fix.action === 'add'
+                  ? `Add ${fix.player.name} to ${sideName}`
+                  : `Remove ${fix.player.name} from ${sideName}`;
+              const resultNote =
+                fix.newWinner === 'even'
+                  ? 'Evens the trade'
+                  : `${fix.newWinner === 'A' ? teamAName || 'Side A' : teamBName || 'Side B'} still leads by ${fix.newMargin} VOR`;
+              return (
+                <li key={`${fix.action}-${fix.side}-${fix.player.id}-${i}`} className={styles.fixRow}>
+                  <button
+                    type="button"
+                    className={styles.fixBtn}
+                    onClick={() => onApplyFix(fix)}
+                    // The visible label says what changes; the blurb names
+                    // the resulting verdict too, keeping the why attached
+                    // to the button for tooltips and assistive tech.
+                    aria-label={`${blurb} Apply to the builder`}
+                    title={blurb}
+                  >
+                    {actionLabel}
+                  </button>
+                  <span className={styles.fixNote}>{resultNote}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className={styles.fixMethod}>
+            One-tap tweaks priced on the same value-over-replacement numbers
+            as the verdict — guidance only, not trade advice.
+          </p>
+        </section>
+      )}
 
       <div className={styles.breakdowns}>
         <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} week={week} />
