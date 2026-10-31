@@ -1,0 +1,200 @@
+/* GRIDIRON · Trade deadline hub (Trades page) */
+
+.panel {
+  background: var(--ink);
+  border: 2px solid var(--bone);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.heading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0 0 1rem;
+}
+
+.subheading {
+  font-family: var(--font-headline);
+  font-size: 1.2rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 2rem 0 0.75rem;
+}
+
+.intro {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--bone);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--bone-dim);
+}
+
+.table th {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--bone-dim);
+  font-weight: 600;
+}
+
+.table td.num,
+.table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.team {
+  font-weight: 600;
+  color: var(--bone);
+}
+
+.posture {
+  color: var(--bone);
+  font-size: 0.9rem;
+}
+
+.tier,
+.stance {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--bone-dim);
+  white-space: nowrap;
+}
+
+.tier-contender { color: var(--lime); border-color: var(--lime); }
+.tier-bubble { color: var(--bone-dim); }
+.tier-pretender { color: var(--blood-text); border-color: var(--blood-text); }
+
+.stance-buy { color: var(--lime); border-color: var(--lime); }
+.stance-hold { color: var(--bone-dim); }
+.stance-sell { color: var(--blood-text); border-color: var(--blood-text); }
+
+.deals {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.deal {
+  background: var(--ink);
+  border: 1px solid var(--bone-dim);
+  border-left: 4px solid var(--lime);
+  padding: 1.5rem;
+}
+
+.pairing {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 0 0 0.5rem;
+}
+
+.swap { color: var(--lime); }
+
+.framing {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--bone);
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sideTitle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  margin: 0 0 0.5rem;
+}
+
+.side ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+.playerName {
+  font-family: var(--font-display);
+  color: var(--bone);
+  font-weight: 600;
+}
+
+.reasons {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--bone);
+}
+
+.reasons li { padding: 0.35rem 0; }
+.reasons li::before {
+  content: '◆';
+  color: var(--lime);
+  margin-right: 0.6rem;
+}
+
+.analyze {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lime);
+  text-decoration: none;
+}
+.analyze:hover { text-decoration: underline; }
+
+.footnote {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--bone-dim);
+  border-top: 1px solid var(--bone-dim);
+  padding-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .sides { grid-template-columns: 1fr; }
+}

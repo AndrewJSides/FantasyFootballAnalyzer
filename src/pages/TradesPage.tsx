@@ -5,6 +5,7 @@ import { TradeTable } from '@/components/TradeTable';
 import type { League } from '@/types';
 import { verdictBasisSummary } from '@/utils/tradeVerdict';
 import { TradeReportCard } from '@/components/TradeReportCard';
+import { TradeDeadline } from '@/components/TradeDeadline';
 import styles from './TradesPage.module.css';
 
 interface TradesPageProps {
@@ -43,17 +44,21 @@ export function TradesPage({ league }: TradesPageProps) {
 
         {hasTrades ? (
           <>
+            <TradeDeadline league={league} />
             <TradeReportCard league={league} />
             <TradeTable trades={league.trades || []} teams={league.teams} />
           </>
         ) : (
-          <div className={styles.empty}>
+          <>
+            <TradeDeadline league={league} />
+            <div className={styles.empty}>
             <h2>No Trades Found</h2>
             <p>
               No trades have been made in this league this season, or trade data
               could not be loaded.
             </p>
           </div>
+          </>
         )}
       </div>
     </div>

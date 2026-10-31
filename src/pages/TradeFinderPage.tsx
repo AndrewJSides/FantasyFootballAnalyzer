@@ -11,6 +11,7 @@ import {
   findTradeCandidates,
   type TradeCandidate,
 } from '@/utils/tradeFinder';
+import { tradeLink } from '@/utils/tradeLinks';
 import { valueLeagueFor, DEFAULT_MANUAL_SHAPE } from '@/utils/tradeAnalysis';
 import { DEFAULT_VOR_CONFIG } from '@/utils/projectionValues';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
@@ -44,21 +45,6 @@ interface TradeFinderPageProps {
 // runs on the two synthetic teams priced on the default manual shape.
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
-
-function tradeLink(
-  candidate: TradeCandidate,
-  search: string,
-  includeTeamIds: boolean,
-): string {
-  const payload = {
-    a: candidate.aGives.map(p => p.name),
-    b: candidate.bGives.map(p => p.name),
-    ...(includeTeamIds
-      ? { ta: candidate.teamA.id, tb: candidate.teamB.id }
-      : {}),
-  };
-  return `/trade-analyzer${search}#trade=${encodeURIComponent(JSON.stringify(payload))}`;
-}
 
 function CandidateList({
   candidates,
