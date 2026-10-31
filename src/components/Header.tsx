@@ -349,6 +349,14 @@ export function Header({
                 >
                   News
                 </Link>
+                <Link
+                  to="/watchlist"
+                  className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/watchlist' ? 'page' : undefined}
+                >
+                  Watchlist
+                </Link>
               </>
             ) : (
               <>
@@ -506,6 +514,14 @@ export function Header({
               aria-current={location.pathname === '/news' ? 'page' : undefined}
             >
               News
+            </Link>
+            <Link
+              to="/watchlist"
+              className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/watchlist' ? 'page' : undefined}
+            >
+              Watchlist
             </Link>
             <button type="button"
               onClick={handleExportPdf}

@@ -51,6 +51,7 @@ const RestOfSeasonPage = lazyPage(() => import('@/pages/RestOfSeasonPage'), 'Res
 const WeeklyRankingsPage = lazyPage(() => import('@/pages/WeeklyRankingsPage'), 'WeeklyRankingsPage');
 const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'PlayerJourneyPage');
 const NewsPage = lazyPage(() => import('@/pages/NewsPage'), 'NewsPage');
+const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
 import {
   clearTokens,
@@ -138,6 +139,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/weekly-rankings': 'Weekly Rankings',
   '/players': 'Player Journey',
   '/news': 'NFL News',
+  '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
   '/admin': 'Owner Console',
@@ -1010,6 +1012,12 @@ function App() {
           {/* NFL news is league-independent: ESPN's free public feed, no
               auth — the same page for league and guest visitors. */}
           <Route path="/news" element={<NewsPage />} />
+          {/* Watchlist works in guest mode on the manager's own picks
+              (localStorage), like Compare and Start/Sit. */}
+          <Route
+            path="/watchlist"
+            element={league ? <WatchlistPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
+          />
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
