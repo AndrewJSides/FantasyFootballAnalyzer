@@ -11,6 +11,7 @@ import { completedMatchups } from '@/utils/completedMatchups';
 import { buildTeamSchedule } from '@/utils/teamSchedule';
 import { isPlaceholderPlayer } from '@/utils/placeholders';
 import { alertWeeks, teamRosterAlerts, type RosterAlert } from '@/utils/rosterAlerts';
+import { injuryTier, injuryTierLabel } from '@/utils/injuryReport';
 import styles from './TeamDetail.module.css';
 
 interface TeamDetailProps {
@@ -23,6 +24,11 @@ function AlertRow({ alert }: { alert: RosterAlert }) {
   const slotLabel =
     alert.slots.length > 1 ? `${alert.slots[0]} ×${alert.slots.length}` : alert.slots[0];
   const onByeNames = alert.onBye.map(p => p.name).join(', ');
+  const outNames = alert.outInjured
+    .map(p => `${p.name} (${injuryTierLabel(p, injuryTier(p))})`)
+    .join(', ');
+  const absentNames = alert.cause === 'injury' ? outNames : onByeNames;
+  const absentReason = alert.cause === 'injury' ? 'ruled out' : 'on bye';
   const fillersText =
     alert.fillers.length > 0
       ? `Waiver options: ${alert.fillers.map(p => `${p.name} (${p.projPtsPpr?.toFixed(0)} proj)`).join(', ')}.`
@@ -33,8 +39,8 @@ function AlertRow({ alert }: { alert: RosterAlert }) {
       className={`${styles.alertRow} ${hole ? styles.alertHole : ''}`}
       aria-label={
         hole
-          ? `Week ${alert.week}: no cover at ${slotLabel}`
-          : `Week ${alert.week}: ${slotLabel} starter on bye, cover available`
+          ? `Week ${alert.week}: no cover at ${slotLabel} — ${absentNames} ${absentReason}`
+          : `Week ${alert.week}: ${slotLabel} starter ${absentReason}, cover available`
       }
     >
       <span className={styles.alertIcon} aria-hidden="true">
@@ -46,11 +52,11 @@ function AlertRow({ alert }: { alert: RosterAlert }) {
           {hole ? (
             <>
               : no one left to start
-              {onByeNames ? ` — ${onByeNames} on bye` : ''}.
+              {absentNames ? ` — ${absentNames} ${absentReason}` : ''}.
             </>
           ) : (
             <>
-              : {onByeNames} on bye — {alert.cover?.name ?? 'a backup'} covers.
+              : {absentNames} {absentReason} — {alert.cover?.name ?? 'a backup'} covers.
             </>
           )}
         </div>
@@ -234,7 +240,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
           <h3 className={styles.sectionTitle}>Roster Alerts</h3>
           {alerts.length === 0 ? (
             <p className={styles.alertFootnote}>
-              No bye-week holes or thin spots in week
+              No bye-week holes, injury gaps, or thin spots in week
               {scannedWeeks.length === 1 ? '' : 's'}{' '}
               {scannedWeeks.join(', ')} — every slot has cover.
             </p>

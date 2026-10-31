@@ -22,6 +22,7 @@ const QB1 = poolPlayer({ id: 'qb1', name: 'Star QB', pos: 'QB', team: 'KC', bye:
 const QB2 = poolPlayer({ id: 'qb2', name: 'Backup QB', pos: 'QB', team: 'BUF', bye: 12, projPtsPpr: 180 });
 const QB_FREE = poolPlayer({ id: 'qb-free', name: 'Free QB', pos: 'QB', team: 'MIA', bye: 9, projPtsPpr: 150 });
 const QB_FREE_ON_BYE = poolPlayer({ id: 'qb-free-bye', name: 'Free QB On Bye', pos: 'QB', team: 'NYJ', bye: 8, projPtsPpr: 200 });
+const QB_FREE_OUT = poolPlayer({ id: 'qb-free-out', name: 'Free QB Hurt', pos: 'QB', team: 'LV', bye: 11, projPtsPpr: 200, injuryStatus: 'Out' });
 const RB1 = poolPlayer({ id: 'rb1', name: 'Star RB', pos: 'RB', team: 'DET', bye: 6, projPtsPpr: 300 });
 const RB2 = poolPlayer({ id: 'rb2', name: 'RB Two', pos: 'RB', team: 'SF', bye: 9, projPtsPpr: 190 });
 const WR1 = poolPlayer({ id: 'wr1', name: 'Star WR', pos: 'WR', team: 'CIN', bye: 10, projPtsPpr: 280 });
@@ -113,5 +114,83 @@ describe('teamRosterAlerts', () => {
   it('returns nothing for an empty roster', () => {
     const pool = testPool();
     expect(teamRosterAlerts(testLeague(teamOf([])), teamOf([]), pool)).toEqual([]);
+  });
+
+  it('flags a hole when the only QB is ruled Out this week', () => {
+    const qbOut = poolPlayer({
+      id: 'qb-out', name: 'Hurt QB', pos: 'QB', team: 'KC', bye: 12,
+      projPtsPpr: 320, injuryStatus: 'Out',
+    });
+    const pool: DraftPoolFile = {
+      season: 2026, generatedAt: 'test', baseline: { budget: 200, teams: 10, rounds: 20 },
+      players: [...POOL_ALL, qbOut, QB_FREE_OUT],
+    } as DraftPoolFile;
+    const team = teamOf([qbOut, RB1, RB2, WR1, WR2, TE1, K1, DST1].map(leaguePlayer));
+    const alerts = teamRosterAlerts(testLeague(team, 8), team, pool);
+    const hole = alerts.find(
+      a => a.week === 8 && a.severity === 'hole' && a.slots[0] === 'QB',
+    );
+    expect(hole).toBeDefined();
+    expect(hole!.cause).toBe('injury');
+    expect(hole!.outInjured.map(p => p.id)).toContain('qb-out');
+    // Fillers skip the out free agent (200 proj) this week: QB2 then Free QB.
+    expect(hole!.fillers.map(p => p.id)).toEqual(['qb2', 'qb-free']);
+    // "Out" is current-week knowledge only: no carry-over alert in week 9.
+    expect(alerts.some(a => a.week === 9 && a.slots[0] === 'QB')).toBe(false);
+  });
+
+  it('reports injury-watch with cover when a backup exists', () => {
+    const qbOut = poolPlayer({
+      id: 'qb-out', name: 'Hurt QB', pos: 'QB', team: 'KC', bye: 12,
+      projPtsPpr: 320, injuryStatus: 'Out',
+    });
+    const pool: DraftPoolFile = {
+      season: 2026, generatedAt: 'test', baseline: { budget: 200, teams: 10, rounds: 20 },
+      players: [...POOL_ALL, qbOut],
+    } as DraftPoolFile;
+    const team = teamOf([qbOut, QB2, RB1, RB2, WR1, WR2, TE1, K1, DST1].map(leaguePlayer));
+    const alerts = teamRosterAlerts(testLeague(team, 8), team, pool);
+    const watch = alerts.find(
+      a => a.week === 8 && a.severity === 'bye-watch' && a.slots[0] === 'QB',
+    );
+    expect(watch).toBeDefined();
+    expect(watch!.cause).toBe('injury');
+    expect(watch!.outInjured.map(p => p.id)).toContain('qb-out');
+    expect(watch!.cover?.id).toBe('qb2');
+  });
+
+  it('treats season-ending IR as out for every remaining scanned week', () => {
+    const teIr = poolPlayer({
+      id: 'te-ir', name: 'Done TE', pos: 'TE', team: 'KC', bye: 12,
+      projPtsPpr: 160, injuryStatus: 'IR', injuryBodyPart: 'knee',
+      injuryNotes: 'ACL tear, out for the season',
+    });
+    const pool: DraftPoolFile = {
+      season: 2026, generatedAt: 'test', baseline: { budget: 200, teams: 10, rounds: 20 },
+      players: [...POOL_ALL, teIr],
+    } as DraftPoolFile;
+    const team = teamOf([QB1, QB2, RB1, RB2, WR1, WR2, teIr, K1, DST1].map(leaguePlayer));
+    const alerts = teamRosterAlerts(testLeague(team, 8), team, pool);
+    for (const week of [8, 9, 10, 11]) {
+      const hole = alerts.find(
+        a => a.week === week && a.severity === 'hole' && a.slots[0] === 'TE',
+      );
+      expect(hole).toBeDefined();
+      expect(hole!.cause).toBe('injury');
+    }
+  });
+
+  it('leaves Questionable starters eligible (game-time decisions)', () => {
+    const qbQ = poolPlayer({
+      id: 'qb-q', name: 'Game-time QB', pos: 'QB', team: 'KC', bye: 12,
+      projPtsPpr: 320, injuryStatus: 'Questionable',
+    });
+    const pool: DraftPoolFile = {
+      season: 2026, generatedAt: 'test', baseline: { budget: 200, teams: 10, rounds: 20 },
+      players: [...POOL_ALL, qbQ],
+    } as DraftPoolFile;
+    const team = teamOf([qbQ, RB1, RB2, WR1, WR2, TE1, K1, DST1].map(leaguePlayer));
+    const alerts = teamRosterAlerts(testLeague(team, 8), team, pool);
+    expect(alerts.filter(a => a.slots[0] === 'QB')).toEqual([]);
   });
 });

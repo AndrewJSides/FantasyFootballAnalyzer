@@ -1,13 +1,20 @@
-// Roster-hole / bye-week warnings for team pages.
+// Roster-hole / bye-week / injury-out warnings for team pages.
 //
 // For each of the next few weeks (current week through three ahead, clipped
 // to the regular season), the optimal lineup is run twice: once with the
-// full roster and once with every player on a bye that week removed. A slot
-// that loses its starter to a bye with no bench cover is a "hole"; a slot
-// that loses its starter but has cover is a "bye-watch". Each alert names
-// the roster players on bye at that slot and the top available (unrostered)
-// pool players at the eligible positions — not themselves on bye that week —
-// who could fill the gap.
+// full roster and once with every player on a bye that week removed — plus,
+// for the current week, every player ruled Out or season-ending removed.
+// A slot that loses its starter with no bench cover is a "hole"; a slot
+// that loses its starter but has cover is a "bye-watch" (or an injury gap
+// when the cause is injury). Each alert names the roster players
+// unavailable at that slot and the top available (unrostered) pool players
+// at the eligible positions who could fill the gap.
+//
+// Injury designations are current-week knowledge only: a player listed Out
+// this week is treated as unavailable for this week's scan, and a
+// season-ending designation (IR) rules him out for every remaining scanned
+// week. Questionable/Doubtful players stay eligible — they are game-time
+// decisions, covered by the Late-swap watch on Start/Sit.
 //
 // Nothing here sets lineups or claims players: it is guidance only.
 
@@ -23,8 +30,11 @@ import {
   type OptimalLineupPlayer,
 } from './optimalLineup';
 import { DEFAULT_ROSTER_SLOTS } from './projectedRoster';
+import { injuryTier, type InjurySeverityTier } from './injuryReport';
 
 export type RosterAlertSeverity = 'hole' | 'bye-watch';
+
+export type RosterAlertCause = 'bye' | 'injury';
 
 export interface RosterAlert {
   week: number;
@@ -32,8 +42,11 @@ export interface RosterAlert {
   slots: string[];
   eligible: string[];
   severity: RosterAlertSeverity;
+  cause: RosterAlertCause;
   // Roster players at the eligible positions who are on bye this week.
   onBye: PoolPlayer[];
+  // Roster players at the eligible positions ruled out by injury this week.
+  outInjured: PoolPlayer[];
   // Who fills the first affected slot instead (bye-watch only).
   cover: PoolPlayer | null;
   // Top available (unrostered, not on bye this week) pool players at the
@@ -60,7 +73,17 @@ export function alertWeeks(league: League): number[] {
 
 interface ScoredRosterPlayer extends OptimalLineupPlayer {
   bye: number | null;
+  injury: InjurySeverityTier;
   pool: PoolPlayer;
+}
+
+// Injury designations are current-week knowledge: a player listed Out is
+// unavailable for this week's scan only, while a season-ending designation
+// (IR etc.) rules him out for every remaining scanned week.
+// Questionable/Doubtful are game-time decisions and stay eligible here.
+function outForWeek(tier: InjurySeverityTier, week: number, currentWeek: number): boolean {
+  if (tier === 'season-ending') return true;
+  return tier === 'out' && week === currentWeek;
 }
 
 function scoreRoster(team: Team, pool: DraftPoolFile): ScoredRosterPlayer[] {
@@ -78,6 +101,7 @@ function scoreRoster(team: Team, pool: DraftPoolFile): ScoredRosterPlayer[] {
       // every pool player has.
       score: resolved.projPtsPpr ?? 0,
       bye: resolved.bye ?? null,
+      injury: injuryTier(resolved),
       pool: resolved,
     });
   }
@@ -105,11 +129,14 @@ export function teamRosterAlerts(
   }
 
   const alerts: RosterAlert[] = [];
+  const currentWeek = league.currentWeek ?? currentWeekEstimate();
 
   for (const week of alertWeeks(league)) {
+    const unavailable = (p: ScoredRosterPlayer): boolean =>
+      p.bye === week || outForWeek(p.injury, week, currentWeek);
     const full = optimalLineup(roster, slots);
     const active = optimalLineup(
-      roster.filter(p => p.bye === null || p.bye !== week),
+      roster.filter(p => !unavailable(p)),
       slots,
     );
     // Collapse duplicate slot types (two RB slots with the same fate read as
@@ -120,16 +147,22 @@ export function teamRosterAlerts(
       const activeAssigned = active.starters[i]?.player ?? null;
       const starter = assigned.player as ScoredRosterPlayer | null;
       const starterOnBye = starter !== null && starter.bye === week;
-      // Only bye-driven gaps: a slot the full roster already leaves empty is
-      // a roster-construction issue, not a weekly warning.
-      if (!starterOnBye) return;
+      const starterOut =
+        starter !== null && outForWeek(starter.injury, week, currentWeek);
+      // Only absence-driven gaps: a slot the full roster already leaves
+      // empty is a roster-construction issue, not a weekly warning.
+      if (!starterOnBye && !starterOut) return;
+      const cause: RosterAlertCause = starterOut ? 'injury' : 'bye';
 
-      const key = activeAssigned === null ? `hole:${slot}` : `watch:${slot}`;
+      const key = `${activeAssigned === null ? 'hole' : 'watch'}:${cause}:${slot}`;
       let alert = groups.get(key);
       if (!alert) {
         const eligible = [...slotEligiblePositions(slot)];
         const onBye = roster.filter(
           p => eligible.includes(p.position) && p.bye === week,
+        );
+        const outInjured = roster.filter(
+          p => eligible.includes(p.position) && outForWeek(p.injury, week, currentWeek),
         );
         const fillers = pool.players
           .filter(
@@ -137,6 +170,9 @@ export function teamRosterAlerts(
               eligible.includes(normalizeLineupPos(p.pos)) &&
               !rostered.has(p.id) &&
               (p.bye ?? null) !== week &&
+              // A filler who is out himself is no rescue (injury status is
+              // only known for the current week, so filter there).
+              !(week === currentWeek && outForWeek(injuryTier(p), week, currentWeek)) &&
               typeof p.projPtsPpr === 'number' &&
               p.projPtsPpr > 0,
           )
@@ -147,7 +183,9 @@ export function teamRosterAlerts(
           slots: [],
           eligible,
           severity: activeAssigned === null ? 'hole' : 'bye-watch',
+          cause,
           onBye: onBye.map(p => p.pool),
+          outInjured: outInjured.map(p => p.pool),
           cover: (activeAssigned as ScoredRosterPlayer | null)?.pool ?? null,
           fillers,
         };
