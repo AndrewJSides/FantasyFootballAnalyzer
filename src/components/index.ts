@@ -21,6 +21,7 @@ export { InjuryReport } from './InjuryReport';
 export { StashReport } from './StashReport';
 export { KickerStreamers } from './KickerStreamers';
 export { SkillStreamers } from './SkillStreamers';
+export { StreamerPlanner } from './StreamerPlanner';
 export { TradeTable } from './TradeTable';
 export { RivalryCard } from './RivalryCard';
 export { NflTeamLabel } from './NflTeamLabel';
