@@ -1,0 +1,50 @@
+/* GRIDIRON · Weather watch (Start/Sit page, backlog item 51) */
+
+.sectionTitle {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 2rem 0 0.75rem;
+}
+
+.watchList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.watchItem {
+  padding: 0.75rem 1rem;
+  background: var(--ink);
+  font-family: var(--font-display);
+  border-left: 3px solid var(--bone-dim);
+}
+
+.watchItem.risk {
+  border-left-color: var(--amber, #e8a33d);
+}
+
+.starters {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--bone-dim);
+}
+
+.allClear {
+  padding: 0.75rem 1rem;
+  background: var(--ink);
+  font-family: var(--font-display);
+  border-left: 3px solid var(--lime);
+  margin: 0 0 1rem;
+}
+
+.note {
+  font-size: 0.8rem;
+  color: var(--bone-dim);
+  margin: 0.5rem 0 0;
+}

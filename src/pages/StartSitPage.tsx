@@ -9,6 +9,7 @@ import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
 import { gameKickoff } from '@/utils/gameTimes';
 import { lateSwapAlerts } from '@/utils/lateSwap';
+import { WeatherWatch } from '@/components/WeatherWatch';
 import { round1, scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 import {
   LINEUP_MODES,
@@ -431,6 +432,19 @@ export function StartSitPage({ league }: StartSitPageProps) {
     });
   }, [lineup, benched, currentWeek, guestDataPending, poolIndex]);
 
+  // --- Weather watch: kickoff-hour weather flags (backlog item 51) --------
+  // The optimizer's starters, so flagged games can name who's affected.
+  const weatherStarters = useMemo(
+    () =>
+      lineup.starters
+        .filter(a => a.player)
+        .map(a => {
+          const p = a.player as ScoredPlayer;
+          return { name: p.name, nflTeam: p.nflTeam };
+        }),
+    [lineup],
+  );
+
   return (
     <div className={styles.page}>
       <div className="container">
@@ -719,6 +733,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 </ul>
               </>
             )}
+            <WeatherWatch week={currentWeek} starters={weatherStarters} />
             <p className={styles.note}>
               Projected from each player&apos;s last-4-week form blended with
               their season average and nudged by matchup difficulty, so one big
