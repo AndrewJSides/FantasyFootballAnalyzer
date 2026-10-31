@@ -36,8 +36,41 @@
 
 .toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+/* Roster-scoped news filter (backlog item 58): segmented All / My players
+   control. Mirrors the refresh button's mono uppercase language. */
+.scopeToggle {
+  display: inline-flex;
+  border: 1px solid var(--bone);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.scopeButton {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone);
+  background: transparent;
+  border: 0;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+.scopeButton + .scopeButton {
+  border-left: 1px solid var(--bone);
+}
+.scopeButton[aria-pressed='true'] {
+  background: var(--lime);
+  color: var(--ink);
+}
+.scopeButton:not([aria-pressed='true']):hover {
+  background: var(--bone);
+  color: var(--ink);
 }
 
 .refreshButton,

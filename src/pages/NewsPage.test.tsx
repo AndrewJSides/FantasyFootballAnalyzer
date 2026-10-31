@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { NflNewsItem } from '@/api/espnNews';
+import type { League, Player, Team } from '@/types';
 import { POOL } from '@/data/draftPool';
 import { NewsPage } from './NewsPage';
 
@@ -27,12 +28,29 @@ function newsItem(overrides: Partial<NflNewsItem> = {}): NflNewsItem {
   };
 }
 
-function renderPage() {
+function renderPage(league?: League) {
   return render(
     <MemoryRouter>
-      <NewsPage />
+      <NewsPage league={league} />
     </MemoryRouter>,
   );
+}
+
+function leagueWithMyTeam(roster: Player[]): League {
+  return {
+    teams: [{ id: 't1', name: 'My Team', isMyTeam: true, roster } as Team],
+  } as League;
+}
+
+function poolRosterPlayer(poolId: string): Player {
+  const poolPlayer = POOL.players.find(p => p.id === poolId)!;
+  return {
+    id: poolPlayer.id,
+    platformId: '',
+    name: poolPlayer.name,
+    position: poolPlayer.pos,
+    team: '',
+  };
 }
 
 beforeEach(() => {
@@ -102,5 +120,64 @@ describe('NewsPage', () => {
     await waitFor(() =>
       expect(screen.getByText('Loaded 2 NFL headlines.')).toBeInTheDocument(),
     );
+  });
+
+  it('shows no scope toggle without a league', async () => {
+    mockFetch.mockResolvedValue([newsItem()]);
+    renderPage();
+    await screen.findByText('Star ruled out for Sunday');
+    expect(
+      screen.queryByRole('button', { name: /My players/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the scope toggle when the league has no my-team', async () => {
+    mockFetch.mockResolvedValue([newsItem()]);
+    renderPage({ teams: [] } as League);
+    await screen.findByText('Star ruled out for Sunday');
+    expect(
+      screen.queryByRole('button', { name: /My players/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('filters headlines to the manager roster and announces the swap', async () => {
+    const mine = POOL.players.find(p => p.name && p.pos === 'RB')!;
+    const other = POOL.players.find(p => p.name && p.pos === 'WR' && p.id !== mine.id)!;
+    mockFetch.mockResolvedValue([
+      newsItem({ id: '1', headline: 'My guy hurt', athletes: [mine.name] }),
+      newsItem({ id: '2', headline: 'Other guy fine', athletes: [other.name] }),
+    ]);
+    renderPage(leagueWithMyTeam([poolRosterPlayer(mine.id)]));
+    await screen.findByText('My guy hurt');
+
+    const allButton = screen.getByRole('button', { name: 'All news (2)' });
+    const mineButton = screen.getByRole('button', { name: 'My players (1)' });
+    expect(allButton).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(mineButton);
+    expect(mineButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('My guy hurt')).toBeInTheDocument();
+    expect(screen.queryByText('Other guy fine')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Showing 1 headline about your players.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(allButton);
+    expect(screen.getByText('Other guy fine')).toBeInTheDocument();
+    expect(screen.getByText('Showing all 2 headlines.')).toBeInTheDocument();
+  });
+
+  it('shows an empty state when no headlines tag the roster', async () => {
+    const mine = POOL.players.find(p => p.name && p.pos === 'RB')!;
+    const other = POOL.players.find(p => p.name && p.pos === 'WR' && p.id !== mine.id)!;
+    mockFetch.mockResolvedValue([
+      newsItem({ id: '1', headline: 'Other guy fine', athletes: [other.name] }),
+    ]);
+    renderPage(leagueWithMyTeam([poolRosterPlayer(mine.id)]));
+    await screen.findByText('Other guy fine');
+    fireEvent.click(screen.getByRole('button', { name: 'My players (0)' }));
+    expect(
+      screen.getByText('No headlines right now tag anyone on your roster.'),
+    ).toBeInTheDocument();
   });
 });

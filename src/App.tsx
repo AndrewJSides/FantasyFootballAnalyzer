@@ -1010,8 +1010,10 @@ function App() {
           />
           <Route path="/players" element={dataRoute(l => <PlayerJourneyPage league={l} />)} />
           {/* NFL news is league-independent: ESPN's free public feed, no
-              auth — the same page for league and guest visitors. */}
-          <Route path="/news" element={<NewsPage />} />
+              auth — the same page for league and guest visitors. The page
+              takes the league when one is loaded so it can offer the
+              roster-scoped "My players" filter (backlog item 58). */}
+          <Route path="/news" element={<NewsPage league={league ?? undefined} />} />
           {/* Watchlist works in guest mode on the manager's own picks
               (localStorage), like Compare and Start/Sit. */}
           <Route
