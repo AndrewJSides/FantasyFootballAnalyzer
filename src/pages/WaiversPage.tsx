@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DstStreamers, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, StashReport, TrendingAdds, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DstStreamers, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, SkillStreamers, StashReport, TrendingAdds, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -56,6 +56,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* Best available kickers to stream this week, ranked by how
             generous each opponent's defense has been to opposing kickers. */}
         <KickerStreamers league={league} />
+
+        {/* Best available QBs and TEs to stream this week, ranked by how
+            generous each opponent's defense has been to the position. */}
+        <SkillStreamers league={league} position="QB" />
+        <SkillStreamers league={league} position="TE" />
 
         {/* Every NFL backfield's lead back and direct backup, with league
             ownership — the league-wide answer to which handcuffs are worth

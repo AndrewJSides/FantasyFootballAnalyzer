@@ -1,0 +1,130 @@
+/* GRIDIRON · QB & TE streamers panel (Waivers page, backlog item 39) */
+
+.panel {
+  background: var(--ink);
+  border: 2px solid var(--bone);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.headRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.heading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0;
+}
+
+.window {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.note {
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+  margin: 0.5rem 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--bone-faint, rgba(255, 255, 255, 0.14));
+}
+
+.table tbody th,
+.table tbody td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--bone-faint, rgba(255, 255, 255, 0.08));
+  vertical-align: middle;
+}
+
+.rank {
+  font-family: var(--font-mono);
+  color: var(--bone-dim);
+  width: 2ch;
+}
+
+.playerCell {
+  text-align: left;
+  font-weight: 600;
+}
+
+.playerName {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+}
+
+.nums {
+  font-family: var(--font-mono);
+}
+
+.sub {
+  color: var(--bone-dim);
+  font-size: 0.75rem;
+}
+
+/* Same favorable/tough/neutral color language as the other matchup cells. */
+.muFav,
+.muTough,
+.muNeutral {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.muFav {
+  color: var(--lime);
+}
+
+.muTough {
+  color: var(--blood-text);
+}
+
+.muNeutral {
+  color: var(--bone-dim);
+}
+
+.footnote {
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin: 1rem 0 0;
+}
+
+.injBadge {
+  display: inline-block;
+  margin-left: 0.5ch;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--blood-text);
+  border: 1px solid var(--blood-text);
+  padding: 0 0.4ch;
+  border-radius: 2px;
+  vertical-align: middle;
+}
