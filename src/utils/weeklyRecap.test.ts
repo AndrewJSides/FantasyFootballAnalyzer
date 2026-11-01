@@ -256,6 +256,99 @@ describe('weeklyRecap', () => {
     expect(recap!.hasWeeklyPoints).toBe(false);
     expect(recap!.hasDraftData).toBe(false);
     expect(recap!.overperformers).toHaveLength(0);
+    expect(recap!.topScorers).toHaveLength(0);
     expect(recap!.bestPick).toBeUndefined();
+  });
+
+  it('ranks the top 5 actual scorers per position', () => {
+    // Seven RBs score in week 3 with two prior weeks of form: only the top
+    // five make the board, actual-descending.
+    const players = Array.from({ length: 7 }, (_, i) => ({
+      id: `rb${i}`,
+      name: `Back ${i}`,
+      position: 'RB',
+    }));
+    const playerWeeklyPoints: Record<string, Record<number, number>> = {};
+    players.forEach((p, i) => {
+      playerWeeklyPoints[p.id] = { 1: 5, 2: 5, 3: 30 - i };
+    });
+    const recap = weeklyRecap(
+      leagueOf({
+        matchups: [
+          { week: 1, t1: 't1', t2: 't2', p1: 100, p2: 90 },
+          { week: 2, t1: 't1', t2: 't2', p1: 100, p2: 90 },
+          { week: 3, t1: 't1', t2: 't2', p1: 100, p2: 90 },
+        ],
+        players,
+        playerWeeklyPoints,
+      }),
+      3,
+    );
+    expect(recap!.topScorers).toHaveLength(5);
+    const actuals = recap!.topScorers.map(s => s.actual);
+    expect(actuals).toEqual([30, 29, 28, 27, 26]);
+    // The board is actuals-first: Back 0's 30-week blowout still leads even
+    // though every scorer also carries a beat-projection diff.
+    expect(recap!.topScorers[0].diff).toBeGreaterThan(5);
+  });
+
+  it('orders the leaderboard QB, RB, WR, TE', () => {
+    const players = [
+      { id: 'p-te', name: 'Tight End', position: 'TE' },
+      { id: 'p-wr', name: 'Wide Out', position: 'WR' },
+      { id: 'p-rb', name: 'Runner', position: 'RB' },
+      { id: 'p-qb', name: 'Passer', position: 'QB' },
+    ];
+    const recap = weeklyRecap(
+      leagueOf({
+        matchups: [{ week: 1, t1: 't1', t2: 't2', p1: 100, p2: 90 }],
+        players,
+        playerWeeklyPoints: {
+          'p-te': { 1: 12 },
+          'p-wr': { 1: 25 },
+          'p-rb': { 1: 20 },
+          'p-qb': { 1: 28 },
+        },
+      }),
+      1,
+    );
+    expect(recap!.topScorers.map(s => s.position)).toEqual(['QB', 'RB', 'WR', 'TE']);
+  });
+
+  it('keeps a scorer without a projection on the board', () => {
+    // One week of history: no TraderApe projection, but the 30-point week
+    // still leads the leaderboard with a null diff.
+    const recap = weeklyRecap(
+      leagueOf({
+        matchups: [{ week: 2, t1: 't1', t2: 't2', p1: 100, p2: 90 }],
+        players: [{ id: 'p-one', name: 'One Game', position: 'WR' }],
+        playerWeeklyPoints: { 'p-one': { 1: 20, 2: 30 } },
+      }),
+      2,
+    );
+    expect(recap!.topScorers).toHaveLength(1);
+    expect(recap!.topScorers[0].actual).toBe(30);
+    expect(recap!.topScorers[0].projected).toBeNull();
+    expect(recap!.topScorers[0].diff).toBeNull();
+  });
+
+  it('excludes kickers and defenses from the leaderboard', () => {
+    const recap = weeklyRecap(
+      leagueOf({
+        matchups: [{ week: 1, t1: 't1', t2: 't2', p1: 100, p2: 90 }],
+        players: [
+          { id: 'p-k', name: 'Big Leg', position: 'K' },
+          { id: 'p-d', name: 'Wall', position: 'DEF' },
+          { id: 'p-rb', name: 'Real Back', position: 'RB' },
+        ],
+        playerWeeklyPoints: {
+          'p-k': { 1: 25 },
+          'p-d': { 1: 30 },
+          'p-rb': { 1: 20 },
+        },
+      }),
+      1,
+    );
+    expect(recap!.topScorers.map(s => s.name)).toEqual(['Real Back']);
   });
 });

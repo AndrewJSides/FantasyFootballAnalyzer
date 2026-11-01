@@ -1,12 +1,14 @@
 // Weekly recap story (backlog item 9): the week's narrative in one scroll.
 // Biggest over/underperformers vs the TraderApe weekly projection, the
 // week-defining game, weekly + season luck extremes (reusing the Luck
-// engine), and the best/worst draft picks to date. A week selector swaps the
-// story in place (announced via aria-live); sections hide gracefully when
-// their data is absent on the loaded platform.
+// engine), and the best/worst draft picks to date. Item 64 added a "Top
+// scorers" leaderboard: top 5 actual scorers per skill position for the week
+// with the pre-week projection and the beat-or-miss where one exists.
+// A week selector swaps the story in place (announced via aria-live);
+// sections hide gracefully when their data is absent on the loaded platform.
 import { useEffect, useMemo, useState } from 'react';
 import type { League } from '@/types';
-import { weeklyRecap, type RecapOverUnder, type WeeklyLuckSpot, type RecapDraftPick } from '@/utils/weeklyRecap';
+import { weeklyRecap, type RecapOverUnder, type WeeklyLuckSpot, type RecapDraftPick, type RecapTopScorer } from '@/utils/weeklyRecap';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './RecapPage.module.css';
@@ -37,6 +39,51 @@ function OverUnderCard({ call }: { call: RecapOverUnder }) {
         {up ? 'blew past' : 'fell short of'} TraderApe's projection ({call.weeksUsed} weeks of form).
       </div>
     </div>
+  );
+}
+
+// Weekly top scorers (backlog item 64): the raw actual-points leaderboard,
+// top 5 per skill position, each with TraderApe's pre-week projection where
+// one exists. The ± column names the beat-or-miss against the same model the
+// story cards use, so a 30-point week that beat a 28-point projection reads
+// differently from one that beat a 12-point one.
+function TopScorersTable({ scorers, week }: { scorers: RecapTopScorer[]; week: number }) {
+  return (
+    <table className={styles.gameTable}>
+      <caption>
+        Top 5 per position by actual Week {week} points
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Player</th>
+          <th scope="col">Pos</th>
+          <th scope="col">Actual</th>
+          <th scope="col">Proj.</th>
+          <th scope="col">±</th>
+          <th scope="col">Team</th>
+        </tr>
+      </thead>
+      <tbody>
+        {scorers.map(s => (
+          <tr key={`${s.position}-${s.name}`}>
+            <th scope="row">{s.name}</th>
+            <td>{s.position}</td>
+            <td>{fmt(s.actual)}</td>
+            <td>{s.projected === null ? '—' : fmt(s.projected)}</td>
+            <td>
+              {s.diff === null ? (
+                '—'
+              ) : (
+                <span className={s.diff > 0 ? styles.up : s.diff < 0 ? styles.down : undefined}>
+                  {s.diff > 0 ? '+' : ''}{fmt(s.diff)}
+                </span>
+              )}
+            </td>
+            <td>{s.teamName || 'free agent'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -197,6 +244,24 @@ export function RecapPage({ league }: RecapPageProps) {
                 )}
               </section>
 
+              <section className={styles.section} aria-labelledby="recap-topscorers">
+                <h2 id="recap-topscorers" className={styles.sectionTitle}>
+                  Top scorers
+                </h2>
+                {!recap.hasWeeklyPoints ? (
+                  <p className={styles.graceNote}>
+                    Weekly player stats aren't in this snapshot, so there's no leaderboard
+                    for this week.
+                  </p>
+                ) : recap.topScorers.length === 0 ? (
+                  <p className={styles.graceNote}>
+                    No skill-position players scored this week.
+                  </p>
+                ) : (
+                  <TopScorersTable scorers={recap.topScorers} week={recap.week} />
+                )}
+              </section>
+
               <section className={styles.section} aria-labelledby="recap-luck">
                 <h2 id="recap-luck" className={styles.sectionTitle}>Luck</h2>
                 <div className={styles.cardGrid}>
@@ -244,8 +309,11 @@ export function RecapPage({ league }: RecapPageProps) {
               <p className={styles.footnote}>
                 Projections are TraderApe's own weekly model (recency-weighted form plus
                 season baseline, no matchup blend); a call needs 2+ prior weeks of data.
-                Luck reuses the Luck engine (actual minus expected wins). Draft picks are
-                priced on points scored so far vs. the rank their slot normally returns.
+                Top scorers rank actual Week points, top 5 per skill position — the ±
+                column beats or misses the same projection, and shows a dash when a
+                player has fewer than 2 prior weeks. Luck reuses the Luck engine
+                (actual minus expected wins). Draft picks are priced on points scored
+                so far vs. the rank their slot normally returns.
               </p>
             </div>
           </>

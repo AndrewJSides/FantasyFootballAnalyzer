@@ -31,6 +31,20 @@ export interface RecapOverUnder {
   weeksUsed: number;
 }
 
+// Weekly top scorers: the raw actual-points leaderboard per position, so the
+// week-defining performances are visible even when the story cards only name
+// the over/under outliers. Projected/diff are null when the player lacks the
+// 2+ prior weeks a TraderApe projection needs.
+export interface RecapTopScorer {
+  name: string;
+  position: string;
+  teamName: string;
+  actual: number;
+  projected: number | null;
+  diff: number | null; // actual - projected
+  weeksUsed: number;
+}
+
 export interface RecapDraftPick {
   name: string;
   position: string;
@@ -58,6 +72,9 @@ export interface WeeklyRecap {
   headlineDetail?: string;
   overperformers: RecapOverUnder[];
   underperformers: RecapOverUnder[];
+  // Top 5 actual scorers per skill position for the week (QB, RB, WR, TE
+  // order, then any other skill position), actual-descending within each.
+  topScorers: RecapTopScorer[];
   hasWeeklyPoints: boolean;
   // Weekly luck flavor: the team that won with the lowest score ("lucky
   // escape") and the team that lost with the highest score ("cruel beat").
@@ -196,12 +213,24 @@ export function weeklyRecap(league: League, week?: number): WeeklyRecap | null {
     return team?.name ?? '';
   };
   const calls: RecapOverUnder[] = [];
+  const scorerPool: RecapTopScorer[] = [];
   for (const [playerId, byWeek] of Object.entries(weekly)) {
     const info = players.get(playerId);
     if (!info || !isSkillPos(info.position) || isPlaceholderPlayer(info.name)) continue;
     const actual = byWeek[wk];
     if (!Number.isFinite(actual)) continue;
+    // The leaderboard runs on actuals alone - a projection is attached where
+    // one is available, so rows never hide for lack of form history.
     const proj = projectionForWeek(byWeek, wk);
+    scorerPool.push({
+      name: info.name,
+      position: info.position,
+      teamName: teamOf(playerId),
+      actual: Math.round(actual * 10) / 10,
+      projected: proj ? proj.projection : null,
+      diff: proj ? Math.round((actual - proj.projection) * 10) / 10 : null,
+      weeksUsed: proj ? proj.weeksUsed : 0,
+    });
     if (!proj) continue;
     const diff = Math.round((actual - proj.projection) * 10) / 10;
     if (Math.abs(diff) < 5) continue;
@@ -215,6 +244,14 @@ export function weeklyRecap(league: League, week?: number): WeeklyRecap | null {
       weeksUsed: proj.weeksUsed,
     });
   }
+  const positionOrder = (pos: string) => {
+    const order = ['QB', 'RB', 'WR', 'TE'];
+    const idx = order.indexOf(pos);
+    return idx === -1 ? order.length : idx;
+  };
+  const topScorers = scorerPool
+    .sort((a, b) => positionOrder(a.position) - positionOrder(b.position) || b.actual - a.actual)
+    .filter((s, _, all) => all.filter(x => x.position === s.position).indexOf(s) < 5);
   const overperformers = calls
     .filter(c => c.diff > 0)
     .sort((a, b) => b.diff - a.diff)
@@ -308,6 +345,7 @@ export function weeklyRecap(league: League, week?: number): WeeklyRecap | null {
     headlineDetail,
     overperformers,
     underperformers,
+    topScorers,
     hasWeeklyPoints,
     luckyEscape,
     cruelBeat,

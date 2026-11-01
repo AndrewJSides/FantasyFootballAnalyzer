@@ -125,6 +125,25 @@ describe('RecapPage', () => {
     expect(screen.getByRole('heading', { name: /Week 1: Alpha massacres Beta/ })).toBeTruthy();
   });
 
+  it('shows the weekly top scorers leaderboard', () => {
+    renderPage(league());
+    const section = screen.getByRole('region', { name: 'Top scorers' });
+    // Week 3: Hero Back's 30-point week leads the RB board; Mid Guy's 5
+    // scores too low for the ±5 story cards but still ranks on actuals.
+    expect(within(section).getByRole('rowheader', { name: 'Hero Back' })).toBeTruthy();
+    expect(within(section).getByRole('rowheader', { name: 'Mid Guy' })).toBeTruthy();
+    const heroRow = within(section).getByRole('rowheader', { name: 'Hero Back' }).closest('tr')!;
+    expect(within(heroRow).getByText('30.0')).toBeTruthy();
+  });
+
+  it('hides the leaderboard gracefully without weekly stats', () => {
+    const l = league();
+    delete l.playerWeeklyPoints;
+    renderPage(l);
+    const section = screen.getByRole('region', { name: 'Top scorers' });
+    expect(within(section).getByText(/no leaderboard for this week/)).toBeTruthy();
+  });
+
   it('shows an empty state before week 1', () => {
     const l = league();
     l.matchups = [];
