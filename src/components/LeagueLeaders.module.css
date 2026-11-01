@@ -1,0 +1,102 @@
+/* GRIDIRON · League leaders (Weekly Rankings page) */
+
+.panel {
+  background: var(--ink);
+  border: 2px solid var(--bone);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.heading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0 0 0.25rem;
+}
+
+.sub {
+  font-size: 0.95rem;
+  color: var(--bone-dim);
+  margin: 0 0 1rem;
+}
+
+.filterBar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.filterButton {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--bone-dim);
+  background: transparent;
+  color: var(--bone);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filterButton.active {
+  background: var(--bone);
+  color: var(--ink);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--bone-dim);
+}
+
+.table th {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--bone-dim);
+  font-weight: 600;
+}
+
+.table td.num,
+.table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank {
+  font-weight: 700;
+  color: var(--bone-dim);
+  width: 3rem;
+}
+
+.player {
+  font-weight: 600;
+  color: var(--bone);
+}
+
+.boom {
+  font-size: 0.9rem;
+  color: var(--bone);
+  margin: 0.75rem 0 0;
+}
+
+.status {
+  font-size: 0.95rem;
+  color: var(--bone-dim);
+  padding: 1rem 0;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+  margin-top: 1rem;
+  line-height: 1.5;
+}

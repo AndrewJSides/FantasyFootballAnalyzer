@@ -15,6 +15,7 @@ export { FaabGuidance } from './FaabGuidance';
 export { FaabBudgets } from './FaabBudgets';
 export { WaiverPriority } from './WaiverPriority';
 export { WaiverReportCard } from './WaiverReportCard';
+export { LeagueLeaders } from './LeagueLeaders';
 export { TrendingAdds } from './TrendingAdds';
 export { TrendingDrops } from './TrendingDrops';
 export { NewsWaiverTargets } from './NewsWaiverTargets';

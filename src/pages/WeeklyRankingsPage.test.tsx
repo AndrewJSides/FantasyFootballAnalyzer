@@ -89,9 +89,9 @@ describe('WeeklyRankingsPage', () => {
   it('ranks by this-week projection and excludes bye-week players', async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
     });
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('table', { name: /week \d+ rankings/i });
     const names = within(table)
       .getAllByRole('rowheader')
       .map(el => el.textContent);
@@ -102,9 +102,9 @@ describe('WeeklyRankingsPage', () => {
   it('shows a Consistency column with verdict chips and a dash for data-less players', async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
     });
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('table', { name: /week \d+ rankings/i });
     expect(
       within(table).getByRole('columnheader', { name: /consistency/i }),
     ).toBeInTheDocument();
@@ -130,13 +130,15 @@ describe('WeeklyRankingsPage', () => {
   it('filters by position with an aria-pressed button', async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
     });
-    const rb = screen.getByRole('button', { name: 'RB' });
+    const rb = within(
+      screen.getByRole('group', { name: 'Filter by position' }),
+    ).getByRole('button', { name: 'RB' });
     expect(rb).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(rb);
     expect(rb).toHaveAttribute('aria-pressed', 'true');
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('table', { name: /week \d+ rankings/i });
     const names = within(table)
       .getAllByRole('rowheader')
       .map(el => el.textContent);

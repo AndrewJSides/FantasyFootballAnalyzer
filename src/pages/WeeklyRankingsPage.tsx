@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PosBadge } from '@/components';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
 import { POOL } from '@/data/draftPool';
+import { LeagueLeaders } from '@/components/LeagueLeaders';
 import type { League } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import {
@@ -291,6 +292,15 @@ export function WeeklyRankingsPage({
               moves a roster.
             </p>
           </section>
+        )}
+
+        {weeklyState === 'ready' && (
+          <LeagueLeaders
+            pool={pool}
+            weekly={weekly}
+            currentWeek={week}
+            ownerByPoolId={live ? owners : undefined}
+          />
         )}
       </div>
     </div>
