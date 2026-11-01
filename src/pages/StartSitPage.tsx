@@ -46,6 +46,7 @@ import {
   matchupLabel,
   matchupShort,
 } from '@/utils/matchupRating';
+import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
 import styles from './StartSitPage.module.css';
 
 interface StartSitPageProps {
@@ -481,6 +482,38 @@ export function StartSitPage({ league }: StartSitPageProps) {
     );
   };
 
+  // --- Upcoming matchups (backlog item 66): each starter's next 3 played
+  // weeks as matchup chips, priced on the same season-to-date averages as
+  // the Matchup column — a difficulty map, not a forecast. Answers "can I
+  // sit him for one bad week and come back after" in the decision row.
+  const upcomingChips = (s: ScoredPlayer): ReactNode => {
+    if (currentWeek === undefined) return '—';
+    const chips = upcomingMatchupChips(s.nflTeam, s.position, currentWeek);
+    if (chips.length === 0) return '—';
+    return (
+      <span className={styles.upcoming}>
+        {chips.map(c =>
+          c.rating ? (
+            <span
+              key={c.week}
+              className={
+                c.rating.label === 'favorable'
+                  ? styles.muFav
+                  : c.rating.label === 'tough'
+                    ? styles.muTough
+                    : styles.muNeutral
+              }
+              title={matchupLabel(c.rating, s.position)}
+              aria-label={`Week ${c.week}: ${matchupLabel(c.rating, s.position)}`}
+            >
+              W{c.week} {c.opponent}
+            </span>
+          ) : null,
+        )}
+      </span>
+    );
+  };
+
   // --- Late-swap watch: kickoff times + game-time-decision alerts ---------
   // A starter locks at HIS kickoff, so a Questionable starter can only be
   // rescued by a same-slot-eligible bench player who plays later. Injury
@@ -539,7 +572,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 ? `Optimal lineup for week ${currentWeek}, ranked by projected points — recent form blended with season average.`
                 : 'Optimal lineup from this roster, ranked by projected points — recent form blended with season average.'}{' '}
             Matchup ratings use the opponent&apos;s points allowed vs position from
-            completed weeks {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}.
+            completed weeks {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}; the
+            Upcoming column shows each starter&apos;s next 3 played weeks as
+            matchup chips on the same basis — a difficulty map, not a forecast.
           </p>
         </div>
 
@@ -716,6 +751,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Pts/game</th>
                   <th scope="col">Last 3</th>
                   <th scope="col">Matchup</th>
+                  <th scope="col">Upcoming</th>
                   <th scope="col">Kickoff</th>
                   <th scope="col">Why they start</th>
                 </tr>
@@ -756,6 +792,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           '—'
                         )}
                       </td>
+                      <td>{s ? upcomingChips(s) : '—'}</td>
                       <td>{s ? kickoffChip(s) : '—'}</td>
                       <td>
                         {s ? starterReason(s, a.slot) : '—'}

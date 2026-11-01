@@ -309,3 +309,31 @@
   font-style: italic;
   color: var(--bone-dim);
 }
+
+/* Upcoming matchups column (backlog item 66): each starter's next 3 played
+   weeks as favorable/tough/neutral chips, same color language as the
+   Rankings, Player Journey, and Trade Analyzer matchup chips. */
+.upcoming {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.upcoming .muFav,
+.upcoming .muTough,
+.upcoming .muNeutral {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.4;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid currentColor;
+}
+.upcoming .muFav {
+  color: var(--lime);
+}
+.upcoming .muTough {
+  color: var(--blood-text);
+}
+.upcoming .muNeutral {
+  color: var(--bone-dim);
+}
