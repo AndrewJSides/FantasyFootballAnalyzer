@@ -13,9 +13,13 @@
 // Output: data/projection-backtests/<season>.json (overwritten each run)
 // plus a printed summary. The file keeps `overall`/`byPosition` for the
 // matchup-free model (backwards-compatible shape) and adds a `withMatchup`
-// sibling scoring the shipped matchup-aware model on the same weeks — the
-// comparison answers whether the matchup term helps. The matchup context
-// for each scored week is rebuilt from completed weeks ONLY (see
+// sibling scoring the default-priced matchup-aware model on the same weeks.
+// `pricingVariants` re-scores the same weeks under each candidate
+// MatchupPricing (smaller blends, tighter caps, sample-size gating) — the
+// Nov 1, 2026 re-pricing experiment (backlog item 1 follow-up): the
+// as-shipped half-deviation/±5 pricing measured worse than no term, so the
+// variants decide what DEFAULT_MATCHUP_PRICING should be. The matchup
+// context for each scored week is rebuilt from completed weeks ONLY (see
 // src/utils/backtestMatchup.ts), so no lookahead leaks into the numbers.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -31,11 +35,31 @@ import {
   buildOpponentMap,
   matchupContextForWeek,
 } from '../src/utils/backtestMatchup';
-import type { WeekPoints } from '../src/utils/weeklyProjection';
+import type { MatchupPricing, WeekPoints } from '../src/utils/weeklyProjection';
 
 const UA = 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)';
 const OUT_DIR = 'data/projection-backtests';
 const POSITIONS = [...BACKTEST_POSITIONS] as const;
+
+/**
+ * Candidate pricings for the matchup term (backlog item 1 follow-up,
+ * Nov 1, 2026). The as-shipped blend-0.5/cap-5 pricing measured worse than
+ * no term on weeks 1–7 (MAE 7.03 vs 6.78), so the harness re-scores the
+ * same predictions under smaller blends, tighter caps, and sample-size
+ * gating; the winner becomes DEFAULT_MATCHUP_PRICING.
+ */
+const PRICING_VARIANTS: { name: string; pricing: MatchupPricing }[] = [
+  { name: 'blend 0.5, cap 5 (shipped)', pricing: { blend: 0.5, cap: 5 } },
+  { name: 'blend 0.25, cap 5', pricing: { blend: 0.25, cap: 5 } },
+  { name: 'blend 0.5, cap 3', pricing: { blend: 0.5, cap: 3 } },
+  { name: 'blend 0.25, cap 3', pricing: { blend: 0.25, cap: 3 } },
+  { name: 'blend 0.125, cap 3', pricing: { blend: 0.125, cap: 3 } },
+  {
+    name: 'blend 0.25, cap 3, min 3 wks',
+    pricing: { blend: 0.25, cap: 3, minSampleWeeks: 3 },
+  },
+  { name: 'no term (blend 0)', pricing: { blend: 0, cap: 5 } },
+];
 
 interface SleeperState {
   season: string;
@@ -148,6 +172,37 @@ async function main(): Promise<void> {
     byPositionMatchup[pos] = aggregateBacktests(sliceMatchup);
   }
 
+  // Re-price experiment: the same predictions under each candidate
+  // pricing, scored on the same weeks. The variant resolver attaches the
+  // candidate pricing to the context the model would have seen — no
+  // lookahead, same completed-weeks-only inputs as the shipped run.
+  const matchupForPriced = (playerId: string, pricing: MatchupPricing) => {
+    const base = matchupFor(playerId);
+    if (!base) return undefined;
+    return (week: number) => {
+      const ctx = base(week);
+      return ctx ? { ...ctx, pricing } : null;
+    };
+  };
+  const pricingVariants = PRICING_VARIANTS.map(v => {
+    const vResults = ids.map(([id, weeks]) =>
+      backtestPlayer(id, weeks, matchupForPriced(id, v.pricing)),
+    );
+    const vByPosition: Record<string, BacktestSummary> = {};
+    for (const pos of POSITIONS) {
+      vByPosition[pos] = aggregateBacktests(
+        vResults.filter(r => players[r.playerId]?.position === pos),
+      );
+    }
+    return {
+      name: v.name,
+      pricing: v.pricing,
+      players: vResults.length,
+      overall: aggregateBacktests(vResults),
+      byPosition: vByPosition,
+    };
+  });
+
   mkdirSync(OUT_DIR, { recursive: true });
   const out = {
     season,
@@ -160,15 +215,20 @@ async function main(): Promise<void> {
       overall: overallMatchup,
       byPosition: byPositionMatchup,
     },
+    pricingVariants,
     generatedAt: new Date().toISOString(),
   };
   writeFileSync(join(OUT_DIR, `${season}.json`), JSON.stringify(out, null, 2) + '\n');
   console.log(`Backtested ${season} weeks 1–${lastWeek}: ${results.length} players`);
   printSummary('Overall (no matchup)', overall);
-  printSummary('Overall (with matchup)', overallMatchup);
+  printSummary('Overall (with matchup, default pricing)', overallMatchup);
   for (const pos of POSITIONS) {
     printSummary(`${pos} (no matchup)`, byPosition[pos]);
     printSummary(`${pos} (with matchup)`, byPositionMatchup[pos]);
+  }
+  console.log('Matchup-term pricing variants:');
+  for (const v of pricingVariants) {
+    printSummary(`  ${v.name}`, v.overall);
   }
 }
 

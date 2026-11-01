@@ -62,7 +62,7 @@ describe('projectionReason', () => {
     const p = projectWeeklyPoints(
       [w(1, 5), w(2, 5), w(3, 5), w(4, 20)],
       null,
-      { avgAllowed: 25, leagueAverage: 20 },
+      { avgAllowed: 25, leagueAverage: 20, pricing: { blend: 0.5, cap: 5 } },
     )!;
     expect(p.matchupAdjustment).toBe(2.5);
     expect(p.projection).toBe(12.7);
@@ -83,7 +83,7 @@ describe('projectionReason', () => {
     const p = projectWeeklyPoints(
       [w(1, 10), w(2, 10), w(3, 10), w(4, 10)],
       null,
-      { avgAllowed: 40, leagueAverage: 20 },
+      { avgAllowed: 40, leagueAverage: 20, pricing: { blend: 0.5, cap: 5 } },
     )!;
     expect(p.matchupAdjustment).toBe(5);
     expect(p.projection).toBe(15);
@@ -91,7 +91,7 @@ describe('projectionReason', () => {
     const q = projectWeeklyPoints(
       [w(1, 10), w(2, 10), w(3, 10), w(4, 10)],
       null,
-      { avgAllowed: 10, leagueAverage: 20 },
+      { avgAllowed: 10, leagueAverage: 20, pricing: { blend: 0.5, cap: 5 } },
     )!;
     expect(q.matchupAdjustment).toBe(-5);
     expect(projectionReason(q, 'NYJ')).toContain('Matchup vs NYJ adjusts it -5 pts.');
@@ -104,5 +104,50 @@ describe('projectionReason', () => {
       { avgAllowed: NaN, leagueAverage: 20 },
     )!;
     expect(p).toMatchObject({ matchupAdjustment: 0, projection: 10 });
+  });
+
+  it('a per-context pricing override re-prices the blend and cap', () => {
+    // 4-pt gap at blend 0.25 -> +1, no cap hit.
+    const p = projectWeeklyPoints(
+      [w(1, 10), w(2, 10), w(3, 10), w(4, 10)],
+      null,
+      { avgAllowed: 24, leagueAverage: 20, pricing: { blend: 0.25, cap: 5 } },
+    )!;
+    expect(p.matchupAdjustment).toBe(1);
+    expect(p.projection).toBe(11);
+    // 20-pt gap at blend 0.5 would be +10, but the override caps it at 3.
+    const q = projectWeeklyPoints(
+      [w(1, 10), w(2, 10), w(3, 10), w(4, 10)],
+      null,
+      { avgAllowed: 40, leagueAverage: 20, pricing: { blend: 0.5, cap: 3 } },
+    )!;
+    expect(q.matchupAdjustment).toBe(3);
+    expect(q.projection).toBe(13);
+  });
+
+  it('blend 0 removes the term entirely', () => {
+    const p = projectWeeklyPoints(
+      [w(1, 10), w(2, 10), w(3, 10), w(4, 10)],
+      null,
+      { avgAllowed: 40, leagueAverage: 20, pricing: { blend: 0, cap: 5 } },
+    )!;
+    expect(p).toMatchObject({ matchupAdjustment: 0, projection: 10 });
+    expect(projectionReason(p, 'DAL')).not.toContain('Matchup');
+  });
+
+  it('minSampleWeeks gates the term only when the sample size is known', () => {
+    const ctx = (sampleWeeks?: number) => ({
+      avgAllowed: 24,
+      leagueAverage: 20,
+      sampleWeeks,
+      pricing: { blend: 0.25, cap: 5, minSampleWeeks: 3 },
+    });
+    const steady = [w(1, 10), w(2, 10), w(3, 10), w(4, 10)];
+    // 2 known weeks < 3: no term.
+    expect(projectWeeklyPoints(steady, null, ctx(2))!.matchupAdjustment).toBe(0);
+    // 3 known weeks: the term applies.
+    expect(projectWeeklyPoints(steady, null, ctx(3))!.matchupAdjustment).toBe(1);
+    // Unknown sample size (production's bundled averages): never gated.
+    expect(projectWeeklyPoints(steady, null, ctx(undefined))!.matchupAdjustment).toBe(1);
   });
 });

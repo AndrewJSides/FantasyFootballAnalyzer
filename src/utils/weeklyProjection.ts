@@ -4,8 +4,9 @@
 // blended with the player's season baseline, so one big week can't
 // over-swing the number, plus a numeric matchup adjustment from the
 // opponent's fantasy points allowed vs the position relative to the league
-// average (regression to the mean: half the deviation flows through,
-// capped so a single soft matchup can't dominate). Injuries and news are
+// average (DEFAULT_MATCHUP_PRICING: the blend fraction and cap the Nov 1,
+// 2026 weeks 1–7 backtest settled on; a per-context pricing override exists
+// for the harness). Injuries and news are
 // out of scope — the page says so.
 //
 // Inputs are completed weeks only; the caller filters out the current and
@@ -20,11 +21,45 @@ export interface WeekPoints {
 }
 
 /** Opponent context for the numeric matchup blend. */
+export interface MatchupPricing {
+  /** Fraction of (avgAllowed - leagueAverage) that flows through the term.
+   *  0 removes the term entirely. */
+  blend: number;
+  /** Absolute cap on the term's swing, in points. */
+  cap: number;
+  /**
+   * Minimum completed weeks of allowed data behind avgAllowed for the term
+   * to apply. Only enforced when the context carries sampleWeeks — callers
+   * that don't know the sample size (production's bundled averages) are
+   * never gated.
+   */
+  minSampleWeeks?: number;
+}
+
+/**
+ * The production pricing for the matchup term. Re-priced Nov 1, 2026 from
+ * the weeks 1–7 backtest (backlog item 1 follow-up, 1,949 predictions):
+ * the as-shipped half-deviation/±5 pricing measured clearly worse than no
+ * term (MAE 7.03 vs 6.78), and every smaller blend / tighter cap / gated
+ * variant also lost to zero — the degradation was monotonic in blend size
+ * (0.5 → 7.03, 0.25 → 6.84, 0.125 → 6.80, 0 → 6.78), worst for RB/WR, flat
+ * for QB. The numeric term is therefore OFF in production until a future
+ * re-measurement says otherwise; the Matchup column's
+ * favorable/tough/neutral display chips are unaffected (separate logic).
+ * The harness keeps the variant machinery so the term can be re-tested
+ * (e.g. after week 8, or with better allowed-data) via a pricing override.
+ */
+export const DEFAULT_MATCHUP_PRICING: MatchupPricing = { blend: 0, cap: 5 };
+
 export interface MatchupContext {
   /** Opponent's fantasy points per game allowed to the player's position. */
   avgAllowed: number;
   /** League-wide average points per game allowed to the position. */
   leagueAverage: number;
+  /** Completed weeks of allowed data behind avgAllowed, when known. */
+  sampleWeeks?: number;
+  /** Pricing override for this context (backtest use); default when omitted. */
+  pricing?: MatchupPricing;
 }
 
 export interface WeeklyProjection {
@@ -36,7 +71,8 @@ export interface WeeklyProjection {
   form: number;
   /**
    * Points added by the matchup blend (positive = favorable), rounded to
-   * 1dp. 0 when no matchup context is passed.
+   * 1dp. 0 when no matchup context is passed, and 0 under the default
+   * pricing (the Nov 1, 2026 backtest turned the numeric term off).
    */
   matchupAdjustment: number;
   /** Completed weeks with a score that fed the model. */
@@ -55,15 +91,6 @@ function round1(n: number): number {
 // letting a single week dominate.
 const FORM_WEIGHTS = [4, 3, 2, 1];
 
-// How much of the opponent's deviation from league-average allowed actually
-// moves the projection: half the gap, so we regress to the mean instead of
-// assuming every soft matchup repeats at full strength.
-const MATCHUP_BLEND = 0.5;
-
-// The matchup term never swings a projection by more than a field goal +
-// PAT: matchup ratings are noisy, so the term stays a nudge, not a driver.
-const MATCHUP_CAP = 5;
-
 // How much the blend trusts form over the season baseline, by sample size.
 // A 1-week player has no form to trust; a 4+-week player gets a real but
 // capped form weight, which is the regression to baseline.
@@ -73,10 +100,18 @@ function formWeight(weeksUsed: number): number {
 
 function matchupAdjustmentFor(matchup: MatchupContext | null | undefined): number {
   if (!matchup) return 0;
-  const { avgAllowed, leagueAverage } = matchup;
+  const { avgAllowed, leagueAverage, sampleWeeks, pricing } = matchup;
   if (!Number.isFinite(avgAllowed) || !Number.isFinite(leagueAverage)) return 0;
-  const raw = MATCHUP_BLEND * (avgAllowed - leagueAverage);
-  return round1(Math.max(-MATCHUP_CAP, Math.min(MATCHUP_CAP, raw)));
+  const { blend, cap, minSampleWeeks } = pricing ?? DEFAULT_MATCHUP_PRICING;
+  if (
+    minSampleWeeks !== undefined &&
+    sampleWeeks !== undefined &&
+    sampleWeeks < minSampleWeeks
+  ) {
+    return 0;
+  }
+  const raw = blend * (avgAllowed - leagueAverage);
+  return round1(Math.max(-cap, Math.min(cap, raw)));
 }
 
 export function projectWeeklyPoints(

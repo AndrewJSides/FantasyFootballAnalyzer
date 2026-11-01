@@ -124,5 +124,6 @@ export function matchupContextForWeek(
   return {
     avgAllowed: allowedSum / allowedWeeks,
     leagueAverage: leagueSum / leagueSamples,
+    sampleWeeks: allowedWeeks,
   };
 }

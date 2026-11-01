@@ -1,8 +1,9 @@
 // Week-N Projections board engine (backlog item 30).
 //
 // Ranks every startable QB/RB/WR/TE by THIS week's TraderApe projection
-// (recency-weighted form + season baseline + matchup blend) — the
-// browsable board version of the same model the Start/Sit optimizer,
+// (recency-weighted form + season baseline; the numeric matchup blend was
+// turned off Nov 1, 2026 after the backtest measured it worse than no
+// term) — the browsable board version of the same model the Start/Sit
 // Compare page, and Matchup view price one player at a time. Players on
 // bye in the current week are excluded (there is nothing to project).
 // Players with no completed-week data land behind every projected player,

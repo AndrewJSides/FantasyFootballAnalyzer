@@ -120,8 +120,9 @@ describe('WatchlistPage', () => {
     const table = screen.getByRole('table');
     const row = within(table).getByRole('row', { name: /Alpha Aardvark/ });
     // Alpha scored 25/week for 4 weeks: the projection prices on real data
-    // (25.2 after the matchup blend against this week's opponent).
-    expect(within(row).getByText('25.2')).toBeInTheDocument();
+    // (25.0 — the numeric matchup blend is off after the Nov 1, 2026
+    // re-price, so no adjustment applies).
+    expect(within(row).getByText('25.0')).toBeInTheDocument();
     // Free agent in live league mode with no rosters synced.
     expect(within(row).getByText('Free agent')).toBeInTheDocument();
 

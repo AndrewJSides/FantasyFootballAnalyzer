@@ -241,7 +241,7 @@ export function TopFreeAgents({ league, pool = POOL }: TopFreeAgentsProps) {
           </div>
           <p className={styles.footnote}>
             Ranked by TraderApe&apos;s own weekly projection (recency-weighted
-            form + season baseline + matchup blend), priced on full-PPR
+            form + season baseline), priced on full-PPR
             scoring. Guidance only — nothing here adds a player.
           </p>
         </>

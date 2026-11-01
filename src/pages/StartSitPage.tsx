@@ -59,13 +59,13 @@ interface StartSitPageProps {
 
 // Start/Sit optimizer (backlog item 1): the optimal starting lineup ranked by
 // projected points for the coming week — recency-weighted last-4 form
-// blended with the season baseline and nudged by matchup difficulty
-// (opponent's points allowed vs position), so one big week can't over-swing
-// it. Players on bye in the current week are benched regardless of
-// projection: they score zero that week. The Matchup column shows the week's
-// opponent and how the defense grades vs the player's position (from
-// completed weeks); the same rating feeds the numeric blend, so the number
-// and the display never disagree.
+// blended with the season baseline, so one big week can't over-swing
+// it. (The numeric matchup blend was turned off Nov 1, 2026: the backtest
+// measured it worse than no term at every pricing.) Players on bye in the
+// current week are benched regardless of projection: they score zero that
+// week. The Matchup column shows the week's opponent and how the defense
+// grades vs the player's position (from completed weeks) — display only,
+// not part of the projection.
 //
 // Guest mode: visitors with no connected league get the same optimizer on a
 // manually entered roster. Weekly PPR points come from Sleeper's free public
@@ -409,9 +409,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // --- Plan ahead: multi-week lineup planner (backlog item 29) ---------------
   // Optimal lineups for every remaining regular-season week (this week
   // through the week before the fantasy playoffs), priced on the same
-  // projection + matchup engine as the single-week optimizer. Each week is
+  // projection engine as the single-week optimizer. Each week is
   // priced by re-running the scoring core with currentWeek set to that week,
-  // so the matchup blend and bye benching key off the target week while the
+  // so the matchup display and bye benching key off the target week while the
   // form series stays today's form. Injury-out benching follows the Roster
   // Alerts rule (Out this week only, season-ending every remaining week).
   // Balanced projection only — lineup modes apply to this week's call, not
@@ -986,7 +986,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
             <WeatherWatch week={currentWeek} starters={weatherStarters} />
             <p className={styles.note}>
               Projected from each player&apos;s last-4-week form blended with
-              their season average and nudged by matchup difficulty, so one big
+              their season average, so one big
               week can&apos;t over-swing it. Range is each starter&apos;s
               P25–P75 scoring band from their own played weeks (3+ needed) —
               a steady 14 and a volatile 14 are very different start calls.

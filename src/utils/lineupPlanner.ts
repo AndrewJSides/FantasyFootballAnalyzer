@@ -1,9 +1,9 @@
 // Multi-week lineup planner (backlog item 29): optimal lineups for every
-// remaining regular-season week, priced on the same projection + matchup
-// engine as the Start/Sit optimizer. Each week is priced by calling
-// scoreRosterPlayers with currentWeek set to that week: the matchup blend
-// and bye detection both key off the target week, while the form series
-// stays today's form (weeks 1..realCurrentWeek-1) — the planner shows how
+// remaining regular-season week, priced on the same projection engine as
+// the Start/Sit optimizer. Each week is priced by calling
+// scoreRosterPlayers with currentWeek set to that week: the matchup
+// display and bye detection both key off the target week, while the form
+// series stays today's form (weeks 1..realCurrentWeek-1) — the planner shows how
 // the schedule reshapes the lineup, not how form will evolve. Treat far
 // weeks as directional: the model does not decay form over time.
 // Injury designations follow the Roster Alerts rule: Out benched for the

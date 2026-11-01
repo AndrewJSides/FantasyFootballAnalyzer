@@ -1,6 +1,7 @@
 // Week-N Projections board (backlog item 30): every startable QB/RB/WR/TE
 // ranked by THIS week's TraderApe projection (recency-weighted form +
-// matchup blend) — the browsable-board answer to the weekly "who are this
+// season baseline; the numeric matchup blend was turned off Nov 1, 2026
+// after the backtest measured it worse than no term) — the browsable-board answer to the weekly "who are this
 // week's top plays at my position" question. League mode flags ownership;
 // guest mode is owner-free. Priced on Sleeper's free weekly stats in both
 // modes (same as the Compare page), full-PPR. FantasyPros publishes

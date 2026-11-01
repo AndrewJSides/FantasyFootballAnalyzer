@@ -37,8 +37,9 @@ describe('backtestPlayer', () => {
 
   it('applies the matchup term through the resolver when provided', () => {
     // Steady 10-pt player: matchup-free projection is 10; a soft matchup
-    // (opponent allows 5 over league average) blends +2.5 in.
-    const soft = () => ({ avgAllowed: 20, leagueAverage: 15 });
+    // (opponent allows 5 over league average) blends +2.5 in at the pinned
+    // pricing (the production default is blend 0 after the Nov 1 re-price).
+    const soft = () => ({ avgAllowed: 20, leagueAverage: 15, pricing: { blend: 0.5, cap: 5 } });
     const withM = backtestPlayer('p1', [w(1, 10), w(2, 10), w(3, 10)], soft);
     const week3 = withM.predictions.find(p => p.week === 3)!;
     expect(week3.predicted).toBe(12.5);

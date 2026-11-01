@@ -284,7 +284,7 @@ export function ComparePage({ league }: { league: League }) {
             </div>
             <p className={styles.footnote}>
               Week {week} projections come from TraderApe's model (recency-weighted
-              form, matchup blend, regression to baseline). Matchup ratings are
+              form, regression to baseline). Matchup ratings are
               priced on the opponent's fantasy points allowed per position over
               weeks {dataStart}–{dataEnd}; the rest-of-season outlook blends the
               player's pace with his season projection. VOR values are priced

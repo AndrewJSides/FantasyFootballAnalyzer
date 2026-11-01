@@ -81,6 +81,8 @@ describe('matchupContextForWeek', () => {
     expect(ctx?.avgAllowed).toBe(10);
     // League average: 104 total WR pts allowed over 8 team-weeks = 13.0
     expect(ctx?.leagueAverage).toBe(13);
+    // Two completed weeks (1–2) fed the opponent's average.
+    expect(ctx?.sampleWeeks).toBe(2);
   });
 
   it('returns null with no completed-week history', () => {
