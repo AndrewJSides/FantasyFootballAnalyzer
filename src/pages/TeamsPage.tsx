@@ -15,6 +15,7 @@ import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
+import { buildDraftRoi } from '@/utils/draftRoi';
 import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
 import { buildPowerRankings } from '@/utils/powerRankings';
 import { buildRecordBook } from '@/utils/recordBook';
@@ -256,6 +257,24 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
         : letter.startsWith('C')
           ? styles.gradeC
           : styles.gradeDF;
+  // Draft ROI: auction $ efficiency per team — actual auction spend vs
+  // TraderApe's full-season outlook (points so far + projected rest).
+  // Gated on auctioned draft picks existing (the util hides itself in
+  // non-auction leagues); rosters aren't needed for the math.
+  const hasAuctionPicks = league.teams.some(t =>
+    (t.draftPicks ?? []).some(p => (p.auctionValue ?? 0) > 0),
+  );
+  const draftRoi = useMemo(
+    () =>
+      hasAuctionPicks
+        ? buildDraftRoi({
+            league,
+            pool,
+            shape: pool.season === WEEKLY_SHAPE.season ? WEEKLY_SHAPE : undefined,
+          })
+        : undefined,
+    [league, pool, hasAuctionPicks],
+  );
   // Lineup efficiency: each team's actual starter points vs the best legal
   // lineup, summed over completed weeks. Hides when the sync fetched no
   // weekly lineups (Yahoo, old snapshots, guest mode) or in best-ball.
@@ -506,6 +525,62 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       </td>
                       <td>
                         {`Strongest: ${g.strength} · Weakest: ${g.weakness}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {draftRoi && draftRoi.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="draft-roi-heading">
+            <h2 id="draft-roi-heading" className={styles.sectionTitle}>
+              Draft ROI
+            </h2>
+            <p className={styles.sectionHint}>
+              Auction-dollar efficiency: each team&apos;s actual auction
+              spend vs TraderApe&apos;s full-season outlook (points scored
+              so far + projected rest of season). $ per projected point —
+              lower is better. Best/worst buys name the $5+ picks with the
+              highest and lowest expected points per dollar.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table className={styles.matrix} aria-label="Auction draft ROI by team: spend vs projected season points">
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Spent</th>
+                    <th scope="col">Proj. season pts</th>
+                    <th scope="col">$ per pt</th>
+                    <th scope="col">Best buy</th>
+                    <th scope="col">Worst buy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {draftRoi.map(r => (
+                    <tr key={r.teamId}>
+                      <td>{r.rank}</td>
+                      <th scope="row" title={r.teamName}>{shortName(r.teamName)}</th>
+                      <td>${r.spent}</td>
+                      <td>{r.projectedPoints.toFixed(1)}</td>
+                      <td
+                        title={`${r.teamName}: $${r.spent} spent for ${r.projectedPoints.toFixed(1)} projected season points — $${r.costPerPoint.toFixed(2)} per point, ranked ${r.rank} of ${draftRoi.length}`}
+                        aria-label={`$${r.costPerPoint.toFixed(2)} per projected point, ranked ${r.rank} of ${draftRoi.length}`}
+                      >
+                        ${r.costPerPoint.toFixed(2)}
+                      </td>
+                      <td
+                        title={r.bestBuy ? `${r.bestBuy.playerName}: $${r.bestBuy.cost} for ${r.bestBuy.pointsPerDollar.toFixed(1)} expected points per dollar` : 'No $5+ pick to grade'}
+                      >
+                        {r.bestBuy ? `${r.bestBuy.playerName} ($${r.bestBuy.cost})` : '—'}
+                      </td>
+                      <td
+                        title={r.worstBuy ? `${r.worstBuy.playerName}: $${r.worstBuy.cost} for ${r.worstBuy.pointsPerDollar.toFixed(1)} expected points per dollar` : 'No $5+ pick to grade'}
+                      >
+                        {r.worstBuy ? `${r.worstBuy.playerName} ($${r.worstBuy.cost})` : '—'}
                       </td>
                     </tr>
                   ))}
