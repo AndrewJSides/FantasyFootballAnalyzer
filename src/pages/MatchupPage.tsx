@@ -10,12 +10,15 @@
 // previews).
 
 import { useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import type { League } from '@/types';
 import { previewWeeklyMatchups, type MatchupPreview } from '@/utils/matchupPreview';
 import { buildGamePlan, TOSS_UP_THRESHOLD, type SwapFlag } from '@/utils/gamePlan';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { buildHeadToHead, seriesHeadline } from '@/utils/headToHead';
 import { buildPositionBattles, EVEN_BAND, type PositionBattle } from '@/utils/positionBattles';
+import { winNowTrades } from '@/utils/winNowTrades';
+import { tradeLink } from '@/utils/tradeLinks';
 import ScoreDistBars from '@/components/ScoreDistBars';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
@@ -55,6 +58,7 @@ function SwapCall({ flag }: { flag: SwapFlag }) {
 }
 
 function MatchupDetail({ league, preview }: { league: League; preview: MatchupPreview }) {
+  const location = useLocation();
   const teamById = useMemo(() => new Map(league.teams.map(t => [t.id, t])), [league.teams]);
   const aName = teamById.get(preview.teamAId)?.name ?? '?';
   const bName = teamById.get(preview.teamBId)?.name ?? '?';
@@ -93,6 +97,15 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
     const b = teamById.get(preview.teamBId);
     return a && b ? buildPositionBattles(a, b, league) : null;
   }, [league, preview, teamById]);
+  // Win-now trades: the Trade Finder's 1-for-1 candidates between these
+  // two teams, re-priced on this week's Monte Carlo win probability for
+  // the focus team. The baseline reuses the same seeded sims, so the
+  // delta is the trade's effect, not sim noise.
+  const winNow = useMemo(() => {
+    const opponentId =
+      focusId === preview.teamAId ? preview.teamBId : preview.teamAId;
+    return winNowTrades(league, focusId, opponentId);
+  }, [league, focusId, preview]);
 
   // This season's series record between the two teams, from completed
   // weeks only (the current week's partial scores don't count yet).
@@ -206,6 +219,48 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
                 ))}
               </tbody>
             </table>
+          </>
+        )}
+        {winNow && (
+          <>
+            <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
+              Win-now trades
+            </h3>
+            {winNow.trades.length > 0 ? (
+              <ul className={styles.flagList} aria-label={`Trades that raise ${focusName}'s win chance this week`}>
+                {winNow.trades.map(t => {
+                  const gives = t.focusGives.map(p => p.name).join(', ');
+                  const gets = t.focusGets.map(p => p.name).join(', ');
+                  const detail = `${focusName} win chance ${t.winProbBefore.toFixed(1)}% to ${t.winProbAfter.toFixed(1)}% (up ${t.gain.toFixed(1)}), projected score ${t.projBefore.toFixed(1)} to ${t.projAfter.toFixed(1)}`;
+                  return (
+                    <li
+                      key={`${t.focusGives[0].id}-${t.focusGets[0].id}`}
+                      className={styles.flag}
+                      title={detail}
+                      aria-label={`Give ${gives}, get ${gets}. ${detail}. ${t.candidate.reasons[0] ?? ''}`}
+                    >
+                      <div className={styles.flagTitle}>
+                        Give {gives}, get {gets} — win chance{' '}
+                        {t.winProbBefore.toFixed(1)}% → {t.winProbAfter.toFixed(1)}%
+                        {' '}(+{t.gain.toFixed(1)})
+                      </div>
+                      <div className={styles.flagNote}>
+                        Projected score {t.projBefore.toFixed(1)} →{' '}
+                        {t.projAfter.toFixed(1)}.{' '}
+                        <Link to={tradeLink(t.candidate, location.search, true)}>
+                          Analyze this trade
+                        </Link>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className={styles.allClear}>
+                No Trade Finder swap raises {focusName}&apos;s win chance this
+                week by 2+ points.
+              </p>
+            )}
           </>
         )}
         {series.games > 0 && seriesAria && (
@@ -354,7 +409,11 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         optimal lineup&apos;s starters by position and compare summed weekly
         projections (flexed players count in their own position group). Start/sit flags name bench
         players within {TOSS_UP_THRESHOLD} points of a starter&apos;s
-        projection — close calls worth a second look, not orders. Guidance
+        projection — close calls worth a second look, not orders. Win-now
+        trades re-price the Trade Finder&apos;s 1-for-1 swaps on this
+        week&apos;s Monte Carlo win probability (same seeded sims as the
+        baseline), showing only swaps that lift the focus team&apos;s win
+        chance by 2+ points. Guidance
         only: nothing here changes any lineup. Schedule from the owner&apos;s
         latest sync. Series history counts this season&apos;s completed weeks only.
       </p>
