@@ -32,10 +32,17 @@ function mockFetchWith(payload: (lat: string[]) => unknown[]) {
 
 beforeEach(() => {
   localStorage.clear();
+  // Pin "now" to Sunday morning before the week-8 kickoffs: the component
+  // only checks games still upcoming, and real time has moved past the
+  // hardcoded 2026 week-8 slate (broke Nov 1, 2026). shouldAdvanceTime
+  // keeps testing-library's waitFor polling working under fake timers.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date('2026-11-01T12:00:00Z'));
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('WeatherWatch', () => {

@@ -26,6 +26,10 @@ import {
 const UA = 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)';
 const SNAP_DIR = 'data/projection-snapshots';
 const GRADE_DIR = 'data/projection-grades';
+// A week is finished once the last scheduled kickoff plus a game window is
+// in the past. 4h covers even long/OT games without delaying the grade.
+export const WEEK_FINISH_BUFFER_MS = 4 * 60 * 60 * 1000;
+
 // Only fantasy-relevant projections get graded; sub-5 projections that blow
 // up are counted separately as breakouts, not mixed into the miss rates.
 const MIN_GRADED_PROJECTION = 5;
@@ -33,6 +37,27 @@ const MIN_GRADED_PROJECTION = 5;
 interface SnapshotPlayer {
   player_id: string;
   stats: Record<string, number>;
+}
+
+/**
+ * True when every game of the week's scheduled slate is over: the week's
+ * latest kickoff from the bundled game-times file plus the finish buffer is
+ * in the past. Returns null (unknown) when the season/week has no entry,
+ * so callers can fall back to the actuals heuristic.
+ */
+export function weekGamesFinished(
+  season: number,
+  week: number,
+  weeks: Record<string, Record<string, string>> | undefined,
+  nowMs: number = Date.now(),
+): boolean | null {
+  const kickoffs = weeks?.[String(week)];
+  if (!kickoffs) return null;
+  const latest = Object.values(kickoffs)
+    .map((iso) => Date.parse(iso))
+    .filter((t) => !Number.isNaN(t));
+  if (latest.length === 0) return null;
+  return nowMs >= Math.max(...latest) + WEEK_FINISH_BUFFER_MS;
 }
 
 interface Snapshot {
@@ -56,6 +81,24 @@ async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
   return (await res.json()) as T;
+}
+
+/**
+ * Read the bundled NFL game-times file for a season, or undefined when it
+ * is missing (older seasons, etc.) so the gate falls back to the actuals
+ * heuristic instead of refusing forever.
+ */
+function readGameTimesWeeks(
+  season: number,
+): Record<string, Record<string, string>> | undefined {
+  try {
+    const doc = JSON.parse(
+      readFileSync(join('src', 'data', `nflGameTimes.${season}.json`), 'utf8'),
+    ) as { weeks?: Record<string, Record<string, string>> };
+    return doc.weeks;
+  } catch {
+    return undefined;
+  }
 }
 
 async function main(): Promise<void> {
@@ -100,10 +143,28 @@ async function main(): Promise<void> {
     for (const [id, stats] of Object.entries(rawActuals)) actuals.set(id, stats);
   }
 
-  // Completeness gate: a week whose games haven't been played yet returns
-  // an empty actuals map, and grading it would mislabel every player as
-  // did-not-play (this happened on the first week-8 run, Oct 28, before the
-  // Oct 29–Nov 2 games). Refuse unless most graded players have a stat line.
+  // Completeness gate, part 1 (deterministic): refuse to grade before the
+  // week's last game is over. On Nov 1 the old 50%-played heuristic alone
+  // let week 8 grade mid-week (Sun afternoon games in progress, SNF + MNF
+  // still ahead) and wrote a polluted grade file — 63.9% of misses
+  // attributed to did-not-play. The kickoff-based check below can't be
+  // fooled by Thursday games.
+  const finished = weekGamesFinished(
+    season,
+    week,
+    readGameTimesWeeks(season),
+  );
+  if (finished === false) {
+    throw new Error(
+      `Week ${week} not complete yet: the week's last scheduled kickoff plus the 4h game window is still in the future; grade after the week's games finish`,
+    );
+  }
+
+  // Completeness gate, part 2 (backstop): a week whose games haven't been
+  // played yet returns an empty actuals map, and grading it would mislabel
+  // every player as did-not-play (this happened on the first week-8 run,
+  // Oct 28, before the Oct 29–Nov 2 games). Refuse unless most graded
+  // players have a stat line.
   const gradedSet = snapshot.players.filter((p) => (p.stats.pts_ppr ?? 0) >= MIN_GRADED_PROJECTION);
   const played = gradedSet.filter((p) => {
     const s = actuals.get(p.player_id);
@@ -175,7 +236,11 @@ async function main(): Promise<void> {
   );
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Guarded entrypoint: importing this module (e.g. from its vitest file)
+// must not trigger a grading run.
+if (process.argv[1]?.endsWith('gradePredictions.ts')) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
