@@ -18,6 +18,7 @@ import { completedMatchups } from '@/utils/completedMatchups';
 import { buildHeadToHead, seriesHeadline } from '@/utils/headToHead';
 import { buildPositionBattles, EVEN_BAND, type PositionBattle } from '@/utils/positionBattles';
 import { winNowTrades } from '@/utils/winNowTrades';
+import { buildAttackPlan, attackStarterLabel } from '@/utils/attackPlan';
 import { tradeLink } from '@/utils/tradeLinks';
 import ScoreDistBars from '@/components/ScoreDistBars';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -106,6 +107,14 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
       focusId === preview.teamAId ? preview.teamBId : preview.teamAId;
     return winNowTrades(league, focusId, opponentId);
   }, [league, focusId, preview]);
+  // Attack plan: the focus team's optimal starters grouped by position and
+  // ranked on the softness of the NFL defenses they face this week — where
+  // the week's edge comes from. Re-orients on focus-team switch like the
+  // win-now trades above.
+  const attack = useMemo(
+    () => (focusTeam ? buildAttackPlan(focusTeam, league) : null),
+    [focusTeam, league],
+  );
 
   // This season's series record between the two teams, from completed
   // weeks only (the current week's partial scores don't count yet).
@@ -263,6 +272,61 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
             )}
           </>
         )}
+        {attack && (
+          <>
+            <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
+              Attack plan
+            </h3>
+            <p
+              className={styles.scoreLine}
+              aria-label={`Attack plan for ${focusName}, week ${attack.week}. Best spot: ${attack.best.group}, average opponent rank ${attack.best.avgRank.toFixed(1)}, ${attack.best.verdict}. Toughest: ${attack.toughest.group}, average opponent rank ${attack.toughest.avgRank.toFixed(1)}, ${attack.toughest.verdict}.`}
+            >
+              Best spot: {attack.best.group}s (avg opp rank{' '}
+              {attack.best.avgRank.toFixed(1)} — {attack.best.verdict}).
+              Toughest: {attack.toughest.group}s (avg opp rank{' '}
+              {attack.toughest.avgRank.toFixed(1)} — {attack.toughest.verdict}).
+            </p>
+            <table
+              className={styles.lineupTable}
+              aria-label={`Attack plan: where ${focusName}'s starters face the softest defenses, week ${attack.week}`}
+            >
+              <thead>
+                <tr>
+                  <th scope="col">Pos</th>
+                  <th scope="col">Starters</th>
+                  <th scope="col">Opp. softness</th>
+                  <th scope="col">Proj.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attack.groups.map(g => {
+                  const detail = g.starters
+                    .map(s => attackStarterLabel(s, g.group))
+                    .join('; ');
+                  const verdictCap =
+                    g.verdict.charAt(0).toUpperCase() + g.verdict.slice(1);
+                  return (
+                    <tr key={g.group}>
+                      <th scope="row" className={styles.slotCell}>
+                        {g.group}
+                      </th>
+                      <td title={detail} aria-label={`${g.group} starters: ${detail}`}>
+                        {g.starters.map(s => s.name).join(', ')}
+                      </td>
+                      <td
+                        title={`Average opponent rank ${g.avgRank.toFixed(1)} of 32 (1 = softest)`}
+                        aria-label={`${verdictCap}, average opponent rank ${g.avgRank.toFixed(1)} of 32`}
+                      >
+                        {verdictCap} ({g.avgRank.toFixed(1)})
+                      </td>
+                      <td>{g.proj.toFixed(1)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
         {series.games > 0 && seriesAria && (
           <>
             <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
@@ -413,7 +477,11 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         trades re-price the Trade Finder&apos;s 1-for-1 swaps on this
         week&apos;s Monte Carlo win probability (same seeded sims as the
         baseline), showing only swaps that lift the focus team&apos;s win
-        chance by 2+ points. Guidance
+        chance by 2+ points. Attack plan groups the focus team&apos;s optimal
+        starters by position and ranks the groups on the softness of the NFL
+        defenses they face this week (opponent&apos;s fantasy points allowed vs
+        the position over completed weeks — a difficulty map, not a forecast).
+        Guidance
         only: nothing here changes any lineup. Schedule from the owner&apos;s
         latest sync. Series history counts this season&apos;s completed weeks only.
       </p>

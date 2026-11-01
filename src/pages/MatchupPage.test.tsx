@@ -181,4 +181,60 @@ describe('MatchupPage', () => {
     renderPage(league({ playerWeeklyPoints: {} }));
     expect(screen.queryByRole('heading', { name: 'Position battles' })).not.toBeInTheDocument();
   });
+
+  // Real NFL teams so the matchup ratings fire from the bundled schedule +
+  // allowed averages. Week 8: MIN faces DET (QB rank 1, RB rank 22, WR rank
+  // 3, TE rank 1); DET faces MIN (QB 32, RB 32, WR 29, TE 32).
+  function attackLeague(): League {
+    const mkReal = (id: string, pos: string, nfl: string): Player =>
+      ({ id, platformId: id, name: id, position: pos, team: nfl }) as Player;
+    const mkRealTeam = (id: string, name: string, isMyTeam: boolean, nfl: string): Team =>
+      ({
+        id,
+        name,
+        isMyTeam,
+        roster: [
+          mkReal(`${id}-qb`, 'QB', nfl),
+          mkReal(`${id}-rb`, 'RB', nfl),
+          mkReal(`${id}-wr`, 'WR', nfl),
+          mkReal(`${id}-te`, 'TE', nfl),
+        ],
+      }) as Team;
+    const pw: Record<string, Record<number, number>> = {};
+    for (const id of ['A', 'B']) {
+      pw[`${id}-qb`] = weekly([20, 20, 20]);
+      pw[`${id}-rb`] = weekly([16, 16, 16]);
+      pw[`${id}-wr`] = weekly([12, 12, 12]);
+      pw[`${id}-te`] = weekly([8, 8, 8]);
+    }
+    return league({
+      currentWeek: 8,
+      teams: [mkRealTeam('A', 'Alpha', true, 'MIN'), mkRealTeam('B', 'Beta', false, 'DET')],
+      playerWeeklyPoints: pw,
+      futureSchedule: [matchup(8, 'A', 'B')],
+    });
+  }
+
+  it('shows the attack plan for the focus team, softest group first', () => {
+    renderPage(attackLeague());
+    expect(screen.getByRole('heading', { name: 'Attack plan' })).toBeInTheDocument();
+    // MIN's week-8 draw vs DET: QB and TE face the softest coverage (rank 1).
+    expect(screen.getByText(/Best spot: QBs \(avg opp rank 1\.0 — soft\)/)).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /Attack plan: where Alpha's starters/ });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(5); // header + QB/TE/WR/RB, softest first
+    expect(within(rows[1]).getByRole('rowheader')).toHaveTextContent('QB');
+    expect(within(rows[4]).getByRole('rowheader')).toHaveTextContent('RB');
+    expect(within(rows[4]).getAllByRole('cell')[1]).toHaveTextContent('Avg (22.0)');
+  });
+
+  it('re-orients the attack plan on focus-team switch', () => {
+    renderPage(attackLeague());
+    fireEvent.click(screen.getByRole('button', { name: 'Beta' }));
+    // DET faces MIN in week 8: the stingiest draw in the league — WRs are
+    // the least-bad spot (rank 29 vs 32 everywhere else).
+    const table = screen.getByRole('table', { name: /Attack plan: where Beta's starters/ });
+    expect(table).toBeInTheDocument();
+    expect(screen.getByText(/Best spot: WRs \(avg opp rank 29\.0 — tough\)/)).toBeInTheDocument();
+  });
 });
