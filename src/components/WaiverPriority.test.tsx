@@ -1,7 +1,7 @@
 // WaiverPriority rendering: ranked table renders for the selected team,
 // with a Bid column only when the league has recorded bids.
 import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { WaiverPriority } from './WaiverPriority';
 import type { League, Team, Transaction } from '@/types';
 
@@ -47,8 +47,10 @@ describe('WaiverPriority', () => {
   it('renders a ranked table of 8 claim targets for the selected team', () => {
     render(<WaiverPriority league={leagueOf([mkTeam('a', 'Alpha', []), mkTeam('b', 'Beta', [])])} />);
     expect(screen.getByRole('heading', { name: 'Waiver Priority Queue' })).toBeDefined();
-    // 8 data rows + 1 header row.
-    expect(screen.getAllByRole('row')).toHaveLength(9);
+    // 8 data rows + 1 header row in the ranked queue table (the Bid War
+    // Watch section below it adds its own rows).
+    const table = screen.getByRole('table', { name: /ranked waiver claims/i });
+    expect(within(table).getAllByRole('row')).toHaveLength(9);
     expect(screen.getByLabelText('Ranking for')).toBeDefined();
   });
 
@@ -67,6 +69,7 @@ describe('WaiverPriority', () => {
     const select = screen.getByLabelText('Ranking for') as HTMLSelectElement;
     fireEvent.change(select, { target: { value: 'b' } });
     expect(select.value).toBe('b');
-    expect(screen.getAllByRole('row')).toHaveLength(9);
+    const table = screen.getByRole('table', { name: /ranked waiver claims/i });
+    expect(within(table).getAllByRole('row')).toHaveLength(9);
   });
 });

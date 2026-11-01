@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { League } from '@/types';
 import { POOL } from '@/data/draftPool';
 import { buildWaiverPriority } from '@/utils/waiverPriority';
+import { BidWarWatch } from './BidWarWatch';
 import { PosBadge } from './PosBadge';
 import { NflTeamLabel } from './NflTeamLabel';
 import styles from './WaiverPriority.module.css';
@@ -102,6 +103,7 @@ export function WaiverPriority({ league }: WaiverPriorityProps) {
               ))}
             </tbody>
           </table>
+          {team && <BidWarWatch league={league} team={team} targets={queue} />}
         </div>
       )}
 

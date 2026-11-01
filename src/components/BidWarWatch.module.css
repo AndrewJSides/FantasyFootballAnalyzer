@@ -1,0 +1,105 @@
+/* GRIDIRON · Bid war watch block (inside the Waiver priority queue panel) */
+
+.block {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--bone-dim);
+}
+
+.subheading {
+  font-family: var(--font-headline);
+  font-size: 1.2rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 0 0 0.75rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--bone-dim);
+}
+
+.table th[scope='col'] {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.playerName {
+  font-weight: 600;
+}
+
+.rivals {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rivals li {
+  margin-bottom: 0.2rem;
+}
+
+.budget {
+  color: var(--bone-dim);
+  font-size: 0.78rem;
+}
+
+.broke {
+  color: var(--bone-dim);
+}
+
+.verdict {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--bone-dim);
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.verdict.hot {
+  background: var(--red, #e05252);
+  color: var(--bone);
+}
+
+.verdict.warm {
+  background: var(--amber, #e0a23e);
+  color: var(--ink);
+}
+
+.verdict.clear {
+  background: var(--lime);
+}
+
+.advice {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.dim {
+  color: var(--bone-dim);
+}
+
+.footnote {
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: var(--bone-dim);
+}
