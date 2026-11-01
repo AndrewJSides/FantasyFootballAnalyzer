@@ -4,11 +4,32 @@
 // the weak team lands at 0.0% win probability and the strong team at
 // 100.0%, both deterministic under the 10,000-sim Monte Carlo.
 
-import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Player, Team, WeeklyMatchup } from '@/types';
 import { StartSitPage } from './StartSitPage';
+
+// Item 67: the weak team's QB is listed Out, so the optimizer must bench him
+// with the injury reason. All other fixture ids resolve to nothing (as with
+// the real pool), so the existing tests below are unaffected.
+vi.mock('@/data/draftPool', () => ({
+  POOL: {
+    season: 2026,
+    generatedAt: '2026-10-31T00:00:00Z',
+    baseline: { budget: 200, teams: 10, rounds: 16 },
+    players: [
+      {
+        id: 'W-qb1',
+        name: 'W-qb1',
+        pos: 'QB',
+        sleeperId: '9001',
+        injuryStatus: 'Out',
+        injuryBodyPart: 'Ankle',
+      },
+    ],
+  },
+}));
 
 // 'XXX' is not a real NFL team, so no matchup blend fires and projections
 // equal the flat weekly averages — deterministic for the assertions.
@@ -109,5 +130,20 @@ describe('StartSitPage lineup-mode auto-suggestion', () => {
     expect(
       screen.getByRole('radio', { name: 'Balanced' }),
     ).toHaveProperty('checked', true);
+  });
+});
+
+describe('StartSitPage injury-out benching (item 67)', () => {
+  it('benches the Out starter with the injury reason instead of starting him', () => {
+    renderPage(league(true, [matchup(9, 'W', 'S')]));
+    const bench = screen.getByRole('table', { name: 'Bench for Weaklings' });
+    expect(
+      within(bench).getByText('Out (Ankle) — sits regardless of projection.'),
+    ).toBeInTheDocument();
+    expect(within(bench).getByText('W-qb1')).toBeInTheDocument();
+    const starters = screen.getByRole('table', {
+      name: 'Optimal starters for Weaklings',
+    });
+    expect(within(starters).queryByText('W-qb1')).not.toBeInTheDocument();
   });
 });

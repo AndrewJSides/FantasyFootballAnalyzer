@@ -16,6 +16,7 @@ import {
   type MatchupRating,
 } from '@/utils/matchupRating';
 import type { OptimalLineupPlayer } from '@/utils/optimalLineup';
+import { injuryTier, injuryTierLabel } from '@/utils/injuryReport';
 
 export interface ScoredPlayer extends OptimalLineupPlayer {
   player: Player;
@@ -28,6 +29,15 @@ export interface ScoredPlayer extends OptimalLineupPlayer {
   bye: number | null;
   onBye: boolean;
   matchup: MatchupRating | null;
+  /**
+   * True when the player's bundled injury designation keeps him off the
+   * field this week (Out, or a season-ending IR stint). Questionable /
+   * Doubtful stay eligible as game-time decisions — Late-swap watch covers
+   * those — so this is strictly the never-start set.
+   */
+  injuredOut: boolean;
+  /** e.g. "Out (Knee)" for injuredOut players, null otherwise. */
+  injuryLabel: string | null;
 }
 
 export interface RosterScoreInputs {
@@ -100,7 +110,18 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
         ? { avgAllowed: matchup.avgAllowed, leagueAverage: leagueAvg }
         : null;
     const projection = projectWeeklyPoints(completed, gpCompleted, matchupContext);
-    const bye = resolvePoolPlayer(rosterPlayer, poolIndex)?.bye ?? null;
+    const poolPlayer = resolvePoolPlayer(rosterPlayer, poolIndex);
+    const bye = poolPlayer?.bye ?? null;
+    // Injury designations from the bundled pool (refreshed twice daily):
+    // Out and season-ending IR never start, same discipline as bye weeks.
+    const tier = poolPlayer ? injuryTier(poolPlayer) : 'other';
+    const injuredOut = tier === 'season-ending' || tier === 'out';
+    const injuryLabel =
+      injuredOut && poolPlayer
+        ? poolPlayer.injuryBodyPart
+          ? `${injuryTierLabel(poolPlayer, tier)} (${poolPlayer.injuryBodyPart})`
+          : injuryTierLabel(poolPlayer, tier)
+        : null;
     // Week-to-week volatility for the Monte Carlo win-probability model:
     // population std dev of the player's own completed weeks, same series
     // the consistency ratings summarize. Null before 2 games — the caller
@@ -127,6 +148,8 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
       bye,
       onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
       matchup,
+      injuredOut,
+      injuryLabel,
     };
   });
 }

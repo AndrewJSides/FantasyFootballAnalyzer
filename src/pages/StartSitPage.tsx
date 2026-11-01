@@ -311,16 +311,18 @@ export function StartSitPage({ league }: StartSitPageProps) {
     [scored, mode],
   );
 
-  // Bye-week players score zero this week, so they never start no matter
-  // their average — they stay in the bench list with the reason attached.
+  // Bye-week and injured-out players score zero this week, so they never
+  // start no matter their average — they stay in the bench list with the
+  // reason attached. Questionable/Doubtful stay eligible as game-time
+  // decisions; Late-swap watch covers those.
   const lineup = useMemo(
-    () => optimalLineup(modeScored.filter(s => !s.onBye), slots),
+    () => optimalLineup(modeScored.filter(s => !s.onBye && !s.injuredOut), slots),
     [modeScored, slots],
   );
   const benched: ScoredPlayer[] = useMemo(() => {
     const bench = lineup.bench as ScoredPlayer[];
-    const byeBench = modeScored.filter(s => s.onBye);
-    return [...bench, ...byeBench].sort((a, b) => (b.ppg ?? 0) - (a.ppg ?? 0));
+    const unavailable = modeScored.filter(s => s.onBye || s.injuredOut);
+    return [...bench, ...unavailable].sort((a, b) => (b.ppg ?? 0) - (a.ppg ?? 0));
   }, [lineup, modeScored]);
   const byePlayers = modeScored.filter(s => s.onBye);
   const starterById = new Map(
@@ -330,6 +332,8 @@ export function StartSitPage({ league }: StartSitPageProps) {
   );
 
   const benchReason = (s: ScoredPlayer): string => {
+    if (s.injuredOut)
+      return `${s.injuryLabel ?? 'Out'} — sits regardless of projection.`;
     if (s.onBye) return `On bye in week ${currentWeek} — sits regardless of projection.`;
     const pos = normalizeLineupPos(s.position);
     // The lowest starter this player could have displaced, if any.

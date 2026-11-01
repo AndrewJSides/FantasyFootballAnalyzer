@@ -53,7 +53,8 @@ function swapNote(starter: ScoredPlayer, challenger: ScoredPlayer, gain: number)
 
 /** The start/sit close calls for one team this week: every starting slot
  *  whose best bench challenger is within TOSS_UP_THRESHOLD (or better) of
- *  the starter. Players on bye never start, same as the preview. */
+ *  the starter. Players on bye or out with injury never start, same as the
+ *  preview. */
 export function buildGamePlan(
   team: Team,
   league: Pick<
@@ -71,7 +72,7 @@ export function buildGamePlan(
     currentWeek: league.currentWeek,
   });
   const lineup = optimalLineup(
-    scored.filter(s => !s.onBye),
+    scored.filter(s => !s.onBye && !s.injuredOut),
     league.rosterSlots ?? DEFAULT_ROSTER_SLOTS,
   );
   const byId = new Map(scored.map(s => [s.id, s]));

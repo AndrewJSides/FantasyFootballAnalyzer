@@ -69,10 +69,11 @@ export function scoreTeamLineup(
     season: league.season,
     currentWeek: league.currentWeek,
   });
-  // Players on bye score zero this week and never start — same treatment as
-  // the Start/Sit page, so the two projections can't disagree.
+  // Players on bye or out with injury score zero this week and never start —
+  // same treatment as the Start/Sit page, so the two projections can't
+  // disagree. Questionable/Doubtful stay eligible (game-time decisions).
   const lineup = optimalLineup(
-    scored.filter(s => !s.onBye),
+    scored.filter(s => !s.onBye && !s.injuredOut),
     league.rosterSlots ?? DEFAULT_ROSTER_SLOTS,
   );
   return {
