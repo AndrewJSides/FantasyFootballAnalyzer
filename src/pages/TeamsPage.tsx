@@ -17,6 +17,7 @@ import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
 import { buildDraftRoi } from '@/utils/draftRoi';
 import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
+import { buildPerfectLineupRecord } from '@/utils/perfectLineupRecord';
 import { buildPowerRankings } from '@/utils/powerRankings';
 import { buildRecordBook } from '@/utils/recordBook';
 import {
@@ -279,6 +280,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // lineup, summed over completed weeks. Hides when the sync fetched no
   // weekly lineups (Yahoo, old snapshots, guest mode) or in best-ball.
   const lineupEfficiency = useMemo(() => buildLineupEfficiency(league), [league]);
+  // Perfect-lineup record: each team's W-L if every manager had fielded
+  // his best legal lineup every completed week. Hides under the same
+  // conditions as lineup efficiency.
+  const perfectLineup = useMemo(() => buildPerfectLineupRecord(league), [league]);
   // All-play record: each team's record if it had played every other team
   // every week. Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
@@ -911,6 +916,61 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       <td>{r.leftOnBench.toFixed(1)}</td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {perfectLineup.length > 0 && (
+          <section className={styles.raceSection} aria-labelledby="perfect-lineup-heading">
+            <h2 id="perfect-lineup-heading" className={styles.sectionTitle}>
+              Perfect-Lineup Record
+            </h2>
+            <p className={styles.sectionHint}>
+              Each team's record if every manager had fielded his best legal
+              lineup every completed week — every matchup re-decided with
+              both sides' best-possible scores. Swing is the wins the manager
+              left on the bench: positive means better lineups would have won
+              more games, negative means he won games his best lineup
+              wouldn't have.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="Perfect-lineup record: each team's record with best-possible lineups every completed week"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Perfect record</th>
+                    <th scope="col">Actual</th>
+                    <th scope="col">Swing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {perfectLineup.map((r, i) => {
+                    const optRec = formatRecord(r.optWins, r.optLosses, r.optTies);
+                    const actRec = formatRecord(r.actWins, r.actLosses, r.actTies);
+                    const swingLabel =
+                      r.winSwing === 0
+                        ? 'Same record with perfect lineups'
+                        : r.winSwing > 0
+                          ? `${r.teamName} would be ${optRec} with perfect lineups instead of ${actRec} — ${r.winSwing} win${r.winSwing === 1 ? '' : 's'} left on the bench`
+                          : `${r.teamName} won ${actRec} but his best lineups only go ${optRec} — ${Math.abs(r.winSwing)} win${r.winSwing === -1 ? '' : 's'} he wouldn't have won`;
+                    return (
+                      <tr key={r.teamId}>
+                        <td>{i + 1}</td>
+                        <td>{r.teamName}</td>
+                        <td>{optRec}</td>
+                        <td>{actRec}</td>
+                        <td title={swingLabel} aria-label={swingLabel}>
+                          {r.winSwing > 0 ? `+${r.winSwing.toFixed(1)}` : r.winSwing.toFixed(1)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

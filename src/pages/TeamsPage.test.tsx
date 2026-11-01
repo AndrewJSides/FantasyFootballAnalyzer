@@ -57,6 +57,13 @@ function renderPage(leagueArg: League) {
   );
 }
 
+const lp = (
+  id: string,
+  name: string,
+  pos: string,
+  points: number,
+): import('@/types').LineupPlayer => ({ id, name, pos, points });
+
 describe('TeamsPage team injuries', () => {
   // Injury summary: TeamsPage takes a pool override (bundled pool carries
   // live Sleeper designations, unsuitable for assertions).
@@ -387,13 +394,6 @@ describe('TeamsPage projected bracket', () => {
 });
 
 describe('TeamsPage lineup efficiency', () => {
-  const lp = (
-    id: string,
-    name: string,
-    pos: string,
-    points: number,
-  ): import('@/types').LineupPlayer => ({ id, name, pos, points });
-
   const efficiencyLeague = (): League =>
     league({
       status: 'live',
@@ -459,6 +459,84 @@ describe('TeamsPage lineup efficiency', () => {
     renderPage(l);
     expect(
       screen.queryByRole('heading', { name: 'Lineup Efficiency' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('TeamsPage perfect-lineup record', () => {
+  function perfectLeague(): League {
+    // Two completed weeks (currentWeek 3 is excluded as live). Alpha wins
+    // W1 actually 10-8 but would lose it on best lineups (10 < 20); W2 is
+    // won both ways. So Alpha is 2-0 actual / 1-1 perfect (swing -1),
+    // Beta is 0-2 actual / 1-1 perfect (swing +1).
+    return league({
+      status: 'live',
+      currentWeek: 3,
+      matchups: [
+        { week: 1, team1Id: 'A', team1Points: 10, team2Id: 'B', team2Points: 8 },
+        { week: 2, team1Id: 'A', team1Points: 15, team2Id: 'B', team2Points: 12 },
+      ],
+      weeklyLineups: [
+        {
+          week: 1,
+          teamId: 'A',
+          slots: ['QB'],
+          starters: [lp('a1', 'Alpha QB', 'QB', 10)],
+          bench: [lp('a2', 'Alpha B', 'QB', 5)],
+        },
+        {
+          week: 1,
+          teamId: 'B',
+          slots: ['QB'],
+          starters: [lp('b1', 'Beta QB', 'QB', 8)],
+          bench: [lp('b2', 'Beta B', 'QB', 20)],
+        },
+        {
+          week: 2,
+          teamId: 'A',
+          slots: ['QB'],
+          starters: [lp('a1', 'Alpha QB', 'QB', 15)],
+          bench: [lp('a2', 'Alpha B', 'QB', 3)],
+        },
+        {
+          week: 2,
+          teamId: 'B',
+          slots: ['QB'],
+          starters: [lp('b1', 'Beta QB', 'QB', 12)],
+          bench: [lp('b2', 'Beta B', 'QB', 4)],
+        },
+      ] as import('@/types').WeeklyLineup[],
+    });
+  }
+
+  it('re-decides completed matchups on best-possible lineups and shows the swing', () => {
+    renderPage(perfectLeague());
+    expect(
+      screen.getByRole('heading', { name: 'Perfect-Lineup Record' }),
+    ).toBeInTheDocument();
+    const table = screen.getByRole('table', {
+      name: /perfect-lineup record/i,
+    });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3); // header + 2 teams
+    // Both are 1-1 perfectly; Beta's bigger swing (more wins left on the
+    // bench) breaks the tie.
+    expect(rows[1]).toHaveTextContent('Beta');
+    expect(rows[1]).toHaveTextContent('1-1');
+    expect(rows[1]).toHaveTextContent('0-2');
+    expect(rows[1]).toHaveTextContent('+1.0');
+    expect(rows[2]).toHaveTextContent('Alpha');
+    expect(rows[2]).toHaveTextContent('2-0');
+    expect(rows[2]).toHaveTextContent('-1.0');
+    // The swing cell explains itself on hover.
+    const betaSwing = within(rows[1]).getByTitle(/left on the bench/);
+    expect(betaSwing).toHaveTextContent('+1.0');
+  });
+
+  it('hides the section when the sync fetched no weekly lineups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'Perfect-Lineup Record' }),
     ).not.toBeInTheDocument();
   });
 });
