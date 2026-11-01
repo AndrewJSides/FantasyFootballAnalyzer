@@ -47,6 +47,7 @@ import {
   matchupShort,
 } from '@/utils/matchupRating';
 import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
+import { safeRiskyPicks } from '@/utils/safeRisky';
 import styles from './StartSitPage.module.css';
 
 interface StartSitPageProps {
@@ -325,6 +326,21 @@ export function StartSitPage({ league }: StartSitPageProps) {
     return [...bench, ...unavailable].sort((a, b) => (b.ppg ?? 0) - (a.ppg ?? 0));
   }, [lineup, modeScored]);
   const byePlayers = modeScored.filter(s => s.onBye);
+
+  // Safe & Risky Starts of the Week (backlog item 68): rank this week's
+  // optimal starters by bankability — steady history + kind matchup is
+  // safe, volatile history + tough matchup is risky. Same players as the
+  // table below, so a mode switch re-ranks this panel in place too.
+  const safeRisky = useMemo(
+    () =>
+      safeRiskyPicks(
+        lineup.starters
+          .map(a => a.player)
+          .filter((p): p is ScoredPlayer => p !== null),
+        weeklyPoints,
+      ),
+    [lineup, weeklyPoints],
+  );
   const starterById = new Map(
     lineup.starters
       .filter(s => s.player)
@@ -742,6 +758,53 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 automatically: {byePlayers.map(s => s.name).join(', ')}.
               </p>
             )}
+            {(safeRisky.safe.length > 0 || safeRisky.risky.length > 0) && (
+              <section aria-labelledby="safe-risky-heading" aria-live="polite">
+                <h2 id="safe-risky-heading" className={styles.sectionTitle}>
+                  Safe & risky starts
+                </h2>
+                <div className={styles.safeRiskyGrid}>
+                  {safeRisky.safe.length > 0 && (
+                    <div>
+                      <h3 className={styles.safeRiskyLabel}>Safest starts</h3>
+                      <ul className={styles.watchList} aria-label="Safest starts this week">
+                        {safeRisky.safe.map(pick => (
+                          <li
+                            key={pick.player.player.id}
+                            className={`${styles.watchItem} ${styles.safeRiskySafe}`}
+                          >
+                            <strong>{pick.player.name}</strong>{' '}
+                            <PosBadge pos={pick.player.position} />{' '}
+                            <NflTeamLabel team={pick.player.nflTeam} /> — proj.{' '}
+                            {pick.player.projection?.projection ?? '—'}
+                            <div className={styles.safeRiskyReason}>{pick.reason}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {safeRisky.risky.length > 0 && (
+                    <div>
+                      <h3 className={styles.safeRiskyLabel}>Riskiest starts</h3>
+                      <ul className={styles.watchList} aria-label="Riskiest starts this week">
+                        {safeRisky.risky.map(pick => (
+                          <li
+                            key={pick.player.player.id}
+                            className={`${styles.watchItem} ${styles.risk}`}
+                          >
+                            <strong>{pick.player.name}</strong>{' '}
+                            <PosBadge pos={pick.player.position} />{' '}
+                            <NflTeamLabel team={pick.player.nflTeam} /> — proj.{' '}
+                            {pick.player.projection?.projection ?? '—'}
+                            <div className={styles.safeRiskyReason}>{pick.reason}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
             <h2 className={styles.sectionTitle}>
               Optimal starters · {lineup.totalScore} {modeTotalUnit(mode)} combined
             </h2>
@@ -871,6 +934,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
               week can&apos;t over-swing it. Range is each starter&apos;s
               P25–P75 scoring band from their own played weeks (3+ needed) —
               a steady 14 and a volatile 14 are very different start calls.
+              Safe &amp; risky ranks the optimal starters on the same data:
+              steady history plus a kind matchup is safe, volatile history
+              plus a tough matchup is risky.
               {mode !== 'balanced'
                 ? ` ${mode === 'ceiling' ? 'Chase ceiling' : 'Protect floor'} re-ranks the lineup on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} — each player\u2019s projection ${mode === 'ceiling' ? 'plus' : 'minus'} 0.6745 \u00d7 their own week-to-week volatility.`
                 : ''}
