@@ -181,6 +181,100 @@
   color: var(--bone-dim);
 }
 
+/* Playoff Scenarios (backlog item 72): per-week W/L force toggles. */
+.scenarioPresets {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.scenarioLabel {
+  font-size: 0.75rem;
+  color: var(--bone-dim);
+}
+
+.scenarioPresetBtn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.scenarioPresetBtn:hover:not(:disabled) {
+  border-color: var(--lime);
+}
+
+.scenarioPresetBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.segGroup {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.segBtn {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 1.6rem;
+  padding: 0.15rem 0;
+  background: transparent;
+  color: var(--bone-dim);
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.segBtn:hover {
+  color: var(--ink);
+}
+
+.segWinActive {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--ink);
+}
+
+.segLossActive {
+  background: #b0483e;
+  border-color: #b0483e;
+  color: var(--ink);
+}
+
+.scenarioPanel {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rule);
+  background: var(--ink-2);
+  font-size: 0.8rem;
+}
+
+.scenarioList {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.scenarioUp {
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.scenarioDown {
+  color: #d96a5f;
+  font-weight: 700;
+}
+
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { League, Team } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -9,6 +9,7 @@ import { calculateAllAwards } from '@/utils/awards';
 import { calculateLuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { buildTeamSchedule } from '@/utils/teamSchedule';
+import { runScenario, scenarioPreset, type ScenarioPicks } from '@/utils/playoffScenarios';
 import { isPlaceholderPlayer } from '@/utils/placeholders';
 import { alertWeeks, teamRosterAlerts, type RosterAlert } from '@/utils/rosterAlerts';
 import { injuryTier, injuryTierLabel } from '@/utils/injuryReport';
@@ -103,6 +104,26 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
     () => buildTeamSchedule(league, team.id),
     [league, team.id],
   );
+
+  // Playoff Scenarios (backlog item 72): week → forced W/L for this team's
+  // remaining games. Resets when the viewed team changes.
+  const [scenarioPicks, setScenarioPicks] = useState<ScenarioPicks>({});
+  useEffect(() => {
+    setScenarioPicks({});
+  }, [team.id]);
+  const pickCount = Object.keys(scenarioPicks).length;
+  const scenario = useMemo(
+    () => runScenario(league, team.id, scenarioPicks),
+    [league, team.id, scenarioPicks],
+  );
+  const toggleScenarioPick = (week: number, result: 'win' | 'loss') => {
+    setScenarioPicks(prev => {
+      const next = { ...prev };
+      if (next[week] === result) delete next[week];
+      else next[week] = result;
+      return next;
+    });
+  };
 
   const gradedPicks = useMemo(
     () =>
@@ -261,6 +282,47 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
       {(schedule.past.length > 0 || schedule.future.length > 0) && (
         <section className={styles.section} aria-label={`${team.name} season schedule`}>
           <h3 className={styles.sectionTitle}>Schedule</h3>
+          {schedule.future.length > 0 && (
+            <div className={styles.scenarioPresets} role="group" aria-label="Playoff scenario presets">
+              <span className={styles.scenarioLabel}>Playoff scenarios:</span>
+              <button
+                type="button"
+                className={styles.scenarioPresetBtn}
+                onClick={() =>
+                  setScenarioPicks(
+                    scenarioPreset(
+                      schedule.future.map(g => g.week),
+                      'win',
+                    ),
+                  )
+                }
+              >
+                Win out
+              </button>
+              <button
+                type="button"
+                className={styles.scenarioPresetBtn}
+                onClick={() =>
+                  setScenarioPicks(
+                    scenarioPreset(
+                      schedule.future.map(g => g.week),
+                      'loss',
+                    ),
+                  )
+                }
+              >
+                Lose out
+              </button>
+              <button
+                type="button"
+                className={styles.scenarioPresetBtn}
+                onClick={() => setScenarioPicks({})}
+                disabled={pickCount === 0}
+              >
+                Clear
+              </button>
+            </div>
+          )}
           <table className={styles.schedTable}>
             <caption>
               {team.name}'s completed and remaining regular-season games
@@ -270,6 +332,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
                 <th scope="col">Week</th>
                 <th scope="col">Opponent</th>
                 <th scope="col">Result</th>
+                {schedule.future.length > 0 && <th scope="col">Scenario</th>}
               </tr>
             </thead>
             <tbody>
@@ -286,6 +349,7 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
                     </span>{' '}
                     {g.teamScore.toFixed(1)}–{g.oppScore.toFixed(1)}
                   </td>
+                  {schedule.future.length > 0 && <td aria-hidden="true" />}
                 </tr>
               ))}
               {schedule.future.map(g => (
@@ -295,14 +359,94 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
                   <td title={`TraderApe's model gives ${team.name} a ${g.winProb}% chance to beat ${g.opponentName} in week ${g.week}.`}>
                     {g.winProb.toFixed(1)}% win probability
                   </td>
+                  <td>
+                    <div
+                      className={styles.segGroup}
+                      role="group"
+                      aria-label={`Force ${team.name}'s week ${g.week} result against ${g.opponentName}`}
+                    >
+                      <button
+                        type="button"
+                        className={`${styles.segBtn} ${scenarioPicks[g.week] === 'win' ? styles.segWinActive : ''}`}
+                        aria-pressed={scenarioPicks[g.week] === 'win'}
+                        aria-label={`Force a win in week ${g.week} against ${g.opponentName}`}
+                        title="Force a win — click again to unpick"
+                        onClick={() => toggleScenarioPick(g.week, 'win')}
+                      >
+                        W
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.segBtn} ${scenarioPicks[g.week] === 'loss' ? styles.segLossActive : ''}`}
+                        aria-pressed={scenarioPicks[g.week] === 'loss'}
+                        aria-label={`Force a loss in week ${g.week} against ${g.opponentName}`}
+                        title="Force a loss — click again to unpick"
+                        onClick={() => toggleScenarioPick(g.week, 'loss')}
+                      >
+                        L
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {pickCount > 0 && (
+            <div className={styles.scenarioPanel} aria-live="polite">
+              {scenario ? (
+                <>
+                  <strong>
+                    Playoff scenario — {scenario.pickCount} of {schedule.future.length} remaining games picked
+                  </strong>
+                  <ul className={styles.scenarioList}>
+                    <li>
+                      Playoffs: {scenario.entry.playoffProb.toFixed(1)}% (modeled
+                      base {scenario.base.playoffProb.toFixed(1)}%
+                      {scenario.oddsDelta !== 0 && (
+                        <>
+                          ,{' '}
+                          <span
+                            className={
+                              scenario.oddsDelta > 0 ? styles.scenarioUp : styles.scenarioDown
+                            }
+                          >
+                            {scenario.oddsDelta > 0 ? '+' : ''}
+                            {scenario.oddsDelta.toFixed(1)} pts
+                          </span>
+                        </>
+                      )}
+                      )
+                    </li>
+                    <li>
+                      Projected finish: {scenario.entry.projectedWins.toFixed(1)}–
+                      {scenario.entry.projectedLosses.toFixed(1)} (base{' '}
+                      {scenario.base.projectedWins.toFixed(1)}–
+                      {scenario.base.projectedLosses.toFixed(1)})
+                    </li>
+                    <li>
+                      Projected seed: {scenario.entry.projectedSeed.toFixed(1)}{' '}
+                      (base {scenario.base.projectedSeed.toFixed(1)})
+                    </li>
+                    <li>
+                      Championship: {scenario.entry.championProb.toFixed(1)}% (base{' '}
+                      {scenario.base.championProb.toFixed(1)}%)
+                    </li>
+                  </ul>
+                </>
+              ) : (
+                <p>
+                  Playoff scenarios can't be priced for this league — the sync
+                  didn't record a playoff field.
+                </p>
+              )}
+            </div>
+          )}
           <p className={styles.alertFootnote}>
             Past results from completed league weeks; upcoming win
             probabilities come from the same shrunk-rating model as the
-            Playoff Race, priced analytically.
+            Playoff Race, priced analytically. Scenario picks force games by
+            fiat and re-sim the season over 2,000 modeled seasons — the
+            model's verdict, not league-official.
           </p>
         </section>
       )}

@@ -67,6 +67,13 @@ export interface PlayoffRaceOptions {
    * a loss" scenarios. A team with no remaining games is unaffected.
    */
   forceNextGame?: { teamId: string; result: 'win' | 'loss' };
+  /**
+   * Force any number of a team's remaining games to the given results by
+   * fiat (the rest of the season still draws normally). Used by the
+   * Playoff Scenarios what-if simulator (backlog item 72). Entries naming
+   * a week the team doesn't play are ignored.
+   */
+  forceResults?: { teamId: string; week: number; result: 'win' | 'loss' }[];
 }
 
 /** A 30-pt scoring gap ≈ 91% win probability — calibrated to typical
@@ -293,27 +300,33 @@ export function playoffRace(
   const rand =
     opts.seed === undefined ? Math.random : mulberry32(opts.seed);
 
-  // Forced-result game: the forced team's earliest remaining matchup is
-  // decided by fiat, everything else draws normally. Precomputed once so
-  // the sim loop just compares identity.
-  const forced = (() => {
-    const f = opts.forceNextGame;
-    if (!f) return null;
-    const games = remByTeam.get(f.teamId);
-    if (!games || games.length === 0) return null;
-    const g = games[0];
-    return {
-      week: g.week,
-      a: f.teamId,
-      b: g.opponentId,
-      winner: f.result === 'win' ? f.teamId : g.opponentId,
-    };
-  })();
-  const isForcedGame = (week: number, team1Id: string, team2Id: string) =>
-    forced !== null &&
-    week === forced.week &&
-    ((team1Id === forced.a && team2Id === forced.b) ||
-      (team1Id === forced.b && team2Id === forced.a));
+  // Forced-result games: decided by fiat instead of drawn, everything else
+  // draws normally. forceNextGame (clinchWatch's shorthand) maps to the
+  // forced team's earliest remaining game; forceResults (the Playoff
+  // Scenarios what-if simulator, backlog item 72) names any (team, week)
+  // pairs. Entries naming a week the team doesn't play are ignored.
+  // Precomputed once so the sim loop just compares identity.
+  const forcedWinners = new Map<string, string>();
+  const forceEntries: { teamId: string; week: number; result: 'win' | 'loss' }[] = [
+    ...(opts.forceResults ?? []),
+  ];
+  const fng = opts.forceNextGame;
+  if (fng) {
+    const games = remByTeam.get(fng.teamId);
+    if (games && games.length > 0) {
+      forceEntries.push({ teamId: fng.teamId, week: games[0].week, result: fng.result });
+    }
+  }
+  for (const fr of forceEntries) {
+    const game = (remByTeam.get(fr.teamId) ?? []).find(o => o.week === fr.week);
+    if (!game) continue;
+    const winner = fr.result === 'win' ? fr.teamId : game.opponentId;
+    forcedWinners.set(gameKey(fr.week, fr.teamId, game.opponentId), winner);
+    forcedWinners.set(gameKey(fr.week, game.opponentId, fr.teamId), winner);
+  }
+  const forcedWinnerOf = (week: number, team1Id: string, team2Id: string) =>
+    forcedWinners.get(gameKey(week, team1Id, team2Id)) ??
+    forcedWinners.get(gameKey(week, team2Id, team1Id));
   const made = new Map<string, number>();
   // Per-game wins for team1 of each remaining matchup, so each team sees
   // a game-by-game win probability priced on the same simulations.
@@ -344,8 +357,9 @@ export function playoffRace(
     for (const m of remaining) {
       const key = gameKey(m.week, m.team1Id, m.team2Id);
       let team1Won: boolean;
-      if (isForcedGame(m.week, m.team1Id, m.team2Id)) {
-        team1Won = forced!.winner === m.team1Id;
+      const forcedWinner = forcedWinnerOf(m.week, m.team1Id, m.team2Id);
+      if (forcedWinner !== undefined) {
+        team1Won = forcedWinner === m.team1Id;
       } else {
         team1Won = rand() < winProb(ratingOf(m.team1Id), ratingOf(m.team2Id));
       }

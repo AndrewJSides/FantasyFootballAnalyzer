@@ -1,7 +1,7 @@
 // TeamDetail: the season Schedule section (backlog item 47).
 
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Team, WeeklyMatchup } from '@/types';
 import { TeamDetail } from './TeamDetail';
@@ -51,6 +51,7 @@ function league(): League {
     futureSchedule: [matchup(3, 'a', 'b')],
     status: 'live',
     currentWeek: 3,
+    playoffTeams: 2,
   } as League;
 }
 
@@ -73,5 +74,96 @@ describe('TeamDetail schedule section', () => {
     expect(rows[2].textContent).toContain('win probability');
     expect(screen.getByText('W1')).toBeTruthy();
     expect(screen.getByText('W3')).toBeTruthy();
+  });
+});
+
+describe('TeamDetail playoff scenarios (backlog item 72)', () => {
+  // Bubble league: Alpha and Bravo race for the second playoff spot.
+  function scenarioLeague(): League {
+    const teams = [
+      mkTeam('a', 'Alpha', { wins: 5, losses: 3, pointsFor: 1000 }),
+      mkTeam('b', 'Bravo', { wins: 5, losses: 3, pointsFor: 900 }),
+      mkTeam('c', 'Charlie', { wins: 8, losses: 0, pointsFor: 1200 }),
+      mkTeam('d', 'Delta', { wins: 1, losses: 7, pointsFor: 800 }),
+    ];
+    return {
+      id: 'lg2',
+      platform: 'yahoo',
+      name: 'League',
+      season: 2026,
+      draftType: 'snake',
+      teams,
+      matchups: [],
+      futureSchedule: [
+        matchup(9, 'a', 'b'),
+        matchup(9, 'c', 'd'),
+        matchup(10, 'a', 'd'),
+        matchup(10, 'b', 'c'),
+      ],
+      status: 'live',
+      currentWeek: 9,
+      playoffTeams: 2,
+    } as League;
+  }
+
+  function renderAlpha(lg: League) {
+    return render(
+      <MemoryRouter>
+        <TeamDetail league={lg} team={lg.teams[0]} onBack={vi.fn()} />
+      </MemoryRouter>,
+    );
+  }
+
+  function scenarioOdds(): number {
+    const text = screen
+      .getByRole('region', { name: 'Alpha season schedule' })
+      .textContent!;
+    return parseFloat(text.match(/Playoffs: ([\d.]+)%/)![1]);
+  }
+
+  it('win-out preset prices the scenario against a modeled base', () => {
+    renderAlpha(scenarioLeague());
+    const section = screen.getByRole('region', { name: 'Alpha season schedule' });
+    // Per-week force toggles have accessible names.
+    const winBtn = screen.getByRole('button', {
+      name: 'Force a win in week 9 against Bravo',
+    });
+    expect(winBtn).toHaveProperty('tagName', 'BUTTON');
+    // No scenario panel before any pick.
+    expect(section.textContent).not.toContain('Playoff scenario —');
+    // Win-out forces Alpha's remaining games and shows the modeled result.
+    fireEvent.click(screen.getByRole('button', { name: 'Win out' }));
+    expect(section.textContent).toContain('Playoff scenario —');
+    expect(section.textContent).toContain('2 of 2 remaining games picked');
+    expect(section.textContent).toContain('modeled base');
+    // The aria-live panel announces the result.
+    expect(section.querySelector('[aria-live="polite"]')).toBeTruthy();
+    // Clicking a picked toggle again unpicks that week only.
+    fireEvent.click(winBtn);
+    expect(section.textContent).toContain('1 of 2 remaining games picked');
+    // Unpicking the last week clears the panel.
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Force a win in week 10 against Delta',
+      }),
+    );
+    expect(section.textContent).not.toContain('Playoff scenario —');
+  });
+
+  it('lose-out preset drops the modeled playoff odds vs win-out', () => {
+    const lg = scenarioLeague();
+    const { unmount } = renderAlpha(lg);
+    fireEvent.click(screen.getByRole('button', { name: 'Win out' }));
+    const winOdds = scenarioOdds();
+    unmount();
+    renderAlpha(lg);
+    fireEvent.click(screen.getByRole('button', { name: 'Lose out' }));
+    const loseOdds = scenarioOdds();
+    expect(loseOdds).toBeLessThan(winOdds);
+    // Clear resets the panel.
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(
+      screen.getByRole('region', { name: 'Alpha season schedule' }).textContent,
+    ).not.toContain('Playoff scenario —');
   });
 });
