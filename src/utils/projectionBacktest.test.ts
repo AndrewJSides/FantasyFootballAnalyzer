@@ -34,6 +34,22 @@ describe('backtestPlayer', () => {
     const week3 = r.predictions.find(p => p.week === 3)!;
     expect(week3.naive).toBe(10);
   });
+
+  it('applies the matchup term through the resolver when provided', () => {
+    // Steady 10-pt player: matchup-free projection is 10; a soft matchup
+    // (opponent allows 5 over league average) blends +2.5 in.
+    const soft = () => ({ avgAllowed: 20, leagueAverage: 15 });
+    const withM = backtestPlayer('p1', [w(1, 10), w(2, 10), w(3, 10)], soft);
+    const week3 = withM.predictions.find(p => p.week === 3)!;
+    expect(week3.predicted).toBe(12.5);
+  });
+
+  it('resolver returning null matches the matchup-free run', () => {
+    const weeks = [w(1, 10), w(2, 10), w(3, 12)];
+    const a = backtestPlayer('p1', weeks);
+    const b = backtestPlayer('p1', weeks, () => null);
+    expect(b.predictions).toEqual(a.predictions);
+  });
 });
 
 describe('summarize / aggregateBacktests', () => {

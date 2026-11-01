@@ -10,7 +10,7 @@
 // A naive baseline (the player's prior mean, no recency weighting) is
 // scored on the same weeks, so the model has to beat doing nothing smart.
 
-import { projectWeeklyPoints, type WeekPoints } from './weeklyProjection';
+import { projectWeeklyPoints, type MatchupContext, type WeekPoints } from './weeklyProjection';
 
 export interface BacktestPrediction {
   week: number;
@@ -73,10 +73,15 @@ export function summarize(predictions: BacktestPrediction[]): BacktestSummary {
 
 /** Replay one player's season. Weeks with no score are skipped as targets
  *  but still count as history only if they carry a score — a missed week
- *  (bye, DNP) is not a 0-point week and must not drag the projection down. */
+ *  (bye, DNP) is not a 0-point week and must not drag the projection down.
+ *
+ *  `matchupForWeek` is the matchup-aware model's input: a resolver that
+ *  returns the MatchupContext the model would have seen for the TARGET
+ *  week. Omit it to backtest the matchup-free model. */
 export function backtestPlayer(
   playerId: string,
   weeks: WeekPoints[],
+  matchupForWeek?: (week: number) => MatchupContext | null,
 ): PlayerBacktest {
   const sorted = [...weeks]
     .filter(w => Number.isFinite(w.week) && Number.isFinite(w.pts))
@@ -84,7 +89,12 @@ export function backtestPlayer(
   const predictions: BacktestPrediction[] = [];
   for (let i = 1; i < sorted.length; i++) {
     const history = sorted.slice(0, i);
-    const projected = projectWeeklyPoints(history);
+    const targetWeek = sorted[i].week;
+    const projected = projectWeeklyPoints(
+      history,
+      null,
+      matchupForWeek ? matchupForWeek(targetWeek) : undefined,
+    );
     if (!projected) continue;
     const naive =
       Math.round(
@@ -94,7 +104,7 @@ export function backtestPlayer(
     const error = Math.round((projected.projection - actual) * 10) / 10;
     const naiveError = Math.round((naive - actual) * 10) / 10;
     predictions.push({
-      week: sorted[i].week,
+      week: targetWeek,
       predicted: projected.projection,
       naive,
       actual,

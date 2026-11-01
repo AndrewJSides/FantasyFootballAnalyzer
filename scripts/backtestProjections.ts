@@ -11,20 +11,31 @@
 // mid-week run never scores partial actuals.
 //
 // Output: data/projection-backtests/<season>.json (overwritten each run)
-// plus a printed summary.
+// plus a printed summary. The file keeps `overall`/`byPosition` for the
+// matchup-free model (backwards-compatible shape) and adds a `withMatchup`
+// sibling scoring the shipped matchup-aware model on the same weeks — the
+// comparison answers whether the matchup term helps. The matchup context
+// for each scored week is rebuilt from completed weeks ONLY (see
+// src/utils/backtestMatchup.ts), so no lookahead leaks into the numbers.
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   aggregateBacktests,
   backtestPlayer,
   type BacktestSummary,
 } from '../src/utils/projectionBacktest';
+import {
+  BACKTEST_POSITIONS,
+  buildAllowedByWeek,
+  buildOpponentMap,
+  matchupContextForWeek,
+} from '../src/utils/backtestMatchup';
 import type { WeekPoints } from '../src/utils/weeklyProjection';
 
 const UA = 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)';
 const OUT_DIR = 'data/projection-backtests';
-const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
+const POSITIONS = [...BACKTEST_POSITIONS] as const;
 
 interface SleeperState {
   season: string;
@@ -33,6 +44,15 @@ interface SleeperState {
 
 interface SleeperStats {
   pts_ppr?: number;
+}
+
+interface SleeperPlayer {
+  position?: string;
+  team?: string;
+}
+
+interface ScheduleFile {
+  weeks: Record<string, [string, string][]>;
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -71,14 +91,16 @@ async function main(): Promise<void> {
     throw new Error(`Bad season/weeks from state: ${JSON.stringify(state)}`);
   }
 
-  const players = await getJson<Record<string, { position?: string }>>(
+  const players = await getJson<Record<string, SleeperPlayer>>(
     'https://api.sleeper.app/v1/players/nfl',
   );
+  const statsByWeek: Record<number, Record<string, SleeperStats>> = {};
   const series = new Map<string, WeekPoints[]>();
   for (let week = 1; week <= lastWeek; week++) {
     const stats = await getJson<Record<string, SleeperStats>>(
       `https://api.sleeper.app/v1/stats/nfl/regular/${season}/${week}`,
     );
+    statsByWeek[week] = stats;
     for (const [id, s] of Object.entries(stats)) {
       if (typeof s.pts_ppr !== 'number') continue;
       const list = series.get(id) ?? [];
@@ -87,16 +109,43 @@ async function main(): Promise<void> {
     }
   }
 
-  const results = [...series.entries()]
-    .filter(([, weeks]) => weeks.length >= 3)
-    .map(([id, weeks]) => backtestPlayer(id, weeks));
+  // What the matchup term would have seen for each scored week:
+  // opponents from the bundled schedule, allowed-vs-position rebuilt
+  // from completed weeks only (weeks < target). A player's team is the
+  // current Sleeper roster team — a mid-season trade mislabels at most
+  // a handful of early target weeks, acceptable for the comparison.
+  const schedule = JSON.parse(
+    readFileSync('src/data/nflSchedule.2026.json', 'utf8'),
+  ) as ScheduleFile;
+  const opponentByWeek = buildOpponentMap(schedule.weeks);
+  const allowedByWeek = buildAllowedByWeek(players, statsByWeek, opponentByWeek);
+  const matchupFor = (playerId: string) => {
+    const meta = players[playerId];
+    const team = meta?.team;
+    const position = meta?.position;
+    if (!team || !position) return undefined;
+    return (week: number) =>
+      matchupContextForWeek(week, team, position, opponentByWeek, allowedByWeek);
+  };
+
+  const ids = [...series.entries()].filter(([, weeks]) => weeks.length >= 3);
+  const results = ids.map(([id, weeks]) => backtestPlayer(id, weeks));
+  const resultsMatchup = ids.map(([id, weeks]) =>
+    backtestPlayer(id, weeks, matchupFor(id)),
+  );
   const overall = aggregateBacktests(results);
+  const overallMatchup = aggregateBacktests(resultsMatchup);
   const byPosition: Record<string, BacktestSummary> = {};
+  const byPositionMatchup: Record<string, BacktestSummary> = {};
   for (const pos of POSITIONS) {
     const slice = results.filter(
       r => players[r.playerId]?.position === pos,
     );
+    const sliceMatchup = resultsMatchup.filter(
+      r => players[r.playerId]?.position === pos,
+    );
     byPosition[pos] = aggregateBacktests(slice);
+    byPositionMatchup[pos] = aggregateBacktests(sliceMatchup);
   }
 
   mkdirSync(OUT_DIR, { recursive: true });
@@ -106,12 +155,21 @@ async function main(): Promise<void> {
     players: results.length,
     overall,
     byPosition,
+    withMatchup: {
+      players: resultsMatchup.length,
+      overall: overallMatchup,
+      byPosition: byPositionMatchup,
+    },
     generatedAt: new Date().toISOString(),
   };
   writeFileSync(join(OUT_DIR, `${season}.json`), JSON.stringify(out, null, 2) + '\n');
   console.log(`Backtested ${season} weeks 1–${lastWeek}: ${results.length} players`);
-  printSummary('Overall', overall);
-  for (const pos of POSITIONS) printSummary(pos, byPosition[pos]);
+  printSummary('Overall (no matchup)', overall);
+  printSummary('Overall (with matchup)', overallMatchup);
+  for (const pos of POSITIONS) {
+    printSummary(`${pos} (no matchup)`, byPosition[pos]);
+    printSummary(`${pos} (with matchup)`, byPositionMatchup[pos]);
+  }
 }
 
 main().catch(err => {
