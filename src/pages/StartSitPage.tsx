@@ -49,6 +49,7 @@ import {
 import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
 import { safeRiskyPicks } from '@/utils/safeRisky';
 import { buildGameDayChecklist } from '@/utils/gameDayChecklist';
+import { buildStartSitReportCard, reportCardVerdict } from '@/utils/startSitReportCard';
 import { GameDayChecklist } from '@/components/GameDayChecklist';
 import { teamRosterAlerts } from '@/utils/rosterAlerts';
 import styles from './StartSitPage.module.css';
@@ -447,6 +448,15 @@ export function StartSitPage({ league }: StartSitPageProps) {
       planEndWeek,
       slots,
     ],
+  );
+  // --- Start/Sit report card (backlog item 81) ------------------------------
+  // Grade the optimizer's own weekly calls: replay each completed week with
+  // the projection priced on completed weeks only, and compare the model's
+  // recommended lineup against each manager's actual starters. League mode
+  // only — it needs the synced weekly lineups.
+  const reportCard = useMemo(
+    () => (isGuest ? null : buildStartSitReportCard(league)),
+    [isGuest, league],
   );
   const planWatch = (w: PlannedWeek): string => {
     const parts: string[] = [];
@@ -1057,6 +1067,67 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   that position, priced on opponent generosity like the Waivers
                   page&apos;s streamer sections. Priced on the balanced
                   projection; lineup modes apply to this week&apos;s call only.
+                </p>
+              </>
+            )}
+
+            {reportCard && (
+              <>
+                <h2 className={styles.sectionTitle}>Model report card</h2>
+                <p className={styles.note}>
+                  Would following the model have beaten your gut?{' '}
+                  {reportCard.netDelta >= 0 ? '+' : ''}
+                  {reportCard.netDelta} pts across the league over{' '}
+                  {reportCard.weeksGraded} graded{' '}
+                  {reportCard.weeksGraded === 1 ? 'week' : 'weeks'}.
+                </p>
+                <table
+                  className={styles.table}
+                  aria-label="Start/Sit model report card by team"
+                >
+                  <thead>
+                    <tr>
+                      <th scope="col">Team</th>
+                      <th scope="col">Weeks</th>
+                      <th scope="col">Model&apos;s lineup</th>
+                      <th scope="col">You started</th>
+                      <th scope="col">+/-</th>
+                      <th scope="col">Verdict</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportCard.teams.map(t => {
+                      const verdict = reportCardVerdict(t.delta);
+                      const detail =
+                        `Over ${t.weeks} graded weeks the model's recommended lineups scored ` +
+                        `${t.modelPoints} pts vs ${t.actualPoints} actually started ` +
+                        `(${t.delta >= 0 ? '+' : ''}${t.delta} pts, ${t.modelWonWeeks} ` +
+                        `${t.modelWonWeeks === 1 ? 'week' : 'weeks'} won outright).`;
+                      return (
+                        <tr key={t.teamId}>
+                          <th scope="row">{t.teamName}</th>
+                          <td>{t.weeks}</td>
+                          <td>{t.modelPoints}</td>
+                          <td>{t.actualPoints}</td>
+                          <td aria-label={detail}>
+                            {t.delta >= 0 ? '+' : ''}
+                            {t.delta}
+                          </td>
+                          <td aria-label={detail}>{verdict}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className={styles.note}>
+                  Each completed week is replayed with the model&apos;s
+                  projection priced on completed weeks only — no lookahead —
+                  running the same balanced-mode optimal-lineup pass as this
+                  page, with the same bye-week and injury-out benching. The
+                  live week is excluded, and week 1 is skipped (the model
+                  has no history to price on yet). Injury designations are
+                  the pool&apos;s current ones, so an early-week replay may
+                  bench a player who was healthy then.
                 </p>
               </>
             )}

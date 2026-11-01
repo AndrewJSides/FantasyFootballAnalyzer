@@ -7,7 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import type { League, Player, Team, WeeklyMatchup } from '@/types';
+import type { League, Player, Team, WeeklyLineup, WeeklyMatchup } from '@/types';
 import { StartSitPage } from './StartSitPage';
 
 // Item 67: the weak team's QB is listed Out, so the optimizer must bench him
@@ -145,5 +145,85 @@ describe('StartSitPage injury-out benching (item 67)', () => {
       name: 'Optimal starters for Weaklings',
     });
     expect(within(starters).queryByText('W-qb1')).not.toBeInTheDocument();
+  });
+});
+
+describe('StartSitPage model report card (item 81)', () => {
+  // W-rb1 is flat 20, W-rb2 flat 2 across weeks 1-8. In week 7 the manager
+  // started the dud (model: rb1 for 20, actual: rb2 for 2); in week 8 he
+  // followed the model. Week 9 is the live current week and stays out.
+  function reportCardLeague(): League {
+    const mkTeam = (id: string, name: string, isMyTeam: boolean): Team =>
+      ({
+        id,
+        name,
+        isMyTeam,
+        roster: ['rb1', 'rb2'].map(k => ({
+          id: `${id}-${k}`,
+          platformId: `${id}-${k}`,
+          name: `${id}-${k}`,
+          position: 'RB',
+          team: 'XXX',
+        })),
+      }) as Team;
+    const flats: Record<string, number> = { 'W-rb1': 20, 'W-rb2': 2 };
+    const pw: Record<string, Record<number, number>> = {};
+    for (const [pid, flat] of Object.entries(flats)) {
+      pw[pid] = {};
+      for (let w = 1; w <= 8; w++) pw[pid][w] = flat;
+    }
+    const wl = (week: number, starter: string, benched: string) =>
+      ({
+        week,
+        teamId: 'W',
+        slots: ['RB', 'BN'],
+        starters: [{ id: starter, name: starter, pos: 'RB', points: flats[starter] }],
+        bench: [{ id: benched, name: benched, pos: 'RB', points: flats[benched] }],
+      }) as WeeklyLineup;
+    return {
+      id: 'L',
+      name: 'Test League',
+      platform: 'sleeper',
+      season: 2026,
+      status: 'live',
+      currentWeek: 9,
+      rosterSlots: {
+        QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, SUPERFLEX: 0,
+        K: 0, DST: 0, BENCH: 5, IR: 0,
+      },
+      teams: [mkTeam('W', 'Weaklings', true), mkTeam('S', 'Strongmen', false)],
+      playerWeeklyPoints: pw,
+      weeklyLineups: [wl(7, 'W-rb2', 'W-rb1'), wl(8, 'W-rb1', 'W-rb2')],
+    } as League;
+  }
+
+  it('grades the model against the manager across completed weeks', () => {
+    renderPage(reportCardLeague());
+    const table = screen.getByRole('table', {
+      name: 'Start/Sit model report card by team',
+    });
+    const row = within(table)
+      .getByRole('rowheader', { name: 'Weaklings' })
+      .closest('tr');
+    expect(row).not.toBeNull();
+    const cells = within(row as HTMLElement);
+    // 2 graded weeks: model 40 (20+20), started 22 (2+20), delta +18.
+    expect(cells.getByText('2')).toBeInTheDocument();
+    expect(cells.getByText('40')).toBeInTheDocument();
+    expect(cells.getByText('22')).toBeInTheDocument();
+    expect(cells.getByText('+18')).toBeInTheDocument();
+    expect(cells.getByText('Model beats you')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Would following the model have beaten your gut\?/),
+    ).toBeInTheDocument();
+  });
+
+  it('hides when the sync fetched no weekly lineups', () => {
+    renderPage(league(true, []));
+    expect(
+      screen.queryByRole('table', {
+        name: 'Start/Sit model report card by team',
+      }),
+    ).not.toBeInTheDocument();
   });
 });
