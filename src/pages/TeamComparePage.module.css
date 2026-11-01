@@ -1,0 +1,135 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · Team Compare
+   ───────────────────────────────────────────── */
+
+.page {
+  padding: 3rem 0 5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+}
+
+.pickRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pickLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.pickSelect {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--bone-dim);
+  border-radius: 0.4rem;
+  background: var(--ink);
+  color: var(--bone);
+  min-width: 12rem;
+}
+
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.compareTable thead th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid var(--bone);
+}
+
+.teamHead {
+  font-family: var(--font-headline);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--bone);
+}
+
+.rowLabel {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--bone-dim);
+  width: 11rem;
+}
+
+.cell {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--bone-dim);
+  color: var(--bone);
+  vertical-align: top;
+}
+
+.cell.winner {
+  font-weight: 700;
+  color: var(--lime);
+}
+
+.edgeMark {
+  color: var(--lime);
+  margin-right: 0.35rem;
+}
+
+.cell .edgeMark:last-child {
+  margin-right: 0;
+  margin-left: 0.35rem;
+}
+
+.notice {
+  color: var(--bone-dim);
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.method {
+  font-size: 0.8rem;
+  color: var(--bone-dim);
+  line-height: 1.5;
+  max-width: 60rem;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

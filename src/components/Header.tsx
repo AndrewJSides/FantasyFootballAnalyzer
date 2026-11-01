@@ -456,6 +456,14 @@ export function Header({
               Matchup
             </Link>
             <Link
+              to="/compare-teams"
+              className={`${styles.navLink} ${location.pathname === '/compare-teams' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/compare-teams' ? 'page' : undefined}
+            >
+              Team Compare
+            </Link>
+            <Link
               to="/teams"
               className={`${styles.navLink} ${location.pathname === '/teams' ? styles.active : ''}`}
               onClick={handleNavClick}

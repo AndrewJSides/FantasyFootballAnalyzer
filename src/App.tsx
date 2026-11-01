@@ -43,6 +43,7 @@ const TradeValuesPage = lazyPage(() => import('@/pages/TradeValuesPage'), 'Trade
 const ComparePage = lazyPage(() => import('@/pages/ComparePage'), 'ComparePage');
 const TeamsPage = lazyPage(() => import('@/pages/TeamsPage'), 'TeamsPage');
 const MatchupPage = lazyPage(() => import('@/pages/MatchupPage'), 'default');
+const TeamComparePage = lazyPage(() => import('@/pages/TeamComparePage'), 'default');
 const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage');
 const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
 const LuckPage = lazyPage(() => import('@/pages/LuckPage'), 'LuckPage');
@@ -131,6 +132,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/start-sit': 'Start/Sit',
   '/teams': 'Teams',
   '/matchup': 'Matchup',
+  '/compare-teams': 'Team Compare',
   '/history': 'History',
   '/awards': 'Awards',
   '/luck': 'Luck',
@@ -991,6 +993,8 @@ function App() {
           />
           <Route path="/teams" element={dataRoute(l => <TeamsPage league={l} />)} />
           <Route path="/matchup" element={dataRoute(l => <MatchupPage league={l} />)} />
+          {/* Team Compare is league-only: it compares two synced teams. */}
+          <Route path="/compare-teams" element={dataRoute(l => <TeamComparePage league={l} />)} />
           <Route path="/history" element={dataRoute(l => <HistoryPage league={l} />)} />
           <Route path="/awards" element={dataRoute(l => <AwardsPage league={l} />)} />
           <Route path="/luck" element={dataRoute(l => <LuckPage league={l} />)} />
