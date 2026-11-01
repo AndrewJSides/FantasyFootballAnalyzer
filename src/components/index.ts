@@ -19,6 +19,7 @@ export { TrendingAdds } from './TrendingAdds';
 export { TrendingDrops } from './TrendingDrops';
 export { NewsWaiverTargets } from './NewsWaiverTargets';
 export { BreakoutWatch } from './BreakoutWatch';
+export { OpportunityWatch } from './OpportunityWatch';
 export { AddDropMoves } from './AddDropMoves';
 export { DstStreamers } from './DstStreamers';
 export { HandcuffReport } from './HandcuffReport';

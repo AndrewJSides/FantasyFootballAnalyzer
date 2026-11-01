@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -70,6 +70,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* Players whose last-3 average is surging vs their own earlier
             pace — role expansions the season rankings haven't caught yet. */}
         <BreakoutWatch league={league} />
+
+        {/* Available players earning a real role (55%+ snap share and/or
+            20%+ target share over the last 3 weeks) — the opportunity is
+            here before the box score catches up. */}
+        <OpportunityWatch league={league} />
 
         {/* Best available team defenses to stream this week, ranked by how
             generous each opponent's offense has been to opposing defenses. */}
