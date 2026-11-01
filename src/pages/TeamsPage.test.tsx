@@ -604,6 +604,60 @@ describe('TeamsPage power rankings', () => {
       screen.queryByRole('heading', { name: 'Power Rankings' }),
     ).not.toBeInTheDocument();
   });
+
+  it('renders a Rank Δ column showing week-over-week rank movement', () => {
+    // Weeks 6-8 completed; week 9 is live and excluded. Alpha surges in
+    // week 8 and takes rank 1 from Beta.
+    const moving = league({
+      status: 'live',
+      teams: [team('A', 'Alpha', 1, 2, 0), team('B', 'Beta', 2, 1, 0)],
+      matchups: [
+        { week: 6, team1Id: 'A', team1Points: 90, team2Id: 'B', team2Points: 120 },
+        { week: 7, team1Id: 'A', team1Points: 90, team2Id: 'B', team2Points: 120 },
+        { week: 8, team1Id: 'A', team1Points: 200, team2Id: 'B', team2Points: 60 },
+        // Week 9 (live): partial scores never count.
+        { week: 9, team1Id: 'A', team1Points: 999, team2Id: 'B', team2Points: 1 },
+      ],
+    });
+    renderPage(moving);
+    const table = screen.getByRole('table', { name: /power rankings/i });
+    expect(
+      within(table).getByRole('columnheader', { name: 'Rank Δ' }),
+    ).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    // Alpha leads the table now: up from rank 2 last week.
+    expect(rows[1]).toHaveTextContent('↑1');
+    expect(
+      within(rows[1]).getByRole('cell', {
+        name: 'Rank 1, up 1 from rank 2 last week',
+      }),
+    ).toBeInTheDocument();
+    // Beta fell to second.
+    expect(rows[2]).toHaveTextContent('↓1');
+    expect(
+      within(rows[2]).getByRole('cell', {
+        name: 'Rank 2, down 1 from rank 1 last week',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a dash in Rank Δ with a single completed week', () => {
+    const one = league({
+      status: 'live',
+      teams: [team('A', 'Alpha', 1, 0, 0), team('B', 'Beta', 0, 1, 0)],
+      matchups: [
+        { week: 6, team1Id: 'A', team1Points: 120, team2Id: 'B', team2Points: 90 },
+      ],
+    });
+    renderPage(one);
+    const table = screen.getByRole('table', { name: /power rankings/i });
+    const rows = within(table).getAllByRole('row');
+    expect(
+      within(rows[1]).getByRole('cell', {
+        name: 'Rank change needs two completed weeks',
+      }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('TeamsPage clinch watch', () => {

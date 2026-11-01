@@ -598,7 +598,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
             <p className={styles.sectionHint}>
               Each team's season scoring average over completed weeks, shrunk
               toward the league mean — the same rating the Playoff Race sims
-              run on, so a one-week explosion can't over-swing it. Team
+              run on, so a one-week explosion can't over-swing it. The Rank
+              Δ column shows movement vs the same table priced on last
+              week's completed weeks (FantasyPros' League Analyzer shows
+              each team's change in rank as a headline feature). Team
               Grades answers the forward-looking version of this question
               (projected points from here); this is what each team has
               actually done.
@@ -612,6 +615,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                   <tr>
                     <th scope="col">Rank</th>
                     <th scope="col">Team</th>
+                    <th scope="col">Rank Δ</th>
                     <th scope="col">Power rating</th>
                     <th scope="col">Avg pts</th>
                     <th scope="col">Last 3</th>
@@ -620,6 +624,16 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                 </thead>
                 <tbody>
                   {powerRankings.map((r, i) => {
+                    const delta =
+                      r.priorWeekRank == null ? null : r.priorWeekRank - (i + 1);
+                    const deltaTitle =
+                      delta == null
+                        ? 'Rank change needs two completed weeks'
+                        : delta > 0
+                          ? `Rank ${i + 1}, up ${delta} from rank ${r.priorWeekRank} last week`
+                          : delta < 0
+                            ? `Rank ${i + 1}, down ${-delta} from rank ${r.priorWeekRank} last week`
+                            : `Rank ${i + 1}, unchanged from last week`;
                     const trend =
                       r.trend == null
                         ? '—'
@@ -632,6 +646,27 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       <tr key={r.teamId}>
                         <td>{i + 1}</td>
                         <td>{r.teamName}</td>
+                        <td
+                          className={
+                            delta == null || delta === 0
+                              ? styles.matrixEven
+                              : delta > 0
+                                ? styles.matrixWin
+                                : styles.matrixLoss
+                          }
+                          title={deltaTitle}
+                          aria-label={deltaTitle}
+                        >
+                          {delta == null ? (
+                            '—'
+                          ) : delta > 0 ? (
+                            `↑${delta}`
+                          ) : delta < 0 ? (
+                            `↓${-delta}`
+                          ) : (
+                            '—'
+                          )}
+                        </td>
                         <td
                           title={`Season scoring average ${r.avg.toFixed(1)} over ${r.weeks} completed week${r.weeks === 1 ? '' : 's'}, pulled toward the league mean`}
                         >

@@ -113,6 +113,39 @@ describe('buildPowerRankings', () => {
     expect(rows[0].avg).toBe(120);
   });
 
+  it('reports priorWeekRank from the same table one completed week back', () => {
+    // A surges in week 4; B held rank 1 through week 3.
+    const rows = buildPowerRankings(
+      mkLeague({ A: [100, 100, 100, 200], B: [110, 110, 110, 90] }),
+    );
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    expect(rows[0].teamId).toBe('A');
+    expect(byId.get('A')!.priorWeekRank).toBe(2);
+    expect(byId.get('B')!.priorWeekRank).toBe(1);
+  });
+
+  it('leaves priorWeekRank null with a single completed week', () => {
+    const rows = buildPowerRankings(mkLeague({ A: [120], B: [100] }));
+    expect(rows).toHaveLength(2);
+    expect(rows[0].priorWeekRank).toBeNull();
+    expect(rows[1].priorWeekRank).toBeNull();
+  });
+
+  it('prices the prior week on completed weeks only, ignoring the live week', () => {
+    // currentWeek = 4: week 3 is the latest completed week, so the prior
+    // table covers weeks 1-2 and the live week-4 blowout never counts.
+    const rows = buildPowerRankings(
+      mkLeague(
+        { A: [120, 118, 122, 200], B: [100, 102, 98, 50] },
+        { currentWeek: 4 },
+      ),
+    );
+    const byId = new Map(rows.map(r => [r.teamId, r]));
+    expect(rows[0].teamId).toBe('A');
+    expect(byId.get('A')!.priorWeekRank).toBe(1);
+    expect(byId.get('B')!.priorWeekRank).toBe(2);
+  });
+
   it('returns [] with no completed matchups', () => {
     const league = mkLeague({ A: [120], B: [100] }, { currentWeek: 1 });
     expect(buildPowerRankings(league)).toEqual([]);

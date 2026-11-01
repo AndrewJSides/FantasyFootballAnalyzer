@@ -15,7 +15,7 @@
 // (old snapshots, guest mode). The live current week is excluded,
 // mirroring completedMatchups: partial scores would punish teams mid-week.
 
-import type { League } from '@/types';
+import type { League, WeeklyMatchup } from '@/types';
 import { completedMatchups } from './completedMatchups';
 
 export type PowerTrend = 'hot' | 'steady' | 'cold';
@@ -33,6 +33,12 @@ export interface PowerRankingRow {
   last3: number | null;
   /** vs the team's own season avg (±5%); null when last3 is null. */
   trend: PowerTrend | null;
+  /**
+   * Rank on the same table computed one week ago (completed weeks before
+   * the latest one); null when fewer than two completed weeks exist.
+   * Backlog item 69.
+   */
+  priorWeekRank: number | null;
 }
 
 /** Shrinkage games — matches the Playoff Race model's pull to the mean. */
@@ -40,11 +46,59 @@ const SHRINK_GAMES = 2;
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/**
+ * Rank teams 1..N on the same shrunk-rating rule over any subset of
+ * completed weeks. The prior-week table is exactly this on the weeks
+ * before the latest completed week, so "rank change" compares two
+ * identically priced tables.
+ */
+function rankByWeeks(matchups: WeeklyMatchup[]): Map<string, number> {
+  const lists = new Map<string, number[]>();
+  for (const m of matchups) {
+    for (const [id, pts] of [
+      [m.team1Id, m.team1Points],
+      [m.team2Id, m.team2Points],
+    ] as const) {
+      let list = lists.get(id);
+      if (!list) {
+        list = [];
+        lists.set(id, list);
+      }
+      list.push(pts);
+    }
+  }
+  const avgs = [...lists.values()].map(
+    l => l.reduce((s, p) => s + p, 0) / l.length,
+  );
+  const leagueMean = avgs.reduce((s, a) => s + a, 0) / Math.max(1, avgs.length);
+  const rated = [...lists.entries()].map(([id, list]) => {
+    const avg = list.reduce((s, p) => s + p, 0) / list.length;
+    return {
+      id,
+      // round1 here mirrors the main table's sort key (one-decimal
+      // ratings), so the prior table's tie-breaks match exactly.
+      rating: round1(
+        (avg * list.length + leagueMean * SHRINK_GAMES) /
+          (list.length + SHRINK_GAMES),
+      ),
+      avg,
+    };
+  });
+  rated.sort((a, b) => b.rating - a.rating || b.avg - a.avg);
+  return new Map(rated.map((r, i) => [r.id, i + 1]));
+}
+
 export function buildPowerRankings(
   league: Pick<League, 'matchups' | 'status' | 'currentWeek' | 'teams'>,
 ): PowerRankingRow[] {
   const matchups = completedMatchups(league);
   if (matchups.length === 0) return [];
+
+  // Rank change vs last week's table: the same shrunk rating over the
+  // completed weeks before the latest one. A single completed week leaves
+  // nothing to compare against, so priorWeekRank stays null.
+  const latestWeek = Math.max(...matchups.map(m => m.week));
+  const priorRanks = rankByWeeks(matchups.filter(m => m.week < latestWeek));
 
   // week -> teamId -> points, newest weeks last for the last-3 read.
   const byWeek = new Map<number, Map<string, number>>();
@@ -99,6 +153,7 @@ export function buildPowerRankings(
       rating,
       last3,
       trend,
+      priorWeekRank: priorRanks.get(id) ?? null,
     });
   }
 
