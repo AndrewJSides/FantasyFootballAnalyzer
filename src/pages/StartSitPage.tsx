@@ -30,9 +30,9 @@ import { projectionReason } from '@/utils/weeklyProjection';
 import { consistencySummary } from '@/utils/consistency';
 import { planLineupWeeks, type PlannedWeek } from '@/utils/lineupPlanner';
 import {
-  byeWeekStreamerPicks,
+  holeStreamerPicks,
   EMPTY_STREAMER_EXCLUSIONS,
-  type ByeWeekStreamerPick,
+  type HoleStreamerPick,
   type StreamerExclusions,
 } from '@/utils/byeWeekStreamers';
 import {
@@ -412,8 +412,10 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // projection + matchup engine as the single-week optimizer. Each week is
   // priced by re-running the scoring core with currentWeek set to that week,
   // so the matchup blend and bye benching key off the target week while the
-  // form series stays today's form. Balanced projection only — lineup modes
-  // apply to this week's call, not the plan.
+  // form series stays today's form. Injury-out benching follows the Roster
+  // Alerts rule (Out this week only, season-ending every remaining week).
+  // Balanced projection only — lineup modes apply to this week's call, not
+  // the plan.
   const planEndWeek = useMemo(() => {
     const end = league.playoffStartWeek ? league.playoffStartWeek - 1 : 14;
     return Math.min(Math.max(end, currentWeek ?? 0), 18);
@@ -449,16 +451,22 @@ export function StartSitPage({ league }: StartSitPageProps) {
   const planWatch = (w: PlannedWeek): string => {
     const parts: string[] = [];
     if (w.onBye.length > 0) parts.push(`Bye: ${w.onBye.join(', ')}`);
+    const outInjured = w.holes.filter(h => h.cause === 'injury');
+    if (outInjured.length > 0)
+      parts.push(
+        `Out: ${outInjured.map(h => (h.injuryLabel ? `${h.name} (${h.injuryLabel})` : h.name)).join(', ')}`,
+      );
     const tough = w.starters.filter(s => s.matchupLabel === 'tough');
     if (tough.length > 0)
       parts.push(`Tough: ${tough.map(s => `${s.name} (vs ${s.opponent})`).join(', ')}`);
     return parts.length > 0 ? parts.join(' · ') : '—';
   };
-  // --- Bye-week streamer picks (backlog item 61) ---------------------------
+  // --- Lineup-hole streamer picks (backlog items 61 + 67 remainder) -------
   // For each planned week, name the best available streamer at each
   // streamable position (D/ST, K, QB, TE) where a rostered starter is on
-  // bye — the same opponent-generosity engines as the Waivers page's
-  // streamer sections, priced per week like the Streamer Planner.
+  // bye or ruled out by injury — the same opponent-generosity engines as
+  // the Waivers page's streamer sections, priced per week like the
+  // Streamer Planner.
   // Availability is league-wide (same as the Waivers page); guest mode
   // has no rostered exclusion.
   const streamerExclusions = useMemo<StreamerExclusions>(
@@ -474,11 +482,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
   );
   const planStreamerPicks = useMemo(
     () =>
-      new Map<number, ByeWeekStreamerPick[]>(
+      new Map<number, HoleStreamerPick[]>(
         lineupPlan.map(
-          (w): [number, ByeWeekStreamerPick[]] => [
+          (w): [number, HoleStreamerPick[]] => [
             w.week,
-            byeWeekStreamerPicks(w.week, w.byeHoles, streamerExclusions),
+            holeStreamerPicks(w.week, w.holes, streamerExclusions),
           ],
         ),
       ),
@@ -497,11 +505,16 @@ export function StartSitPage({ league }: StartSitPageProps) {
     return (
       `Week ${w.week} streamer picks: ` +
       picks
-        .map(
-          p =>
-            `stream ${p.pickName} at ${p.position} while ${p.holeName} is on bye — ` +
-            `versus ${p.opponent}, ${p.label} matchup`,
-        )
+        .map(p => {
+          const absence =
+            p.cause === 'injury'
+              ? `is out${p.injuryLabel ? ` (${p.injuryLabel})` : ''}`
+              : 'is on bye';
+          return (
+            `stream ${p.pickName} at ${p.position} while ${p.holeName} ${absence} — ` +
+            `versus ${p.opponent}, ${p.label} matchup`
+          );
+        })
         .join('; ')
     );
   };
@@ -1036,10 +1049,12 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 <p className={styles.note}>
                   Each week is priced on today&apos;s form plus that week&apos;s
                   matchup — the model does not decay form over time, so treat
-                  far weeks as directional. Bye-week players sit automatically.
+                  far weeks as directional. Bye-week players sit automatically,
+                  as do players ruled Out (this week only — a designation may
+                  lift) or on season-ending IR (every remaining week).
                   Streamer picks name the week&apos;s best available D/ST, K,
-                  QB, or TE when a rostered starter is on bye at that
-                  position, priced on opponent generosity like the Waivers
+                  QB, or TE when a rostered starter is on bye or ruled out at
+                  that position, priced on opponent generosity like the Waivers
                   page&apos;s streamer sections. Priced on the balanced
                   projection; lineup modes apply to this week&apos;s call only.
                 </p>

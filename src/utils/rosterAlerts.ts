@@ -81,7 +81,11 @@ interface ScoredRosterPlayer extends OptimalLineupPlayer {
 // unavailable for this week's scan only, while a season-ending designation
 // (IR etc.) rules him out for every remaining scanned week.
 // Questionable/Doubtful are game-time decisions and stay eligible here.
-function outForWeek(tier: InjurySeverityTier, week: number, currentWeek: number): boolean {
+export function outForWeek(
+  tier: InjurySeverityTier,
+  week: number,
+  currentWeek: number,
+): boolean {
   if (tier === 'season-ending') return true;
   return tier === 'out' && week === currentWeek;
 }

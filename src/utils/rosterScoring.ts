@@ -16,7 +16,7 @@ import {
   type MatchupRating,
 } from '@/utils/matchupRating';
 import type { OptimalLineupPlayer } from '@/utils/optimalLineup';
-import { injuryTier, injuryTierLabel } from '@/utils/injuryReport';
+import { injuryTier, injuryTierLabel, type InjurySeverityTier } from '@/utils/injuryReport';
 
 export interface ScoredPlayer extends OptimalLineupPlayer {
   player: Player;
@@ -38,6 +38,13 @@ export interface ScoredPlayer extends OptimalLineupPlayer {
   injuredOut: boolean;
   /** e.g. "Out (Knee)" for injuredOut players, null otherwise. */
   injuryLabel: string | null;
+  /**
+   * Raw injury tier from the bundled pool ('out', 'season-ending', 'other',
+   * ...). Exposed so multi-week consumers can apply the current-week-only
+   * rule for 'out' (an Out-today player may return) while season-ending
+   * designations rule a player out for every remaining week.
+   */
+  injuryTier: InjurySeverityTier;
 }
 
 export interface RosterScoreInputs {
@@ -150,6 +157,7 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
       matchup,
       injuredOut,
       injuryLabel,
+      injuryTier: tier,
     };
   });
 }

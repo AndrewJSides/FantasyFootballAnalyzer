@@ -6,6 +6,8 @@
 // stays today's form (weeks 1..realCurrentWeek-1) — the planner shows how
 // the schedule reshapes the lineup, not how form will evolve. Treat far
 // weeks as directional: the model does not decay form over time.
+// Injury designations follow the Roster Alerts rule: Out benched for the
+// current week only, season-ending IR for every remaining week.
 
 import type { RosterSlots } from '@/types';
 import { optimalLineup } from '@/utils/optimalLineup';
@@ -15,6 +17,7 @@ import {
   type RosterScoreInputs,
   type ScoredPlayer,
 } from '@/utils/rosterScoring';
+import { outForWeek } from '@/utils/rosterAlerts';
 import type { MatchupLabel } from '@/utils/matchupRating';
 
 export interface PlannedStarter {
@@ -28,13 +31,18 @@ export interface PlannedStarter {
 }
 
 /**
- * A rostered player who would have started this week if he weren't on bye
- * (or otherwise excluded from the lineup pass): the lineup hole that week.
+ * A rostered player who would have started this week if he weren't
+ * unavailable: the lineup hole that week. Cause 'bye' for bye-week sits,
+ * 'injury' for players ruled out by injury (Out this week, or season-ending
+ * IR for every remaining week — the same rule as the Roster Alerts scan).
  */
-export interface ByeHole {
+export interface LineupHole {
   name: string;
   position: string;
   nflTeam: string;
+  cause: 'bye' | 'injury';
+  /** e.g. "Out (Knee)" when cause is 'injury', null otherwise. */
+  injuryLabel: string | null;
 }
 
 export interface PlannedWeek {
@@ -44,12 +52,12 @@ export interface PlannedWeek {
   /** Rostered players on bye that week — excluded from every lineup. */
   onBye: string[];
   /**
-   * On-bye players who would have started (the unfiltered optimal lineup
-   * starts them, so the week loses a starter at their position). The
-   * Streamer Planner's per-week engines price the replacement for
+   * Unavailable players who would have started (the unfiltered optimal
+   * lineup starts them, so the week loses a starter at their position).
+   * The Streamer Planner's per-week engines price the replacement for
    * streamable positions (QB / TE / K / DST).
    */
-  byeHoles: ByeHole[];
+  holes: LineupHole[];
   toughCount: number;
   favorableCount: number;
 }
@@ -62,25 +70,45 @@ export interface PlanLineupWeeksInputs extends RosterScoreInputs {
 
 export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
   const { fromWeek, toWeek, slots, ...scoreInputs } = inputs;
+  // Injury designations are priced as of today: a player listed Out is
+  // benched for the current week only (he may return), while a
+  // season-ending designation rules him out for every remaining week —
+  // the same rule as the Roster Alerts scan. The form series stays
+  // today's form either way.
+  const realCurrentWeek = scoreInputs.currentWeek ?? fromWeek;
   const plans: PlannedWeek[] = [];
   for (let week = fromWeek; week <= toWeek; week++) {
     const scored = scoreRosterPlayers({ ...scoreInputs, currentWeek: week });
-    const eligible = scored.filter(s => !s.onBye);
+    const eligible = scored.filter(
+      s => !s.onBye && !outForWeek(s.injuryTier, week, realCurrentWeek),
+    );
     const lineup = optimalLineup(eligible, slots);
     // Twice-pass (same pattern as the Roster Alerts scan): run the greedy
-    // pass once with the bye players allowed, so an on-bye player who
-    // would have started shows up as the hole that week rather than
-    // silently vanishing behind his backup.
+    // pass once with the week-unavailable players allowed, so an on-bye
+    // or out-for-the-week player who would have started shows up as the
+    // hole that week rather than silently vanishing behind his backup.
     const fullLineup = optimalLineup(scored, slots);
-    const byeHoles: ByeHole[] = [];
+    const holes: LineupHole[] = [];
     for (const assignment of fullLineup.starters) {
       const player = assignment.player as ScoredPlayer | null;
-      if (!player || !player.onBye) continue;
-      byeHoles.push({
-        name: player.name,
-        position: player.position,
-        nflTeam: player.nflTeam,
-      });
+      if (!player) continue;
+      if (player.onBye) {
+        holes.push({
+          name: player.name,
+          position: player.position,
+          nflTeam: player.nflTeam,
+          cause: 'bye',
+          injuryLabel: null,
+        });
+      } else if (outForWeek(player.injuryTier, week, realCurrentWeek)) {
+        holes.push({
+          name: player.name,
+          position: player.position,
+          nflTeam: player.nflTeam,
+          cause: 'injury',
+          injuryLabel: player.injuryLabel,
+        });
+      }
     }
     const starters: PlannedStarter[] = [];
     for (const assignment of lineup.starters) {
@@ -101,7 +129,7 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
       projectedTotal: round1(starters.reduce((sum, s) => sum + s.score, 0)),
       starters,
       onBye: scored.filter(s => s.onBye).map(s => s.name),
-      byeHoles,
+      holes,
       toughCount: starters.filter(s => s.matchupLabel === 'tough').length,
       favorableCount: starters.filter(s => s.matchupLabel === 'favorable').length,
     });

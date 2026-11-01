@@ -1,6 +1,64 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { planLineupWeeks } from './lineupPlanner';
 import type { Player } from '@/types';
+import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
+
+// Synthetic pool players with injury designations, appended to the real
+// bundled pool (vi.mock factories are hoisted, so the data is built with
+// vi.hoisted). Existing tests keep resolving real players by name.
+const { SYNTH_PLAYERS } = vi.hoisted(() => {
+  function synthPlayer(over: Partial<PoolPlayer>): PoolPlayer {
+    return {
+      id: 'x',
+      name: 'X',
+      team: 'KC',
+      pos: 'QB',
+      posRank: 1,
+      overallRank: 1,
+      tier: 1,
+      bye: null,
+      baseValue: 1,
+      projPtsPpr: 100,
+      ...over,
+    } as PoolPlayer;
+  }
+  return {
+    SYNTH_PLAYERS: [
+      synthPlayer({
+        id: 'syn-out-qb',
+        name: 'Out Ian',
+        pos: 'QB',
+        projPtsPpr: 320,
+        injuryStatus: 'Out',
+        injuryBodyPart: 'knee',
+      }),
+      synthPlayer({
+        id: 'syn-q-qb',
+        name: 'Game Time Gary',
+        pos: 'QB',
+        projPtsPpr: 260,
+        injuryStatus: 'Questionable',
+      }),
+      synthPlayer({ id: 'syn-backup-qb', name: 'Backup Ian', pos: 'QB', projPtsPpr: 150 }),
+      synthPlayer({
+        id: 'syn-ir-te',
+        name: 'Donezo Dan',
+        pos: 'TE',
+        projPtsPpr: 200,
+        injuryStatus: 'IR',
+        injuryBodyPart: 'knee',
+        injuryNotes: 'ACL tear, out for the season',
+      }),
+      synthPlayer({ id: 'syn-backup-te', name: 'Next Dan', pos: 'TE', projPtsPpr: 120 }),
+    ],
+  };
+});
+
+vi.mock('@/data/draftPool', async importOriginal => {
+  const mod = await importOriginal<typeof import('@/data/draftPool')>();
+  const pool = mod.POOL as DraftPoolFile;
+  return { ...mod, POOL: { ...pool, players: [...pool.players, ...SYNTH_PLAYERS] } };
+});
 
 const SLOTS = {
   QB: 1,
@@ -85,11 +143,11 @@ describe('planLineupWeeks', () => {
       fromWeek: 9,
       toWeek: 11,
     });
-    expect(week10.byeHoles).toEqual([]);
-    const tuaHole = week11.byeHoles.find(h => h.name === 'Tua Tagovailoa');
-    expect(tuaHole).toMatchObject({ position: 'QB', nflTeam: 'ATL' });
+    expect(week10.holes).toEqual([]);
+    const tuaHole = week11.holes.find(h => h.name === 'Tua Tagovailoa');
+    expect(tuaHole).toMatchObject({ position: 'QB', nflTeam: 'ATL', cause: 'bye' });
     // Josh Allen (not on bye) is no hole even though he starts in week 11.
-    expect(week11.byeHoles.some(h => h.name === 'Josh Allen')).toBe(false);
+    expect(week11.holes.some(h => h.name === 'Josh Allen')).toBe(false);
   });
 
   it('prices each week on that week\'s matchup', () => {
@@ -106,5 +164,81 @@ describe('planLineupWeeks', () => {
     for (const s of plan.starters) bySlot.set(s.slot, (bySlot.get(s.slot) ?? 0) + 1);
     expect(bySlot.get('QB')).toBe(1);
     expect((bySlot.get('RB') ?? 0) + (bySlot.get('FLEX') ?? 0)).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('injury handling (backlog item 67 remainder)', () => {
+  const INJURY_SLOTS = {
+    QB: 1,
+    RB: 0,
+    WR: 0,
+    TE: 1,
+    FLEX: 0,
+    SUPERFLEX: 0,
+    K: 0,
+    DST: 0,
+    BENCH: 5,
+    IR: 0,
+  };
+
+  const injuryRoster: Player[] = [
+    { id: 'syn-out-qb', platformId: 'syn-out-qb', name: 'Out Ian', position: 'QB', team: 'KC' },
+    { id: 'syn-q-qb', platformId: 'syn-q-qb', name: 'Game Time Gary', position: 'QB', team: 'KC' },
+    { id: 'syn-backup-qb', platformId: 'syn-backup-qb', name: 'Backup Ian', position: 'QB', team: 'KC' },
+    { id: 'syn-ir-te', platformId: 'syn-ir-te', name: 'Donezo Dan', position: 'TE', team: 'KC' },
+    { id: 'syn-backup-te', platformId: 'syn-backup-te', name: 'Next Dan', position: 'TE', team: 'KC' },
+  ];
+
+  // Out Ian > Game Time Gary > Backup Ian at QB; Donezo Dan > Next Dan at TE.
+  const injuryWeeklyPoints: Record<string, Record<string, number>> = {};
+  const weeklyFor = (id: string, basePts: number) => {
+    injuryWeeklyPoints[id] = {};
+    for (let w = 1; w <= 7; w++) injuryWeeklyPoints[id][String(w)] = basePts + w;
+  };
+  weeklyFor('syn-out-qb', 22);
+  weeklyFor('syn-q-qb', 18);
+  weeklyFor('syn-backup-qb', 10);
+  weeklyFor('syn-ir-te', 16);
+  weeklyFor('syn-backup-te', 8);
+
+  const injuryBase = {
+    roster: injuryRoster,
+    weeklyPoints: injuryWeeklyPoints,
+    gamesSeason: 2026,
+    season: 2026,
+    currentWeek: 8,
+    slots: INJURY_SLOTS,
+  };
+
+  it('benches an Out starter for the current week only', () => {
+    const [week8, week9] = planLineupWeeks({ ...injuryBase, fromWeek: 8, toWeek: 9 });
+    // Out Ian is the best QB but sits in week 8; Game Time Gary starts.
+    expect(week8.starters.some(s => s.name === 'Out Ian')).toBe(false);
+    expect(week8.starters.some(s => s.name === 'Game Time Gary')).toBe(true);
+    const hole = week8.holes.find(h => h.name === 'Out Ian');
+    expect(hole).toMatchObject({ cause: 'injury', position: 'QB', nflTeam: 'KC' });
+    expect(hole?.injuryLabel).toContain('Out');
+    // Week 9: the designation is current-week knowledge, so he returns.
+    expect(week9.starters.some(s => s.name === 'Out Ian')).toBe(true);
+    expect(week9.holes.some(h => h.name === 'Out Ian')).toBe(false);
+  });
+
+  it('benches a season-ending-IR starter for every remaining week', () => {
+    const [week8, week9, week10] = planLineupWeeks({ ...injuryBase, fromWeek: 8, toWeek: 10 });
+    for (const plan of [week8, week9, week10]) {
+      expect(plan.starters.some(s => s.name === 'Donezo Dan')).toBe(false);
+      expect(plan.starters.some(s => s.name === 'Next Dan')).toBe(true);
+      expect(plan.holes.find(h => h.name === 'Donezo Dan')).toMatchObject({
+        cause: 'injury',
+        position: 'TE',
+      });
+    }
+  });
+
+  it('keeps Questionable players eligible as game-time decisions', () => {
+    const [week8] = planLineupWeeks({ ...injuryBase, fromWeek: 8, toWeek: 8 });
+    // Gary (Questionable) starts over the healthy backup while Out Ian sits.
+    expect(week8.starters.some(s => s.name === 'Game Time Gary')).toBe(true);
+    expect(week8.holes.some(h => h.name === 'Game Time Gary')).toBe(false);
   });
 });

@@ -1,17 +1,19 @@
-// Bye-week streamer picks (backlog item 61): the Plan Ahead table names
-// bye-week sits, but left the manager to find the replacement. This joins
-// the lineup planner's bye holes (item 29) with the weekly streamer engines
-// (items 14/15/39, re-run per week like the Streamer Planner, item 40):
-// for each future week where a rostered player at a streamable position
-// (D/ST, K, QB, TE) would have started if he weren't on bye, it names the
-// week's best available streamer at that position as the pick-up.
+// Lineup-hole streamer picks (backlog items 61 + 67 remainder): the Plan
+// Ahead table names lineup holes, but left the manager to find the
+// replacement. This joins the lineup planner's holes (bye-week sits from
+// item 29, injury-out holes from item 67's remainder) with the weekly
+// streamer engines (items 14/15/39, re-run per week like the Streamer
+// Planner, item 40): for each week where a rostered player at a streamable
+// position (D/ST, K, QB, TE) would have started if he weren't unavailable,
+// it names the week's best available streamer at that position as the
+// pick-up.
 //
 // Implemented from TraderApe's own data (bundled schedule + opponent-
 // generosity averages); the competitor shape is FantasyPros' Waiver
 // Assistant, whose public description says it "considers your team's needs,
 // player bye weeks, and overall strategy to suggest additions".
 
-import type { ByeHole } from '@/utils/lineupPlanner';
+import type { LineupHole } from '@/utils/lineupPlanner';
 import { basePosition } from '@/utils/playerNames';
 import {
   rankDstStreamers,
@@ -42,9 +44,13 @@ export interface StreamerExclusions {
   rosteredSkillIds: ReadonlySet<string>;
 }
 
-export interface ByeWeekStreamerPick {
-  /** The rostered player on bye who created the need. */
+export interface HoleStreamerPick {
+  /** The rostered player whose absence created the need. */
   holeName: string;
+  /** Why the hole exists: 'bye' or 'injury'. */
+  cause: 'bye' | 'injury';
+  /** e.g. "Out (Knee)" for injury holes, null for bye holes. */
+  injuryLabel: string | null;
   position: StreamerPosition;
   /** The recommended streamer's name (or defense abbrev for D/ST). */
   pickName: string;
@@ -70,9 +76,9 @@ export interface ByeWeekStreamerFixtures {
   skillStarters?: Parameters<typeof rankSkillStreamers>[6];
 }
 
-/** Bye holes at streamable positions only (QB/TE/K/DST); RB/WR have no streamer engine. */
-export function streamableByeHoles(holes: ByeHole[]): Array<ByeHole & { position: StreamerPosition }> {
-  const out: Array<ByeHole & { position: StreamerPosition }> = [];
+/** Lineup holes at streamable positions only (QB/TE/K/DST); RB/WR have no streamer engine. */
+export function streamableHoles(holes: LineupHole[]): Array<LineupHole & { position: StreamerPosition }> {
+  const out: Array<LineupHole & { position: StreamerPosition }> = [];
   for (const hole of holes) {
     const base = basePosition(hole.position ?? '');
     if (base === 'QB' || base === 'TE' || base === 'K' || base === 'DST') {
@@ -84,15 +90,15 @@ export function streamableByeHoles(holes: ByeHole[]): Array<ByeHole & { position
 
 /** One best-available streamer per hole, grouped by position so multiple
  * holes at the same position get distinct picks in rank order. */
-export function byeWeekStreamerPicks(
+export function holeStreamerPicks(
   week: number,
-  holes: ByeHole[],
+  holes: LineupHole[],
   exclusions: StreamerExclusions,
   fixtures: ByeWeekStreamerFixtures = {},
-): ByeWeekStreamerPick[] {
-  const streamable = streamableByeHoles(holes);
+): HoleStreamerPick[] {
+  const streamable = streamableHoles(holes);
   if (streamable.length === 0) return [];
-  const picks: ByeWeekStreamerPick[] = [];
+  const picks: HoleStreamerPick[] = [];
   const byPosition = new Map<StreamerPosition, typeof streamable>();
   for (const hole of streamable) {
     const list = byPosition.get(hole.position) ?? [];
@@ -104,6 +110,8 @@ export function byeWeekStreamerPicks(
     for (let i = 0; i < positionHoles.length && i < ranked.length; i++) {
       picks.push({
         holeName: positionHoles[i].name,
+        cause: positionHoles[i].cause,
+        injuryLabel: positionHoles[i].injuryLabel,
         position,
         pickName: ranked[i].pickName,
         opponent: ranked[i].opponent,

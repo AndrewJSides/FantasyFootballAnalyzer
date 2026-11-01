@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  byeWeekStreamerPicks,
-  streamableByeHoles,
+  holeStreamerPicks,
+  streamableHoles,
   EMPTY_STREAMER_EXCLUSIONS,
   type ByeWeekStreamerFixtures,
 } from './byeWeekStreamers';
@@ -113,11 +113,17 @@ const teFixtures: ByeWeekStreamerFixtures = {
   skillStarters: startingSkillPlayers('TE', pool),
 };
 
-function hole(name: string, position: string, nflTeam = 'ATL') {
-  return { name, position, nflTeam };
+function hole(
+  name: string,
+  position: string,
+  nflTeam = 'ATL',
+  cause: 'bye' | 'injury' = 'bye',
+  injuryLabel: string | null = null,
+) {
+  return { name, position, nflTeam, cause, injuryLabel };
 }
 
-describe('streamableByeHoles', () => {
+describe('streamableHoles', () => {
   it('keeps QB/TE/K/DST and drops RB/WR', () => {
     const holes = [
       hole('A', 'QB'),
@@ -128,22 +134,22 @@ describe('streamableByeHoles', () => {
       hole('F', 'RB'),
       hole('G', 'WR'),
     ];
-    const kept = streamableByeHoles(holes);
+    const kept = streamableHoles(holes);
     expect(kept.map(h => h.name)).toEqual(['A', 'B', 'C', 'D', 'E']);
     expect(kept.find(h => h.name === 'E')?.position).toBe('DST');
   });
 });
 
-describe('byeWeekStreamerPicks', () => {
+describe('holeStreamerPicks', () => {
   it('returns nothing for no holes or non-streamable positions', () => {
-    expect(byeWeekStreamerPicks(8, [], EMPTY_STREAMER_EXCLUSIONS, fixtures)).toEqual([]);
+    expect(holeStreamerPicks(8, [], EMPTY_STREAMER_EXCLUSIONS, fixtures)).toEqual([]);
     expect(
-      byeWeekStreamerPicks(8, [hole('X', 'RB')], EMPTY_STREAMER_EXCLUSIONS, fixtures),
+      holeStreamerPicks(8, [hole('X', 'RB')], EMPTY_STREAMER_EXCLUSIONS, fixtures),
     ).toEqual([]);
   });
 
   it('picks the most generous defense for a D/ST hole', () => {
-    const [pick] = byeWeekStreamerPicks(
+    const [pick] = holeStreamerPicks(
       8,
       [hole('My Defense', 'DST', 'NYG')],
       EMPTY_STREAMER_EXCLUSIONS,
@@ -161,7 +167,7 @@ describe('byeWeekStreamerPicks', () => {
 
   it('respects rostered defenses and hands out distinct picks for multiple holes', () => {
     const holes = [hole('D1', 'DST'), hole('D2', 'DST')];
-    const [first, second] = byeWeekStreamerPicks(
+    const [first, second] = holeStreamerPicks(
       8,
       holes,
       { ...EMPTY_STREAMER_EXCLUSIONS, rosteredDefenses: new Set(['AAA']) },
@@ -176,7 +182,7 @@ describe('byeWeekStreamerPicks', () => {
   });
 
   it('picks the best kicker for a K hole', () => {
-    const [pick] = byeWeekStreamerPicks(
+    const [pick] = holeStreamerPicks(
       8,
       [hole('My Kicker', 'K', 'NYG')],
       EMPTY_STREAMER_EXCLUSIONS,
@@ -193,7 +199,7 @@ describe('byeWeekStreamerPicks', () => {
   });
 
   it('picks the best QB for a QB hole', () => {
-    const [pick] = byeWeekStreamerPicks(
+    const [pick] = holeStreamerPicks(
       8,
       [hole('My QB', 'QB', 'NYG')],
       EMPTY_STREAMER_EXCLUSIONS,
@@ -210,7 +216,7 @@ describe('byeWeekStreamerPicks', () => {
   });
 
   it('excludes rostered QBs and picks the next best', () => {
-    const [pick] = byeWeekStreamerPicks(
+    const [pick] = holeStreamerPicks(
       8,
       [hole('My QB', 'QB', 'NYG')],
       { ...EMPTY_STREAMER_EXCLUSIONS, rosteredSkillIds: new Set(['qc']) },
@@ -221,7 +227,7 @@ describe('byeWeekStreamerPicks', () => {
   });
 
   it('picks the best TE for a TE hole', () => {
-    const [pick] = byeWeekStreamerPicks(
+    const [pick] = holeStreamerPicks(
       8,
       [hole('My TE', 'TE', 'NYG')],
       EMPTY_STREAMER_EXCLUSIONS,
@@ -238,7 +244,7 @@ describe('byeWeekStreamerPicks', () => {
   });
 
   it('covers several positions in one week', () => {
-    const picks = byeWeekStreamerPicks(
+    const picks = holeStreamerPicks(
       8,
       [hole('My QB', 'QB'), hole('My Kicker', 'K')],
       EMPTY_STREAMER_EXCLUSIONS,
@@ -249,7 +255,22 @@ describe('byeWeekStreamerPicks', () => {
 
   it('returns nothing when the week has no games', () => {
     expect(
-      byeWeekStreamerPicks(9, [hole('My QB', 'QB')], EMPTY_STREAMER_EXCLUSIONS, fixtures),
+      holeStreamerPicks(9, [hole('My QB', 'QB')], EMPTY_STREAMER_EXCLUSIONS, fixtures),
     ).toEqual([]);
+  });
+
+  it('carries the injury cause and label through to the pick', () => {
+    const [pick] = holeStreamerPicks(
+      8,
+      [hole('Hurt QB', 'QB', 'ATL', 'injury', 'Out (Knee)')],
+      EMPTY_STREAMER_EXCLUSIONS,
+      fixtures,
+    );
+    expect(pick).toMatchObject({
+      holeName: 'Hurt QB',
+      cause: 'injury',
+      injuryLabel: 'Out (Knee)',
+      position: 'QB',
+    });
   });
 });
