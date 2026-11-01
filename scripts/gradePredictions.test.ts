@@ -46,3 +46,20 @@ describe('weekGamesFinished', () => {
     expect(weekGamesFinished(2026, 8, { '8': { GB: 'not-a-date' } }, Date.now())).toBe(null);
   });
 });
+
+describe('sleeperPositionMap', () => {
+  it('joins Sleeper ids to skill positions from the bundled pool', async () => {
+    const { sleeperPositionMap } = await import('./gradePredictions');
+    const map = sleeperPositionMap(2026);
+    expect(map.get('9221')).toBe('RB'); // Jahmyr Gibbs
+    expect(map.get('4984')).toBe('QB'); // Josh Allen
+    expect(map.size).toBeGreaterThan(300);
+  });
+
+  it('excludes non-skill positions and unknown ids', async () => {
+    const { sleeperPositionMap } = await import('./gradePredictions');
+    const map = sleeperPositionMap(2026);
+    expect([...map.values()].every((p) => ['QB', 'RB', 'WR', 'TE'].includes(p))).toBe(true);
+    expect(map.get('not-a-player')).toBeUndefined();
+  });
+});

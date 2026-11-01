@@ -21,6 +21,7 @@ import {
   aggregateFactors,
   type ComponentLine,
   type GradeSummary,
+  type SkillPosition,
 } from '../src/utils/predictionGrading';
 
 const UA = 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)';
@@ -37,6 +38,36 @@ const MIN_GRADED_PROJECTION = 5;
 interface SnapshotPlayer {
   player_id: string;
   stats: Record<string, number>;
+}
+
+interface PoolPlayer {
+  sleeperId?: string;
+  pos?: string;
+}
+
+/**
+ * Join Sleeper player ids to skill positions via the bundled preseason
+ * pool (src/data/draftPool.<season>.json), which carries both the Sleeper
+ * id and the position for every drafted player. Players outside the pool
+ * (deep bench / IR fliers) resolve to undefined and stay in the overall
+ * grade aggregate only. Exported for tests.
+ */
+export function sleeperPositionMap(
+  season: number,
+): Map<string, SkillPosition> {
+  const doc = JSON.parse(
+    readFileSync(join('src', 'data', `draftPool.${season}.json`), 'utf8'),
+  ) as { players?: PoolPlayer[] };
+  const map = new Map<string, SkillPosition>();
+  for (const p of doc.players ?? []) {
+    if (
+      p.sleeperId &&
+      (p.pos === 'QB' || p.pos === 'RB' || p.pos === 'WR' || p.pos === 'TE')
+    ) {
+      map.set(p.sleeperId, p.pos);
+    }
+  }
+  return map;
 }
 
 /**
@@ -197,7 +228,10 @@ async function main(): Promise<void> {
     }
   }
 
-  const summary = summarize(grades, breakouts.length);
+  const positionOf = sleeperPositionMap(season);
+  const summary = summarize(grades, breakouts.length, (id) =>
+    positionOf.get(id),
+  );
   const gradeDoc = {
     source: 'sleeper',
     season,

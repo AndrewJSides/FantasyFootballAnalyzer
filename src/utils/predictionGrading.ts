@@ -24,6 +24,11 @@ export const GRADE_THRESHOLD = 5;
 
 export type GradeCategory = 'outperformed' | 'underperformed' | 'in-line';
 
+// Skill positions the factor aggregate breaks out by. K/DST stay in the
+// overall numbers only — the learned-factor consumers (usage weighting, TD
+// regression) are skill-position models.
+export type SkillPosition = 'QB' | 'RB' | 'WR' | 'TE';
+
 export type ReasonTag =
   | 'usage-up'
   | 'usage-down'
@@ -154,9 +159,17 @@ export interface GradeSummary {
   meanAbsDiff: number;
   primaryReasonCounts: Partial<Record<ReasonTag, number>>;
   breakoutCount: number;
+  // Per-position splits, depth 1 only (each sub-summary has no byPosition).
+  // Present when summarize() got a position resolver; positions with no
+  // graded players are absent.
+  byPosition?: Partial<Record<SkillPosition, GradeSummary>>;
 }
 
-export function summarize(grades: PlayerGrade[], breakoutCount: number): GradeSummary {
+export function summarize(
+  grades: PlayerGrade[],
+  breakoutCount: number,
+  positionOf?: (playerId: string) => SkillPosition | undefined,
+): GradeSummary {
   const n = grades.length;
   const sum = (f: (g: PlayerGrade) => number): number =>
     grades.reduce((acc, g) => acc + f(g), 0);
@@ -166,7 +179,7 @@ export function summarize(grades: PlayerGrade[], breakoutCount: number): GradeSu
       primaryReasonCounts[g.primaryReason] = (primaryReasonCounts[g.primaryReason] ?? 0) + 1;
     }
   }
-  return {
+  const summary: GradeSummary = {
     graded: n,
     outperformed: grades.filter((g) => g.category === 'outperformed').length,
     underperformed: grades.filter((g) => g.category === 'underperformed').length,
@@ -176,6 +189,28 @@ export function summarize(grades: PlayerGrade[], breakoutCount: number): GradeSu
     primaryReasonCounts,
     breakoutCount,
   };
+  if (positionOf) {
+    // Group first, then summarize each group (breakouts are league-wide, so
+    // per-position sub-summaries get 0). Players the resolver doesn't know
+    // stay in the overall summary only.
+    const byPosition: Partial<Record<SkillPosition, GradeSummary>> = {};
+    const groups = new Map<SkillPosition, PlayerGrade[]>();
+    for (const g of grades) {
+      const pos = positionOf(g.player_id);
+      if (pos) {
+        const list = groups.get(pos) ?? [];
+        list.push(g);
+        groups.set(pos, list);
+      }
+    }
+    for (const [pos, list] of groups) {
+      byPosition[pos] = summarize(list, 0);
+    }
+    if (Object.keys(byPosition).length > 0) {
+      summary.byPosition = byPosition;
+    }
+  }
+  return summary;
 }
 
 // Learned weights for future predictions, aggregated over graded weeks.
@@ -193,7 +228,13 @@ export interface LearnedFactors {
   usageDrivenMissShare: number;
   tdVarianceMissShare: number;
   didNotPlayMissShare: number;
+  // Per-position learned factors, present when the graded weeks carried
+  // byPosition summaries. The projection model applies the per-position
+  // numbers where they exist and falls back to the overall ones.
+  byPosition?: Partial<Record<SkillPosition, LearnedFactors>>;
 }
+
+const SKILL_POSITIONS: SkillPosition[] = ['QB', 'RB', 'WR', 'TE'];
 
 export function aggregateFactors(
   summaries: GradeSummary[],
@@ -216,7 +257,7 @@ export function aggregateFactors(
   const usage = reasonTotal('usage-up') + reasonTotal('usage-down');
   const td = reasonTotal('td-variance');
   const dnp = reasonTotal('did-not-play');
-  return {
+  const factors: LearnedFactors = {
     weeksGraded: summaries.length,
     playersGraded,
     meanDiff: weightedMean((s) => s.meanDiff),
@@ -226,4 +267,18 @@ export function aggregateFactors(
     tdVarianceMissShare: misses > 0 ? Math.round((td / misses) * 1000) / 1000 : 0,
     didNotPlayMissShare: misses > 0 ? Math.round((dnp / misses) * 1000) / 1000 : 0,
   };
+  // Per-position roll-up over each week's byPosition sub-summaries.
+  const byPosition: Partial<Record<SkillPosition, LearnedFactors>> = {};
+  for (const pos of SKILL_POSITIONS) {
+    const subs = summaries.flatMap((s) => (s.byPosition?.[pos] ? [s.byPosition[pos]] : []));
+    if (subs.length > 0) {
+      const { byPosition: _omit, ...rolled } = aggregateFactors(subs);
+      void _omit;
+      byPosition[pos] = rolled;
+    }
+  }
+  if (Object.keys(byPosition).length > 0) {
+    factors.byPosition = byPosition;
+  }
+  return factors;
 }
