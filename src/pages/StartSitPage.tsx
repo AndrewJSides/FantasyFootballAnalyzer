@@ -48,6 +48,9 @@ import {
 } from '@/utils/matchupRating';
 import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
 import { safeRiskyPicks } from '@/utils/safeRisky';
+import { buildGameDayChecklist } from '@/utils/gameDayChecklist';
+import { GameDayChecklist } from '@/components/GameDayChecklist';
+import { teamRosterAlerts } from '@/utils/rosterAlerts';
 import styles from './StartSitPage.module.css';
 
 interface StartSitPageProps {
@@ -402,6 +405,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
   const displayName = isGuest ? 'Your roster' : team?.name;
   const guestDataPending = isGuest && guestWeeklyState !== 'ready';
 
+
   // --- Plan ahead: multi-week lineup planner (backlog item 29) ---------------
   // Optimal lineups for every remaining regular-season week (this week
   // through the week before the fantasy playoffs), priced on the same
@@ -565,6 +569,42 @@ export function StartSitPage({ league }: StartSitPageProps) {
       week: currentWeek,
     });
   }, [lineup, benched, currentWeek, guestDataPending, poolIndex]);
+
+  // --- Game-day checklist (backlog item 70) ---------------------------------
+  // The Sunday-morning "what do I need to do before kickoff" list, built
+  // from this page's own computed data: the late-swap alerts (game-time
+  // decisions + insurance), the Out starters the optimizer benched, the
+  // kickoff lock order, and the current week's no-cover holes with their
+  // waiver fillers from the roster-alert scan (league mode only — the
+  // scan needs the league's rosters for the filler filter).
+  const checklist = useMemo(() => {
+    if (guestDataPending || currentWeek === undefined) return [];
+    return buildGameDayChecklist({
+      week: currentWeek,
+      starters: lineup.starters
+        .filter(a => a.player)
+        .map(a => {
+          const p = a.player as ScoredPlayer;
+          return { name: p.name, slot: a.slot, position: p.position, nflTeam: p.nflTeam };
+        }),
+      injuredOutBenched: benched
+        .filter(s => s.injuredOut)
+        .map(s => ({ name: s.name, label: s.injuryLabel ?? 'Out' })),
+      swapAlerts,
+      holes:
+        !isGuest && team
+          ? teamRosterAlerts(league, team)
+              .filter(a => a.week === currentWeek && a.severity === 'hole')
+              .map(a => ({
+                slots: a.slots,
+                cause: a.cause,
+                fillers: a.fillers.map(f => f.name),
+              }))
+          : [],
+    });
+  }, [guestDataPending, currentWeek, lineup, benched, swapAlerts, isGuest, team, league]);
+  const checklistKey =
+    currentWeek === undefined ? '' : `gameday-checklist:${league.season}:w${currentWeek}`;
 
   // --- Weather watch: kickoff-hour weather flags (backlog item 51) --------
   // The optimizer's starters, so flagged games can name who's affected.
@@ -752,6 +792,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
           </div>
         ) : !guestDataPending && (
           <>
+            {checklist.length > 0 && (
+              <GameDayChecklist items={checklist} storageKey={checklistKey} />
+            )}
             {byePlayers.length > 0 && (
               <p className={styles.byeWarning} role="status">
                 On bye{currentWeek !== undefined ? ` in week ${currentWeek}` : ''} — benched
@@ -948,7 +991,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 : ''}{' '}
               This does not yet see news, so check that before lock. Injury
               designations feed the Late-swap watch from the bundled pool
-              (refreshed twice daily) — not live inactives.
+              (refreshed twice daily) — not live inactives. The Game-day
+              checklist consolidates the page&apos;s actionable pieces —
+              game-time decisions, kickoff lock order, benched Out starters,
+              and no-cover holes with waiver fillers — into one check-off
+              list; checked items persist for the week.
             </p>
 
             {lineupPlan.length > 1 && (
