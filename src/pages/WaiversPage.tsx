@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -62,6 +62,10 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* League-wide cut momentum, joined against league rosters — flags
             popular cuts on the manager's own roster and buy-low free agents. */}
         <TrendingDrops league={league} />
+
+        {/* News-driven waiver targets — available players tagged in the
+            latest ESPN headlines, with TraderApe's projection + matchup. */}
+        <NewsWaiverTargets league={league} />
 
         {/* Players whose last-3 average is surging vs their own earlier
             pace — role expansions the season rankings haven't caught yet. */}

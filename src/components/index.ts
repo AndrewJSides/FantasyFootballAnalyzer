@@ -17,6 +17,7 @@ export { WaiverPriority } from './WaiverPriority';
 export { WaiverReportCard } from './WaiverReportCard';
 export { TrendingAdds } from './TrendingAdds';
 export { TrendingDrops } from './TrendingDrops';
+export { NewsWaiverTargets } from './NewsWaiverTargets';
 export { BreakoutWatch } from './BreakoutWatch';
 export { AddDropMoves } from './AddDropMoves';
 export { DstStreamers } from './DstStreamers';
