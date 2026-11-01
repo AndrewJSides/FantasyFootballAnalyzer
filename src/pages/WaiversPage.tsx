@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -111,6 +111,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* Pair each team's most cuttable bench player with the best waiver
             target that beats him — the "drop THIS for THAT" answer. */}
         <AddDropMoves league={league} />
+
+        {/* Per-player drop verdicts for the roster — the standalone "can I
+            cut anyone" answer before waivers run, priced on this league's
+            replacement levels, depth charts, and injury designations. */}
+        <DropCandidates league={league} />
 
         {hasTransactions ? (
           <WaiverTable

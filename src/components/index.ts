@@ -21,6 +21,7 @@ export { NewsWaiverTargets } from './NewsWaiverTargets';
 export { BreakoutWatch } from './BreakoutWatch';
 export { OpportunityWatch } from './OpportunityWatch';
 export { AddDropMoves } from './AddDropMoves';
+export { DropCandidates } from './DropCandidates';
 export { DstStreamers } from './DstStreamers';
 export { HandcuffReport } from './HandcuffReport';
 export { InjuryReport } from './InjuryReport';
