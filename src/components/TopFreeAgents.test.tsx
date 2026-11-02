@@ -1,10 +1,10 @@
 // TopFreeAgents rendering: unrostered filtering, position tabs, error/retry,
-// empty state.
+// empty state, and the per-player FAAB bid column (backlog item 5).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import { TopFreeAgents } from './TopFreeAgents';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
-import type { League, Team, Player } from '@/types';
+import type { League, Team, Player, Transaction } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
 vi.mock('@/api/sleeperWeeklyPoints', () => ({
@@ -114,5 +114,102 @@ describe('TopFreeAgents', () => {
     expect(
       await within(section).findByText(/No unrostered RBs with a projection/i),
     ).toBeInTheDocument();
+  });
+});
+
+// Per-player FAAB bid column: the same league-norms + need-priced engine as
+// the FAAB Bid Guidance panel, priced for the selected team.
+function waiverTx(
+  teamId: string,
+  week: number,
+  bid: number,
+  adds: Array<{ id: string; pos: string }>,
+): Transaction {
+  return {
+    id: `${teamId}-w${week}`,
+    type: 'waiver',
+    timestamp: week,
+    week,
+    teamId,
+    teamName: teamId,
+    adds: adds.map(a => leaguePlayer(a.id, a.id)),
+    drops: [],
+    waiverBudgetSpent: bid,
+  } as Transaction;
+}
+
+function makeBidsLeague(): League {
+  const mine: Team = { id: 't1', name: 'Managers', isMyTeam: true, roster: [] } as Team;
+  // Rivals spent their whole assumed $100 budget: their suggested bids are $0–$0.
+  const rivals: Team = {
+    id: 't2',
+    name: 'Rivals',
+    roster: [],
+    transactions: [
+      waiverTx('t2', 2, 60, [{ id: 'rb1', pos: 'RB' }]),
+      waiverTx('t2', 3, 40, [{ id: 'rb2', pos: 'RB' }]),
+    ],
+  } as Team;
+  return {
+    id: 'lg',
+    name: 'Test League',
+    season: 2026,
+    teams: [mine, rivals],
+    totalTeams: 2,
+    currentWeek: 9,
+    isGuest: false,
+  } as League;
+}
+
+describe('TopFreeAgents FAAB bid column', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockFetch.mockResolvedValue(weeklyFor(['rb1', 'rb2', 'qb1'], 12));
+  });
+
+  it('renders a Bid column with suggested ranges when the league recorded FAAB bids', async () => {
+    render(<TopFreeAgents league={makeBidsLeague()} pool={pool} />);
+    const section = await screen.findByRole('region', { name: 'Top free agents' });
+    // Column header with the accessible name.
+    expect(within(section).getByRole('columnheader', { name: /Bid/ })).toBeInTheDocument();
+    // Median winning bid is $50 (60, 40); value and need multipliers are 1,
+    // so the band is $50 × 0.65–1.35 → $33–$68.
+    const cell = within(section).getByRole('cell', {
+      name: 'Suggested bid $33 to $68 for Alpha Back',
+    });
+    expect(cell).toHaveTextContent('$33–$68');
+    expect(cell).toHaveAttribute('title');
+    // The team picker prices bids for the selected team.
+    expect(within(section).getByLabelText(/Pricing bids for/i)).toBeInTheDocument();
+  });
+
+  it('re-prices bids when the team changes: a spent budget gets $0–$0', async () => {
+    render(<TopFreeAgents league={makeBidsLeague()} pool={pool} />);
+    const section = await screen.findByRole('region', { name: 'Top free agents' });
+    expect(
+      await within(section).findByRole('cell', {
+        name: 'Suggested bid $33 to $68 for Alpha Back',
+      }),
+    ).toBeInTheDocument();
+    fireEvent.change(within(section).getByLabelText(/Pricing bids for/i), {
+      target: { value: 't2' },
+    });
+    expect(
+      within(section).getByRole('cell', {
+        name: 'Suggested bid $0 to $0 for Alpha Back',
+      }),
+    ).toHaveTextContent('$0–$0');
+  });
+
+  it('hides the Bid column and pricing select when the league recorded no FAAB bids', async () => {
+    render(<TopFreeAgents league={makeLeague()} pool={pool} />);
+    const section = await screen.findByRole('region', { name: 'Top free agents' });
+    await within(section).findByText('Alpha Back');
+    expect(
+      within(section).queryByRole('columnheader', { name: /Bid/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(section).queryByLabelText(/Pricing bids for/i),
+    ).not.toBeInTheDocument();
   });
 });
