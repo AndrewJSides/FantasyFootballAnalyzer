@@ -11,10 +11,13 @@ import { POOL } from '@/data/draftPool';
 import { ScoreboardPage } from './ScoreboardPage';
 
 vi.mock('@/api/espnScoreboard', () => ({ fetchNflScoreboard: vi.fn() }));
+vi.mock('@/api/sleeperWeeklyPoints', () => ({ fetchWeekPprStats: vi.fn() }));
 
 import { fetchNflScoreboard } from '@/api/espnScoreboard';
+import { fetchWeekPprStats } from '@/api/sleeperWeeklyPoints';
 
 const mockFetch = vi.mocked(fetchNflScoreboard);
+const mockStats = vi.mocked(fetchWeekPprStats);
 
 function scoreGame(overrides: Partial<ScoreboardGame> = {}): ScoreboardGame {
   return {
@@ -61,6 +64,8 @@ function poolRosterPlayer(poolId: string): Player {
 
 beforeEach(() => {
   mockFetch.mockReset();
+  mockStats.mockReset();
+  mockStats.mockResolvedValue(undefined);
   document.title = '';
 });
 
@@ -111,6 +116,50 @@ describe('ScoreboardPage', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('LIVE')).toBeInTheDocument());
     expect(screen.queryByText(/Your guys:/)).not.toBeInTheDocument();
+  });
+
+  it('shows live fantasy points for rostered players whose game has started', async () => {
+    const qb = POOL.players.find(p => p.pos === 'QB' && p.sleeperId)!;
+    const rb = POOL.players.find(
+      p => p.pos === 'RB' && p.sleeperId && p.team !== qb.team,
+    )!;
+    mockFetch.mockResolvedValue([
+      scoreGame({ awayAbbr: qb.team, homeAbbr: rb.team }),
+    ]);
+    mockStats.mockResolvedValue({
+      season: 2026,
+      week: 8,
+      pointsBySleeperId: { [qb.sleeperId!]: 14.2 },
+      playedSleeperIds: new Set([qb.sleeperId!]),
+    });
+    renderPage(leagueWithMyTeam([poolRosterPlayer(qb.id), poolRosterPlayer(rb.id)]));
+    await waitFor(() =>
+      expect(screen.getByText(/Your guys:/)).toBeInTheDocument(),
+    );
+    const line = screen.getByText(/Your guys:/).closest('p')!;
+    expect(line.textContent).toContain(`${qb.name} (${qb.pos}) 14.2`);
+    // rb's game hasn't started: name only, no points.
+    expect(line.textContent).toContain(`${rb.name} (${rb.pos})`);
+    expect(line.textContent).not.toMatch(new RegExp(`${rb.name} \\(${rb.pos}\\) \\d`));
+    // The accessible name carries the points too.
+    expect(screen.getByRole('listitem').getAttribute('aria-label')).toContain(
+      `${qb.name} (${qb.pos}) 14.2`,
+    );
+  });
+
+  it('renders names only when the live-stats fetch fails', async () => {
+    const qb = POOL.players.find(p => p.pos === 'QB')!;
+    mockFetch.mockResolvedValue([
+      scoreGame({ awayAbbr: qb.team, homeAbbr: 'BUF' }),
+    ]);
+    mockStats.mockResolvedValue(undefined);
+    renderPage(leagueWithMyTeam([poolRosterPlayer(qb.id)]));
+    await waitFor(() =>
+      expect(screen.getByText(/Your guys:/)).toBeInTheDocument(),
+    );
+    const line = screen.getByText(/Your guys:/).closest('p')!;
+    expect(line.textContent).toContain(`${qb.name} (${qb.pos})`);
+    expect(line.textContent).not.toMatch(new RegExp(`${qb.name} \\(${qb.pos}\\) \\d`));
   });
 
   it('shows an error state with retry on fetch failure', async () => {

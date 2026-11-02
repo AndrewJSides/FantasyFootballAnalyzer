@@ -1,8 +1,9 @@
 // Scoreboard shaping for the /scores page (backlog item 84): sort order,
 // game-state counts for the header, and the league-aware "your guys" join
 // (my roster's players per NFL team, so a manager sees which of his players
-// are in each game at a glance). Pure functions — all ESPN fetching lives
-// in src/api/espnScoreboard.ts.
+// are in each game at a glance). Backlog item 87 adds live fantasy points
+// to the join via the pool player's Sleeper id. Pure functions — all ESPN
+// fetching lives in src/api/espnScoreboard.ts.
 
 import type { DraftPoolFile } from '@/types/draft';
 import type { ScoreboardGame } from '@/api/espnScoreboard';
@@ -38,6 +39,9 @@ export function scoreboardCounts(games: ScoreboardGame[]): ScoreboardCounts {
 export interface TeamMyPlayer {
   name: string;
   pos: string;
+  /** Pool player's Sleeper id, when the pool carries one — the join key for
+   *  live fantasy points (backlog item 87). */
+  sleeperId: string | null;
 }
 
 /** Map each game team's canonical abbreviation to the manager's rostered
@@ -54,21 +58,30 @@ export function teamMyPlayers(
     const player = index.byId.get(id);
     if (!player) continue;
     const list = byTeam.get(player.team) ?? [];
-    list.push({ name: player.name, pos: player.pos });
+    list.push({ name: player.name, pos: player.pos, sleeperId: player.sleeperId ?? null });
     byTeam.set(player.team, list);
   }
   return byTeam;
 }
 
 /** "Your guys" line for one game: the manager's players on either NFL team,
- *  away team first. Empty string when none. */
+ *  away team first. When livePoints carries a player's Sleeper id (gp > 0
+ *  this week — his game has started, actuals partial while in progress), the
+ *  entry shows his live full-PPR points; players still waiting for kickoff
+ *  show the name only. Empty string when none. */
 export function gameMyPlayersLine(
   game: ScoreboardGame,
   byTeam: Map<string, TeamMyPlayer[]>,
+  livePoints: Record<string, number> = {},
 ): string {
   const names = [
     ...(byTeam.get(game.awayAbbr) ?? []),
     ...(byTeam.get(game.homeAbbr) ?? []),
-  ].map(p => `${p.name} (${p.pos})`);
+  ].map(p => {
+    const pts = p.sleeperId !== null ? livePoints[p.sleeperId] : undefined;
+    return typeof pts === 'number'
+      ? `${p.name} (${p.pos}) ${pts.toFixed(1)}`
+      : `${p.name} (${p.pos})`;
+  });
   return names.length > 0 ? names.join(', ') : '';
 }

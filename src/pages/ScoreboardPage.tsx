@@ -11,11 +11,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import { fetchNflScoreboard, type ScoreboardGame } from '@/api/espnScoreboard';
+import { fetchWeekPprStats } from '@/api/sleeperWeeklyPoints';
 import {
   gameMyPlayersLine,
   scoreboardCounts,
   sortScoreboardGames,
   teamMyPlayers,
+  type TeamMyPlayer,
 } from '@/utils/scoreboard';
 import { myTeamPoolIds } from '@/utils/myTeamNews';
 import { currentWeekEstimate } from '@/utils/matchupRating';
@@ -46,24 +48,25 @@ function kickoffLabel(iso: string): string {
   });
 }
 
-function gameAriaLabel(game: ScoreboardGame): string {
+function gameAriaLabel(game: ScoreboardGame, myGuysLine: string): string {
   const away = `${game.awayName} ${game.awayAbbr}`;
   const home = `${game.homeName} ${game.homeAbbr}`;
+  const guys = myGuysLine ? ` Your guys: ${myGuysLine}.` : '';
   if (game.state === 'in') {
     const score =
       game.awayScore !== null && game.homeScore !== null
         ? `${game.awayScore} to ${game.homeScore}`
         : 'score unavailable';
-    return `${away} at ${home}, live: ${score}, ${game.statusLine}`;
+    return `${away} at ${home}, live: ${score}, ${game.statusLine}.${guys}`;
   }
   if (game.state === 'post') {
     const score =
       game.awayScore !== null && game.homeScore !== null
         ? `${game.awayScore} to ${game.homeScore}`
         : 'score unavailable';
-    return `${away} at ${home}, final: ${score}`;
+    return `${away} at ${home}, final: ${score}.${guys}`;
   }
-  return `${away} at ${home}, kicks off ${kickoffLabel(game.date)}`;
+  return `${away} at ${home}, kicks off ${kickoffLabel(game.date)}.${guys}`;
 }
 
 export function ScoreboardPage({ league }: ScoreboardPageProps) {
@@ -73,14 +76,22 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
   const [status, setStatus] = useState<Status>('loading');
   const [announcement, setAnnouncement] = useState('Loading NFL scores.');
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  // Sleeper id -> live full-PPR points this week (gp > 0 only). The stats
+  // endpoint updates as games play, so this doubles as the live fantasy
+  // feed for "your guys" (backlog item 87). Undefined fetch = names only.
+  const [livePoints, setLivePoints] = useState<Record<string, number>>({});
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     setStatus('loading');
     setAnnouncement('Loading NFL scores.');
     try {
-      const board = await fetchNflScoreboard(season, week);
+      const [board, stats] = await Promise.all([
+        fetchNflScoreboard(season, week),
+        fetchWeekPprStats(season, week),
+      ]);
       setGames(board);
+      setLivePoints(stats?.pointsBySleeperId ?? {});
       setUpdatedAt(Date.now());
       setStatus('ready');
       const counts = scoreboardCounts(board);
@@ -134,7 +145,7 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
   // "Your guys": the manager's rostered players per NFL team, so each game
   // names who's on the field from his roster.
   const byTeam = useMemo(() => {
-    if (!league) return new Map<string, Array<{ name: string; pos: string }>>();
+    if (!league) return new Map<string, TeamMyPlayer[]>();
     return teamMyPlayers(myTeamPoolIds(league), POOL);
   }, [league]);
 
@@ -197,12 +208,12 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
         {status === 'ready' && sorted.length > 0 && (
           <ul className={styles.board} aria-label={`Week ${week} NFL scores`}>
             {sorted.map(game => {
-              const myLine = gameMyPlayersLine(game, byTeam);
+              const myLine = gameMyPlayersLine(game, byTeam, livePoints);
               return (
                 <li
                   key={game.id}
                   className={`${styles.game} ${styles[game.state]}`}
-                  aria-label={gameAriaLabel(game)}
+                  aria-label={gameAriaLabel(game, myLine)}
                 >
                   <div className={styles.teams}>
                     <span className={styles.team}>
@@ -246,7 +257,10 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
         <p className={styles.method}>
           Method: live scores from ESPN&apos;s free public scoreboard API,
           refreshed while games are in progress. &ldquo;Your guys&rdquo; marks
-          players on your synced roster in league mode.
+          players on your synced roster in league mode, with live fantasy
+          points from Sleeper&apos;s free public stats once their game has
+          started (partial while in progress); players waiting for kickoff
+          show the name only.
         </p>
       </div>
     </div>

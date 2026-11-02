@@ -91,3 +91,53 @@ describe('teamMyPlayers + gameMyPlayersLine', () => {
     expect(gameMyPlayersLine(game(), new Map())).toBe('');
   });
 });
+
+describe('gameMyPlayersLine live points (item 87)', () => {
+  const byTeam = new Map([
+    ['KC', [{ name: 'Qb One', pos: 'QB', sleeperId: 'sl-qb1' }]],
+    [
+      'BUF',
+      [
+        { name: 'Rb One', pos: 'RB', sleeperId: 'sl-rb1' },
+        { name: 'Wr NoId', pos: 'WR', sleeperId: null },
+      ],
+    ],
+  ]);
+
+  it('shows live points for players whose game has started', () => {
+    const line = gameMyPlayersLine(
+      game({ awayAbbr: 'KC', homeAbbr: 'BUF' }),
+      byTeam,
+      { 'sl-qb1': 14.2, 'sl-rb1': 0 },
+    );
+    expect(line).toContain('Qb One (QB) 14.2');
+    expect(line).toContain('Rb One (RB) 0.0');
+  });
+
+  it('shows the name only for players still waiting for kickoff', () => {
+    const line = gameMyPlayersLine(
+      game({ awayAbbr: 'KC', homeAbbr: 'BUF' }),
+      byTeam,
+      { 'sl-qb1': 14.2 },
+    );
+    expect(line).toContain('Qb One (QB) 14.2');
+    expect(line).toContain('Rb One (RB)');
+    expect(line).not.toMatch(/Rb One \(RB\) \d/);
+  });
+
+  it('shows the name only when the pool player has no Sleeper id', () => {
+    const line = gameMyPlayersLine(
+      game({ awayAbbr: 'KC', homeAbbr: 'BUF' }),
+      byTeam,
+      { 'sl-qb1': 14.2, 'sl-rb1': 8.5 },
+    );
+    expect(line).toContain('Wr NoId (WR)');
+    expect(line).not.toMatch(/Wr NoId \(WR\) \d/);
+  });
+
+  it('defaults to names only when no live-points map is given', () => {
+    const line = gameMyPlayersLine(game({ awayAbbr: 'KC', homeAbbr: 'BUF' }), byTeam);
+    expect(line).toContain('Qb One (QB)');
+    expect(line).not.toMatch(/\(QB\) \d/);
+  });
+});
