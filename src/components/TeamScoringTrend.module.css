@@ -1,0 +1,103 @@
+/* GRIDIRON · Team scoring trend chart (TeamDetail Weekly Scores section) */
+
+.figure {
+  margin: 0 0 0.5rem;
+}
+
+.chartWrap {
+  overflow-x: auto;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 430px;
+}
+
+.bar { fill: var(--bone-dim); }
+.bestBar { fill: var(--lime); }
+
+.gridLine {
+  stroke: var(--bone-dim);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.gridLabel {
+  fill: var(--bone-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.weekLabel {
+  fill: var(--bone-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.valueLabel {
+  fill: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.avgLine {
+  stroke: var(--blood-text);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.85;
+}
+
+.avgLabel {
+  fill: var(--blood-text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.bestLineupMark {
+  fill: var(--gold);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.swatchBest {
+  width: 10px;
+  height: 10px;
+  background: var(--lime);
+}
+
+.swatchAvg {
+  width: 18px;
+  height: 0;
+  border-top: 2px dashed var(--blood-text);
+}
+
+.swatchLineup {
+  width: 10px;
+  height: 10px;
+  background: var(--gold);
+  transform: rotate(45deg);
+}
+
+.footnote {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--bone-dim);
+}

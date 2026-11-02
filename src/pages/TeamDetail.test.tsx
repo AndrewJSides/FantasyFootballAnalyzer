@@ -1,7 +1,7 @@
 // TeamDetail: the season Schedule section (backlog item 47).
 
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Team, WeeklyMatchup } from '@/types';
 import { TeamDetail } from './TeamDetail';
@@ -72,8 +72,10 @@ describe('TeamDetail schedule section', () => {
     expect(rows.length).toBe(3);
     expect(rows[2].textContent).toContain('Bravo');
     expect(rows[2].textContent).toContain('win probability');
-    expect(screen.getByText('W1')).toBeTruthy();
-    expect(screen.getByText('W3')).toBeTruthy();
+    // The Weekly Scores trend chart (backlog item 94) also labels weeks,
+    // so the schedule's week labels are scoped to its own section.
+    expect(within(section).getByText('W1')).toBeTruthy();
+    expect(within(section).getByText('W3')).toBeTruthy();
   });
 });
 

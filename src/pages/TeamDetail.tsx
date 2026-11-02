@@ -9,6 +9,8 @@ import { calculateAllAwards } from '@/utils/awards';
 import { calculateLuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { buildTeamSchedule } from '@/utils/teamSchedule';
+import { buildTeamScoringTrend } from '@/utils/teamScoringTrend';
+import { TeamScoringTrend } from '@/components/TeamScoringTrend';
 import { runScenario, scenarioPreset, type ScenarioPicks } from '@/utils/playoffScenarios';
 import { isPlaceholderPlayer } from '@/utils/placeholders';
 import { alertWeeks, teamRosterAlerts, type RosterAlert } from '@/utils/rosterAlerts';
@@ -208,20 +210,12 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
   const alerts = useMemo(() => teamRosterAlerts(league, team), [league, team]);
   const scannedWeeks = useMemo(() => alertWeeks(league), [league]);
 
-  // Step-line sparkline of weekly points.
-  const sparkline = useMemo(() => {
-    if (weekly.length < 2) return null;
-    const w = 600;
-    const h = 80;
-    const max = Math.max(...weekly.map(r => r.points));
-    const min = Math.min(...weekly.map(r => r.points));
-    const span = Math.max(1, max - min);
-    const step = w / (weekly.length - 1);
-    const points = weekly
-      .map((r, i) => `${(i * step).toFixed(1)},${(h - ((r.points - min) / span) * (h - 8) - 4).toFixed(1)}`)
-      .join(' ');
-    return { w, h, points, max, min };
-  }, [weekly]);
+  // Scoring trend (backlog item 94): weekly actuals vs the league average,
+  // with best-lineup markers where the sync carries weekly lineups.
+  const scoringTrend = useMemo(
+    () => buildTeamScoringTrend(league, team.id),
+    [league, team.id],
+  );
 
   return (
     <div className={styles.detail}>
@@ -451,24 +445,10 @@ export function TeamDetail({ league, team, onBack }: TeamDetailProps) {
         </section>
       )}
 
-      {sparkline && (
+      {scoringTrend && (
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Weekly Scores</h3>
-          <svg
-            viewBox={`0 0 ${sparkline.w} ${sparkline.h}`}
-            className={styles.sparkline}
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={`Weekly points from ${sparkline.min.toFixed(0)} to ${sparkline.max.toFixed(0)}`}
-          >
-            <polyline
-              points={sparkline.points}
-              fill="none"
-              stroke="var(--lime)"
-              strokeWidth="2"
-              strokeLinecap="square"
-            />
-          </svg>
+          <TeamScoringTrend teamName={team.name} trend={scoringTrend} />
           <div className={styles.weekRow}>
             {weekly.map(r => (
               <span
