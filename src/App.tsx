@@ -40,6 +40,7 @@ const WaiversPage = lazyPage(() => import('@/pages/WaiversPage'), 'WaiversPage')
 const StartSitPage = lazyPage(() => import('@/pages/StartSitPage'), 'StartSitPage');
 const TradeFinderPage = lazyPage(() => import('@/pages/TradeFinderPage'), 'TradeFinderPage');
 const TradeValuesPage = lazyPage(() => import('@/pages/TradeValuesPage'), 'TradeValuesPage');
+const WirePage = lazyPage(() => import('@/pages/WirePage'), 'WirePage');
 const ComparePage = lazyPage(() => import('@/pages/ComparePage'), 'ComparePage');
 const TeamsPage = lazyPage(() => import('@/pages/TeamsPage'), 'TeamsPage');
 const MatchupPage = lazyPage(() => import('@/pages/MatchupPage'), 'default');
@@ -973,6 +974,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/trades" element={dataRoute(l => <TradesPage league={l} />)} />
           <Route path="/trade-finder" element={league ? <TradeFinderPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />} />
+          <Route path="/wire" element={dataRoute(l => <WirePage league={l} />)} />
           {/* Trade Value Chart works in guest mode on season projections
               (no auth), like Compare and Start/Sit. */}
           <Route

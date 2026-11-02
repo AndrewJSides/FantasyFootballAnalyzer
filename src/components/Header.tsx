@@ -310,6 +310,14 @@ export function Header({
                   Trade Finder
                 </Link>
                 <Link
+                  to="/wire"
+                  className={`${styles.navLink} ${location.pathname === '/wire' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/wire' ? 'page' : undefined}
+                >
+                  League Wire
+                </Link>
+                <Link
                   to="/trade-values"
                   className={`${styles.navLink} ${location.pathname === '/trade-values' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -406,6 +414,14 @@ export function Header({
               aria-current={location.pathname === '/trade-finder' ? 'page' : undefined}
             >
               Trade Finder
+            </Link>
+            <Link
+              to="/wire"
+              className={`${styles.navLink} ${location.pathname === '/wire' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/wire' ? 'page' : undefined}
+            >
+              League Wire
             </Link>
             <Link
               to="/trade-values"
