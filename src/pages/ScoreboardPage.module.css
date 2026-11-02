@@ -1,0 +1,190 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · NFL Scores
+   ───────────────────────────────────────────── */
+
+.scoreboardPage {
+  padding: 3rem 0 5rem;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.subtitle::before {
+  content: '★ ';
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.counts {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone);
+  opacity: 0.75;
+  margin: 0;
+}
+
+.updated {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--bone);
+  opacity: 0.6;
+  margin: 0 0 1rem;
+}
+
+.refreshButton,
+.retryButton {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone);
+  background: transparent;
+  border: 1px solid var(--bone);
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+.refreshButton:hover:not(:disabled),
+.retryButton:hover:not(:disabled) {
+  background: var(--bone);
+  color: var(--ink);
+}
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.status {
+  margin: 1rem 0;
+  color: var(--bone);
+}
+
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.game {
+  border: 1px solid var(--bone);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.game.in {
+  border-color: var(--lime);
+}
+
+.teams {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.team {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.abbr {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  color: var(--bone);
+}
+
+.score {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--lime);
+}
+
+.at {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--bone);
+  opacity: 0.6;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.liveBadge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: #0b0b0b;
+  background: var(--lime);
+  border-radius: 3px;
+  padding: 0.15rem 0.45rem;
+}
+
+.stateLine {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--bone);
+  opacity: 0.8;
+}
+
+.myGuys {
+  margin: 0.6rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--bone);
+  font-size: 0.82rem;
+  color: var(--bone);
+  opacity: 0.9;
+}
+
+.myGuysLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+
+.method {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: var(--bone);
+  opacity: 0.65;
+  max-width: 60ch;
+}

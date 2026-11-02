@@ -350,6 +350,14 @@ export function Header({
                   News
                 </Link>
                 <Link
+                  to="/scores"
+                  className={`${styles.navLink} ${location.pathname === '/scores' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/scores' ? 'page' : undefined}
+                >
+                  Scores
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -522,6 +530,14 @@ export function Header({
               aria-current={location.pathname === '/news' ? 'page' : undefined}
             >
               News
+            </Link>
+            <Link
+              to="/scores"
+              className={`${styles.navLink} ${location.pathname === '/scores' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/scores' ? 'page' : undefined}
+            >
+              Scores
             </Link>
             <Link
               to="/watchlist"
