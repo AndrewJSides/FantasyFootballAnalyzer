@@ -9,7 +9,7 @@
 // Teams page folded into this view; league mode only (no schedule, no
 // previews).
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { League } from '@/types';
 import { previewWeeklyMatchups, type MatchupPreview } from '@/utils/matchupPreview';
@@ -23,7 +23,165 @@ import { tradeLink } from '@/utils/tradeLinks';
 import ScoreDistBars from '@/components/ScoreDistBars';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
+import { timeAgo } from '@/utils/relativeTime';
+import { fetchWeekPprStats, type WeekPprStats } from '@/api/sleeperWeeklyPoints';
+import { liveForPreview, type LiveMatchup, type LiveTeamScore } from '@/utils/liveMatchup';
 import styles from './MatchupPage.module.css';
+
+const LIVE_REFRESH_MS = 60_000;
+
+function LiveTeamTable({ team, teamName }: { team: LiveTeamScore; teamName: string }) {
+  return (
+    <table
+      className={styles.lineupTable}
+      aria-label={`Live scoring, ${teamName} starters, week`}
+    >
+      <thead>
+        <tr>
+          <th scope="col">Player</th>
+          <th scope="col">Pos</th>
+          <th scope="col">Actual</th>
+          <th scope="col">Proj.</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {team.rows.map(r => (
+          <tr key={r.key}>
+            <th scope="row" className={styles.slotCell}>
+              {r.name}
+            </th>
+            <td>{r.position}</td>
+            <td>{r.actual !== null ? r.actual.toFixed(1) : '—'}</td>
+            <td>{r.projection.toFixed(1)}</td>
+            <td>{r.played ? 'Played' : 'Pending'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Live score line for the picked matchup (backlog item 85): Sleeper's
+ *  weekly stats refresh as NFL games play, so starters whose games have
+ *  started score their actual points and everyone else counts at
+ *  TraderApe's own weekly projection. Renders nothing before any game
+ *  starts; auto-refreshes every minute while players are still pending. */
+function LiveScores({ league, preview }: { league: League; preview: MatchupPreview }) {
+  const [stats, setStats] = useState<WeekPprStats | undefined>();
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [announcement, setAnnouncement] = useState('Loading live scores.');
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const s = await fetchWeekPprStats(league.season, preview.week);
+      if (!s) throw new Error('live stats unavailable');
+      setStats(s);
+      setUpdatedAt(Date.now());
+      setStatus('ready');
+      setAnnouncement(`Live scores updated for week ${preview.week}.`);
+    } catch {
+      setStatus('error');
+      setAnnouncement('Could not load live scores.');
+    }
+  }, [league.season, preview.week]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const live: LiveMatchup | null = useMemo(
+    () => (stats ? liveForPreview(league, preview, stats) : null),
+    [league, stats, preview],
+  );
+  const anyPlayed =
+    live !== null && live.a.played + live.b.played > 0;
+  const anyPending =
+    live !== null &&
+    (live.a.played < live.a.starters || live.b.played < live.b.starters);
+
+  useEffect(() => {
+    if (!anyPending) return;
+    const t = setInterval(() => void load(), LIVE_REFRESH_MS);
+    return () => clearInterval(t);
+  }, [anyPending, load]);
+
+  if (status === 'loading' || !live || !anyPlayed) {
+    // Pre-kickoff the section hides entirely — the pre-game preview above
+    // already covers it.
+    if (status === 'error') {
+      return (
+        <>
+          <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
+            Live score
+          </h3>
+          <p className={styles.allClear}>
+            Couldn&apos;t load live scores — Sleeper&apos;s feed may be down.{' '}
+            <button type="button" onClick={() => void load()} className={styles.retryButton}>
+              Try again
+            </button>
+          </p>
+          <div className="visually-hidden" role="status" aria-live="polite">
+            {announcement}
+          </div>
+        </>
+      );
+    }
+    return null;
+  }
+
+  const teamById = new Map(league.teams.map(t => [t.id, t]));
+  const aName = teamById.get(live.teamAId)?.name ?? '?';
+  const bName = teamById.get(live.teamBId)?.name ?? '?';
+  const favA = live.winProbA >= 50;
+  const favName = favA ? aName : bName;
+  const favProb = favA ? live.winProbA : 100 - live.winProbA;
+  const scoreLine = `${aName} ${live.a.actualSoFar.toFixed(1)} – ${bName} ${live.b.actualSoFar.toFixed(1)}, projected finals ${live.a.projectedFinal.toFixed(1)} to ${live.b.projectedFinal.toFixed(1)}. ${favName} ${favProb.toFixed(1)}% to win live.`;
+
+  return (
+    <>
+      <h3 className={styles.sectionTitle} style={{ marginTop: '1rem' }}>
+        Live score{' '}
+        {anyPending && <span className={styles.liveBadge}>LIVE</span>}
+      </h3>
+      <div className={styles.scoreLine} aria-label={scoreLine}>
+        {aName} {live.a.actualSoFar.toFixed(1)} – {bName} {live.b.actualSoFar.toFixed(1)}
+        <span className={styles.liveProj}>
+          {' '}· proj. final {live.a.projectedFinal.toFixed(1)} – {live.b.projectedFinal.toFixed(1)}
+        </span>
+      </div>
+      <div className={styles.probRow}>
+        <div className={styles.probTrack} aria-hidden="true">
+          <div className={styles.probFill} style={{ width: `${live.winProbA}%` }} />
+        </div>
+        <span
+          className={styles.probLabel}
+          title={`${aName} ${live.winProbA.toFixed(1)}% · ${bName} ${(100 - live.winProbA).toFixed(1)}%`}
+        >
+          {favName} {favProb.toFixed(1)}%
+        </span>
+      </div>
+      <p className={styles.liveNote}>
+        Played starters count at their actual points (partial while their game
+        is in progress); pending players count at their TraderApe projection.
+        ({live.a.played + live.b.played} of {live.a.starters + live.b.starters} starters played)
+      </p>
+      <h4 className={styles.liveTeamName}>{aName}</h4>
+      <LiveTeamTable team={live.a} teamName={aName} />
+      <h4 className={styles.liveTeamName}>{bName}</h4>
+      <LiveTeamTable team={live.b} teamName={bName} />
+      <p className={styles.updated} aria-hidden="true">
+        {updatedAt !== null
+          ? `Updated ${timeAgo(new Date(updatedAt).toISOString())}${anyPending ? ' · auto-refreshes every minute while players are pending' : ''}`
+          : ' '}
+      </p>
+      <div className="visually-hidden" role="status" aria-live="polite">
+        {announcement}
+      </div>
+    </>
+  );
+}
 
 function sidePlayers(side: PositionBattle['a']): string {
   return side.players.map(p => `${p.name} ${p.proj.toFixed(1)}`).join(', ') || '—';
@@ -159,6 +317,7 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
             {favName} {favProb.toFixed(1)}%
           </span>
         </div>
+        <LiveScores league={league} preview={preview} />
         <ScoreDistBars
           rows={[
             { label: aName, dist: preview.distA },
@@ -484,6 +643,11 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         Guidance
         only: nothing here changes any lineup. Schedule from the owner&apos;s
         latest sync. Series history counts this season&apos;s completed weeks only.
+        Live score (Sleeper&apos;s weekly stats, auto-refreshing while games
+        are live) prices starters whose NFL games have started at their
+        actual points and everyone else at their TraderApe projection; the
+        live win probability reuses the same 30-pt ≈ 91% calibration as the
+        pre-game preview.
       </p>
     </div>
   );

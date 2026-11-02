@@ -204,3 +204,51 @@
   font-size: 0.95rem;
   padding: 2rem 0;
 }
+
+.liveBadge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: #0b0b0b;
+  background: var(--lime);
+  border-radius: 3px;
+  padding: 0.15rem 0.45rem;
+}
+
+.liveProj {
+  color: var(--bone-dim);
+}
+
+.liveNote {
+  font-size: 0.82rem;
+  color: var(--bone-dim);
+  margin: 0.5rem 0 1rem;
+}
+
+.liveTeamName {
+  font-size: 0.95rem;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.updated {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--bone-dim);
+  opacity: 0.8;
+  margin-top: 0.75rem;
+}
+
+.retryButton {
+  font: inherit;
+  color: var(--lime);
+  background: none;
+  border: 1px solid var(--lime);
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+}
+
+.retryButton:hover:not(:disabled) {
+  background: var(--lime);
+  color: #0b0b0b;
+}
