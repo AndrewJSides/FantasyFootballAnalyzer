@@ -175,6 +175,91 @@ describe('TradeFinderPage guest mode', () => {
     expect(roster).toHaveTextContent('RB1');
     expect(roster).toHaveTextContent('WR1');
   });
+
+  it('shops a player in guest mode: offers from the trade partner', () => {
+    renderGuest();
+    for (const [q, name] of [
+      ['RB1', 'RB1'],
+      ['RB2', 'RB2'],
+      ['RB3', 'RB3'],
+      ['RB4', 'RB4'],
+      ['WR40', 'WR40'],
+      ['TE20', 'TE20'],
+    ] as const) {
+      addToRoster('Your team', q, name);
+    }
+    for (const [q, name] of [
+      ['WR1', 'WR1'],
+      ['WR2', 'WR2'],
+      ['WR3', 'WR3'],
+      ['WR4', 'WR4'],
+      ['RB40', 'RB40'],
+      ['TE25', 'TE25'],
+    ] as const) {
+      addToRoster('Trade partner', q, name);
+    }
+
+    const shopSection = screen.getByRole('region', {
+      name: 'Shop a player',
+    });
+    fireEvent.change(screen.getByLabelText('Your player'), {
+      target: { value: 'RB2' },
+    });
+
+    // The shopped depth RB draws fair offers from the WR-deep partner.
+    const articles = within(shopSection).getAllByRole('article', {
+      name: /Your team and Trade partner proposed trade/,
+    });
+    expect(articles.length).toBeGreaterThan(0);
+    // The owner always gives the shopped player.
+    expect(within(shopSection).getAllByText('RB2').length).toBeGreaterThan(0);
+    // The guest deep link carries player names only — no ta/tb team ids.
+    const link = within(shopSection).getAllByRole('link', {
+      name: /Analyze Your team and Trade partner trade/,
+    })[0];
+    const decoded = decodeURIComponent(link.getAttribute('href') ?? '');
+    expect(decoded).toContain('"a":');
+    expect(decoded).not.toContain('"ta"');
+    expect(decoded).not.toContain('"tb"');
+  });
+
+  it('shows an honest empty state when no fair guest offer exists', () => {
+    renderGuest();
+    for (const [q, name] of [
+      ['QB1', 'QB1'],
+      ['RB1', 'RB1'],
+      ['RB2', 'RB2'],
+      ['WR1', 'WR1'],
+      ['WR2', 'WR2'],
+      ['TE1', 'TE1'],
+    ] as const) {
+      addToRoster('Your team', q, name);
+    }
+    for (const [q, name] of [
+      ['QB2', 'QB2'],
+      ['RB4', 'RB4'],
+      ['RB5', 'RB5'],
+      ['WR4', 'WR4'],
+      ['WR5', 'WR5'],
+      ['TE2', 'TE2'],
+    ] as const) {
+      addToRoster('Trade partner', q, name);
+    }
+
+    const shopSection = screen.getByRole('region', {
+      name: 'Shop a player',
+    });
+    fireEvent.change(screen.getByLabelText('Your player'), {
+      target: { value: 'RB1' },
+    });
+
+    expect(
+      within(shopSection).queryByRole('list', { name: 'Proposed trades' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(shopSection).getByText(/No fair offers for RB1/),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('TradeFinderPage', () => {

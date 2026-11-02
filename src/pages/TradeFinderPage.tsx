@@ -350,7 +350,11 @@ function GuestTradeFinder() {
     setAIds(ids => (ids.includes(p.id) ? ids : [...ids, p.id]));
   const addB = (p: PoolPlayer) =>
     setBIds(ids => (ids.includes(p.id) ? ids : [...ids, p.id]));
-  const removeA = (id: string) => setAIds(ids => ids.filter(x => x !== id));
+  const removeA = (id: string) => {
+    setAIds(ids => ids.filter(x => x !== id));
+    // A shopped player who leaves the roster unpicks the shop lookup.
+    setShopPlayerId(prev => (prev === id ? '' : prev));
+  };
   const removeB = (id: string) => setBIds(ids => ids.filter(x => x !== id));
 
   // Synthetic two-team league for the finder. resolvePoolPlayer matches
@@ -391,6 +395,37 @@ function GuestTradeFinder() {
           )
         : [],
     [guestLeague, ready],
+  );
+
+  // --- Shop a player (backlog item 90 remainder): guest-mode reverse
+  // lookup. The synthetic two-team league runs through the same shopOffers
+  // engine as league mode; the shopped player always comes from "Your team".
+  const [shopPlayerId, setShopPlayerId] = useState('');
+  const shopRoster = useMemo(() => {
+    const byId = new Map(POOL.players.map(p => [p.id, p]));
+    return aIds
+      .map(id => byId.get(id))
+      .filter(
+        (p): p is PoolPlayer =>
+          p !== undefined && ['QB', 'RB', 'WR', 'TE'].includes(p.pos),
+      );
+  }, [aIds]);
+  const shopPlayerName = useMemo(
+    () => shopRoster.find(p => p.id === shopPlayerId)?.name ?? '',
+    [shopRoster, shopPlayerId],
+  );
+  const shopOffersList = useMemo(
+    () =>
+      shopPlayerId
+        ? shopOffers(
+            guestLeague,
+            shopPlayerId,
+            POOL,
+            DEFAULT_VOR_CONFIG,
+            valueLeagueFor(null),
+          )
+        : [],
+    [guestLeague, shopPlayerId],
   );
 
   // --- Guest weekly data for Buy Low / Sell High: Sleeper public stats ---
@@ -474,6 +509,49 @@ function GuestTradeFinder() {
               : 'Add players to both rosters above to see win-win swaps.'
           }
         />
+
+        {aIds.length > 0 && (
+          <section className={styles.shop} aria-label="Shop a player">
+            <h2 className={styles.shopTitle}>Shop a player</h2>
+            <p className={styles.shopIntro}>
+              Want to move someone before the deadline? Pick one of your
+              players — the finder shows what the trade partner would send
+              back, ranked by what it does for your starters.
+            </p>
+            <div className={styles.shopControls}>
+              <div className={styles.shopField}>
+                <label
+                  htmlFor="guest-shop-player"
+                  className={styles.shopLabel}
+                >
+                  Your player
+                </label>
+                <select
+                  id="guest-shop-player"
+                  className={styles.shopSelect}
+                  value={shopPlayerId}
+                  onChange={e => setShopPlayerId(e.target.value)}
+                >
+                  <option value="">Choose a player…</option>
+                  {shopRoster.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} · {p.pos.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {shopPlayerId && (
+              <CandidateList
+                candidates={shopOffersList}
+                search={location.search}
+                includeTeamIds={false}
+                emptyText={`No fair offers for ${shopPlayerName} right now — no deal with the trade partner lines up at a fair price.`}
+              />
+            )}
+          </section>
+        )}
 
         {guestWeeklyState === 'loading' && (
           <p className={styles.footnote} aria-live="polite">
