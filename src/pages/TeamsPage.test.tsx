@@ -675,6 +675,27 @@ describe('TeamsPage all-play record', () => {
     expect(rows[4]).toHaveTextContent('even');
   });
 
+  it('shows a strength-of-victory column per team', () => {
+    renderPage(allPlayLeague());
+    const table = screen.getByRole('table', { name: /all-play record/i });
+    expect(
+      within(table).getByRole('columnheader', { name: /^SOV$/ }),
+    ).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    // Alpha beat Beta and Gamma, both winless → 0.0% SOV, soft schedule.
+    expect(
+      within(rows[1]).getByRole('cell', {
+        name: /Strength of victory 0\.0%: beat teams with a combined 0-4 record — soft schedule/i,
+      }),
+    ).toBeInTheDocument();
+    // Beta beat nobody → no strength of victory.
+    expect(
+      within(rows[4]).getByRole('cell', {
+        name: /No wins yet — no strength of victory/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('hides the section when the sync fetched no matchups', () => {
     renderPage(league());
     expect(

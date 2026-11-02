@@ -24,6 +24,7 @@ import { buildPerfectLineupRecord } from '@/utils/perfectLineupRecord';
 import { buildPowerRankings } from '@/utils/powerRankings';
 import { buildRecordBook } from '@/utils/recordBook';
 import { buildRivalryMatrix, type RivalryCell } from '@/utils/rivalryMatrix';
+import { buildStrengthOfVictory, SOV_VERDICT_LABEL } from '@/utils/strengthOfVictory';
 import {
   buildAllPlayRecord,
   formatRecord,
@@ -342,6 +343,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // every week. Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
   const allPlay = useMemo(() => buildAllPlayRecord(league), [league]);
+  const sovByTeam = useMemo(
+    () => new Map(buildStrengthOfVictory(league).map(r => [r.teamId, r])),
+    [league],
+  );
   // Record book: the season's extremes (highs, lows, blowouts, squeakers,
   // streaks). Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
@@ -853,12 +858,15 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
             <p className={styles.sectionHint}>
               Each team's record if it had played every other team every
               completed week. A team outscoring its actual record was lucky
-              with the schedule; one trailing it was robbed.
+              with the schedule; one trailing it was robbed. SOV (strength
+              of victory) is the combined win rate of the teams each manager
+              actually beat — the NFL's quality-of-wins tiebreaker: a high
+              SOV means the wins came against good teams.
             </p>
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
               <table
                 className={styles.matrix}
-                aria-label="All-play record: each team's record vs every opponent each completed week"
+                aria-label="All-play record: each team's record vs every opponent each completed week, plus strength of victory"
               >
                 <thead>
                   <tr>
@@ -867,6 +875,9 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                     <th scope="col">All-play</th>
                     <th scope="col">Actual</th>
                     <th scope="col">Schedule luck</th>
+                    <th scope="col" title="Strength of victory: the combined win rate of the teams beaten">
+                      SOV
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -879,6 +890,11 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                           : r.luckDiff < 0
                             ? `${r.luckDiff.toFixed(1)} unlucky`
                             : 'even';
+                    const sov = sovByTeam.get(r.teamId);
+                    const sovDetail =
+                      sov?.sovPct == null
+                        ? 'No wins yet — no strength of victory'
+                        : `Strength of victory ${sov.sovPct.toFixed(1)}%: beat teams with a combined ${sov.opponentsCombined} record — ${SOV_VERDICT_LABEL[sov.verdict]}`;
                     return (
                       <tr key={r.teamId}>
                         <td>{i + 1}</td>
@@ -899,6 +915,9 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                           }
                         >
                           {luck}
+                        </td>
+                        <td title={sovDetail} aria-label={sovDetail}>
+                          {sov?.sovPct == null ? '—' : `${sov.sovPct.toFixed(1)}%`}
                         </td>
                       </tr>
                     );
