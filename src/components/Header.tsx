@@ -366,6 +366,14 @@ export function Header({
                   Scores
                 </Link>
                 <Link
+                  to="/points-allowed"
+                  className={`${styles.navLink} ${location.pathname === '/points-allowed' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/points-allowed' ? 'page' : undefined}
+                >
+                  Pts Allowed
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -554,6 +562,14 @@ export function Header({
               aria-current={location.pathname === '/scores' ? 'page' : undefined}
             >
               Scores
+            </Link>
+            <Link
+              to="/points-allowed"
+              className={`${styles.navLink} ${location.pathname === '/points-allowed' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/points-allowed' ? 'page' : undefined}
+            >
+              Pts Allowed
             </Link>
             <Link
               to="/watchlist"
