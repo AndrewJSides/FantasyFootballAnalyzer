@@ -9,8 +9,10 @@ import { BuyLowSellHigh } from '@/components/BuyLowSellHigh';
 import { PosBadge } from '@/components';
 import {
   findTradeCandidates,
+  teamProfiles,
   type TradeCandidate,
 } from '@/utils/tradeFinder';
+import { shopOffers } from '@/utils/shopPlayer';
 import { tradeLink } from '@/utils/tradeLinks';
 import { valueLeagueFor, DEFAULT_MANUAL_SHAPE } from '@/utils/tradeAnalysis';
 import { DEFAULT_VOR_CONFIG } from '@/utils/projectionValues';
@@ -541,6 +543,60 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
     [league, currentWeek, rosterMaps],
   );
 
+  // --- Shop a player (backlog item 90): reverse trade lookup ---
+  const profiles = useMemo(
+    () =>
+      league && !league.isGuest
+        ? teamProfiles(league, POOL, DEFAULT_VOR_CONFIG, valueLeagueFor(league))
+        : [],
+    [league],
+  );
+  const defaultShopTeamId = useMemo(
+    () =>
+      league && !league.isGuest
+        ? (league.teams.find(t => t.isMyTeam)?.id ?? league.teams[0]?.id ?? '')
+        : '',
+    [league],
+  );
+  const [shopTeamId, setShopTeamId] = useState(defaultShopTeamId);
+  const [shopPlayerId, setShopPlayerId] = useState('');
+
+  // The chosen team's pool players, grouped by position (the finder's
+  // depth charts already resolve league roster entries to pool players).
+  const shopRoster = useMemo(() => {
+    const prof = profiles.find(p => p.team.id === shopTeamId);
+    if (!prof) return [];
+    const seen = new Set<string>();
+    const out: PoolPlayer[] = [];
+    for (const pos of ['QB', 'RB', 'WR', 'TE'] as const) {
+      for (const p of prof.positions[pos].depthChart) {
+        if (seen.has(p.id)) continue;
+        seen.add(p.id);
+        out.push(p);
+      }
+    }
+    return out;
+  }, [profiles, shopTeamId]);
+
+  const shopPlayerName = useMemo(
+    () => shopRoster.find(p => p.id === shopPlayerId)?.name ?? '',
+    [shopRoster, shopPlayerId],
+  );
+
+  const offers = useMemo(
+    () =>
+      league && !league.isGuest && shopPlayerId
+        ? shopOffers(
+            league,
+            shopPlayerId,
+            POOL,
+            DEFAULT_VOR_CONFIG,
+            valueLeagueFor(league),
+          )
+        : [],
+    [league, shopPlayerId],
+  );
+
   if (!league || league.isGuest === true) {
     return <GuestTradeFinder />;
   }
@@ -562,6 +618,64 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           includeTeamIds
           emptyText="No win-win swaps right now — no team pair lines up with complementary needs and depth."
         />
+
+        <section className={styles.shop} aria-label="Shop a player">
+          <h2 className={styles.shopTitle}>Shop a player</h2>
+          <p className={styles.shopIntro}>
+            Want to move someone before the deadline? Pick a player — the
+            finder shows which teams want him and what they'd send back,
+            ranked by what it does for your starters.
+          </p>
+          <div className={styles.shopControls}>
+            <div className={styles.shopField}>
+              <label htmlFor="shop-team" className={styles.shopLabel}>
+                Team
+              </label>
+              <select
+                id="shop-team"
+                className={styles.shopSelect}
+                value={shopTeamId}
+                onChange={e => {
+                  setShopTeamId(e.target.value);
+                  setShopPlayerId('');
+                }}
+              >
+                {(league.teams ?? []).map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.shopField}>
+              <label htmlFor="shop-player" className={styles.shopLabel}>
+                Player
+              </label>
+              <select
+                id="shop-player"
+                className={styles.shopSelect}
+                value={shopPlayerId}
+                onChange={e => setShopPlayerId(e.target.value)}
+              >
+                <option value="">Choose a player…</option>
+                {shopRoster.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.pos.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {shopPlayerId && (
+            <CandidateList
+              candidates={offers}
+              search={location.search}
+              includeTeamIds
+              emptyText={`No fair offers for ${shopPlayerName} right now — no team lines up with a need at his position plus a return that keeps your starters intact.`}
+            />
+          )}
+        </section>
 
         <MarketTargetsPanel
           targets={market}

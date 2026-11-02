@@ -173,7 +173,10 @@ export interface TradeCandidate {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-function upgradeGain(analysis: FullTradeAnalysis): number {
+// Exported for the shop-a-player lookup (backlog item 90): it ranks the
+// existing finder candidates by the owner's net starter change rather than
+// recomputing trades.
+export function upgradeGain(analysis: FullTradeAnalysis): number {
   // Sum of "best VOR after - before" at positions where the team improved,
   // across both teams' impact takes. Parsed from the depth lines rather than
   // the free-text takes so the score stays stable if wording changes.
@@ -292,11 +295,12 @@ function twoForOneAttempts(
   return out.sort((a, b) => b.score - a.score).slice(0, MAX_TWO_FOR_ONE_PER_PAIR);
 }
 
-// Net change in a team's starting value (best VOR at each position, before
-// → after). A star-for-star swap trades a positional best away, so the
-// depth-trade "no position gets worse" rule can't apply here — instead each
-// team must NET gain or break even on starting value.
-function netStarterChange(
+// Exported for the shop-a-player lookup (backlog item 90): per-side net
+// starter change is the owner's ranking signal. A star-for-star swap trades
+// a positional best away, so the depth-trade "no position gets worse" rule
+// can't apply there — instead each team must NET gain or break even on
+// starting value.
+export function netStarterChange(
   impact: FullTradeAnalysis['teamAImpact'],
 ): number {
   let net = 0;
