@@ -346,4 +346,66 @@ describe('TradeFinderPage', () => {
       'polite',
     );
   });
+
+  it('ranks trade partners for the selected team', () => {
+    const teams = [
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB5', 'RB6', 'WR5', 'WR6', 'TE5']),
+      team('d', 'Team D', ['QB4', 'RB7', 'RB8', 'WR7', 'WR8', 'TE6']),
+    ];
+    teams[0].isMyTeam = true;
+    renderPage(league(teams));
+
+    const partners = screen.getByRole('region', { name: 'Trade partners' });
+    const table = within(partners).getByRole('table', {
+      name: 'Trade partners for Team A',
+    });
+    // Team B is the complementary partner: its row names the deal count and
+    // the best deal framed from Team A's perspective (give an RB, get a WR).
+    const rowB = within(table)
+      .getAllByRole('row')
+      .find(r => within(r).queryByText('Team B') !== null)!;
+    expect(rowB).toBeTruthy();
+    expect(within(rowB).getByText(/Give /)).toHaveTextContent(/give RB/i);
+    expect(within(rowB).getByText(/Give /)).toHaveTextContent(/get WR/i);
+  });
+
+  it('shows an honest empty state when no deals involve the team', () => {
+    const teams = [
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR1', 'WR2', 'WR3', 'TE1']),
+      team('b', 'Team B', ['QB2', 'RB4', 'RB5', 'RB6', 'WR4', 'WR5', 'WR6', 'TE2']),
+      team('c', 'Team C', ['QB3', 'RB7', 'RB8', 'RB9', 'WR7', 'WR8', 'WR9', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RB10', 'RB11', 'RB12', 'WR10', 'WR11', 'WR12', 'TE4']),
+    ];
+    teams[0].isMyTeam = true;
+    renderPage(league(teams));
+
+    const partners = screen.getByRole('region', { name: 'Trade partners' });
+    expect(
+      within(partners).getByText(/No win-win deals involving Team A/),
+    ).toBeInTheDocument();
+  });
+
+  it('re-ranks partners when the team select changes', () => {
+    const teams = [
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB5', 'RB6', 'WR5', 'WR6', 'TE5']),
+      team('d', 'Team D', ['QB4', 'RB7', 'RB8', 'WR7', 'WR8', 'TE6']),
+    ];
+    teams[0].isMyTeam = true;
+    renderPage(league(teams));
+
+    const shop = screen.getByRole('region', { name: 'Shop a player' });
+    fireEvent.change(within(shop).getByLabelText('Team'), {
+      target: { value: 'b' },
+    });
+    const partners = screen.getByRole('region', { name: 'Trade partners' });
+    expect(
+      within(partners).getByRole('table', {
+        name: 'Trade partners for Team B',
+      }),
+    ).toBeInTheDocument();
+  });
 });

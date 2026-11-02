@@ -13,6 +13,7 @@ import {
   type TradeCandidate,
 } from '@/utils/tradeFinder';
 import { shopOffers } from '@/utils/shopPlayer';
+import { partnerDealLine, rankTradePartners } from '@/utils/tradePartners';
 import { tradeLink } from '@/utils/tradeLinks';
 import { valueLeagueFor, DEFAULT_MANUAL_SHAPE } from '@/utils/tradeAnalysis';
 import { DEFAULT_VOR_CONFIG } from '@/utils/projectionValues';
@@ -558,13 +559,11 @@ function GuestTradeFinder() {
             Loading weekly stats for the Buy Low / Sell High targets…
           </p>
         )}
-        {guestWeeklyState === 'ready' && (
-          <MarketTargetsPanel
-            targets={market}
-            week={guestWeek}
-            showRosteredBy={false}
-          />
-        )}
+        <MarketTargetsPanel
+          targets={market}
+          week={guestWeek}
+          showRosteredBy={false}
+        />
 
         <p className={styles.footnote}>
           Method: value from projected-points VOR on the standard 10-team
@@ -675,6 +674,22 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
     [league, shopPlayerId],
   );
 
+  // --- Ranked trade partners (backlog item 93): "who should I call first" ---
+  const shopTeamName = useMemo(
+    () =>
+      league && !league.isGuest
+        ? (league.teams.find(t => t.id === shopTeamId)?.name ?? '')
+        : '',
+    [league, shopTeamId],
+  );
+  const partners = useMemo(
+    () =>
+      league && !league.isGuest && shopTeamId
+        ? rankTradePartners(candidates, shopTeamId)
+        : [],
+    [league, candidates, shopTeamId],
+  );
+
   if (!league || league.isGuest === true) {
     return <GuestTradeFinder />;
   }
@@ -752,6 +767,60 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
               includeTeamIds
               emptyText={`No fair offers for ${shopPlayerName} right now — no team lines up with a need at his position plus a return that keeps your starters intact.`}
             />
+          )}
+        </section>
+
+        <section className={styles.shop} aria-label="Trade partners">
+          <h2 className={styles.shopTitle}>Trade partners</h2>
+          <p className={styles.shopIntro}>
+            Who should you call first? Every rival ranked by how many
+            win-win deals the finder sees with {shopTeamName || 'this team'} —
+            strongest mutual fit at the top, with the best deal each way.
+          </p>
+          {partners.length === 0 ? (
+            <p className={styles.partnerEmpty}>
+              No win-win deals involving {shopTeamName || 'this team'} right
+              now — no rival's needs and depth line up at a fair price.
+            </p>
+          ) : (
+            <table
+              className={styles.partnerTable}
+              aria-label={`Trade partners for ${shopTeamName}`}
+            >
+              <caption className="visually-hidden">
+                Rival teams ranked by win-win trade fit with {shopTeamName}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Rank</th>
+                  <th scope="col">Team</th>
+                  <th scope="col">Win-win deals</th>
+                  <th scope="col">Best deal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partners.map((row, i) => {
+                  const line = partnerDealLine(row.best, shopTeamId);
+                  return (
+                    <tr key={row.team.id}>
+                      <th scope="row" className={styles.partnerCount}>
+                        {i + 1}
+                      </th>
+                      <td className={styles.partnerTeam}>{row.team.name}</td>
+                      <td className={styles.partnerCount}>
+                        {row.candidateCount}
+                      </td>
+                      <td
+                        className={styles.partnerDeal}
+                        aria-label={`Best deal with ${row.team.name}: you give ${line.give.join(', ')} and get ${line.get.join(', ')}`}
+                      >
+                        Give {line.give.join(', ')} → get {line.get.join(', ')}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </section>
 
