@@ -737,6 +737,50 @@ describe('TeamsPage record book', () => {
   });
 });
 
+describe('TeamsPage rivalry matrix', () => {
+  function rivalryLeague(): League {
+    // Weeks 7-8 completed; week 9 is live and excluded.
+    return league({
+      status: 'live',
+      teams: [
+        team('A', 'Alpha', 2, 0, 260),
+        team('B', 'Beta', 0, 2, 180),
+        team('C', 'Gamma', 1, 1, 220),
+      ],
+      matchups: [
+        { week: 7, team1Id: 'A', team1Points: 130, team2Id: 'B', team2Points: 90 },
+        // Week 9 (live): partial scores never count in a season series.
+        { week: 9, team1Id: 'A', team1Points: 999, team2Id: 'B', team2Points: 1 },
+      ],
+    });
+  }
+
+  it('renders every pair\u2019s head-to-head record from completed weeks', () => {
+    renderPage(rivalryLeague());
+    expect(screen.getByRole('heading', { name: 'Rivalry Matrix' })).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /rivalry matrix/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(4); // header + 3 teams
+    // Alpha beat Beta in week 7; the live week-9 blowout is excluded.
+    expect(rows[1]).toHaveTextContent('Alpha');
+    const alphaBeta = within(rows[1]).getByLabelText('Alpha leads Beta 1-0');
+    expect(alphaBeta).toHaveTextContent('1-0');
+    // Beta's row reads from Beta's side.
+    const betaAlpha = within(rows[2]).getByLabelText('Beta trails Alpha 0-1');
+    expect(betaAlpha).toHaveTextContent('0-1');
+    // Gamma never met anyone: dashes, and the diagonal is a dash too.
+    const gammaAlpha = within(rows[3]).getByLabelText("Gamma and Alpha haven't met yet this season");
+    expect(gammaAlpha).toHaveTextContent('—');
+  });
+
+  it('hides the section when the sync fetched no matchups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'Rivalry Matrix' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('TeamsPage power rankings', () => {
   function powerLeague(): League {
     // Weeks 6-8 completed; week 9 is live and excluded.

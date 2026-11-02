@@ -23,6 +23,7 @@ import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
 import { buildPerfectLineupRecord } from '@/utils/perfectLineupRecord';
 import { buildPowerRankings } from '@/utils/powerRankings';
 import { buildRecordBook } from '@/utils/recordBook';
+import { buildRivalryMatrix, type RivalryCell } from '@/utils/rivalryMatrix';
 import {
   buildAllPlayRecord,
   formatRecord,
@@ -51,6 +52,24 @@ function tierInjuryClass(tier: InjurySeverityTier): string {
     default:
       return styles.injuryTierOther;
   }
+}
+
+/** Display record for a rivalry-matrix cell ("2-0", "1-0-1" when ties exist). */
+function rivalryCellRecord(cell: RivalryCell): string {
+  return cell.ties > 0
+    ? `${cell.wins}-${cell.losses}-${cell.ties}`
+    : `${cell.wins}-${cell.losses}`;
+}
+
+/** Plain-language verdict for a rivalry-matrix cell, from the row team's side. */
+function rivalryCellVerdict(
+  rowName: string,
+  cell: RivalryCell,
+): string {
+  const record = rivalryCellRecord(cell);
+  if (cell.wins > cell.losses) return `${rowName} leads ${cell.opponentName} ${record}`;
+  if (cell.losses > cell.wins) return `${rowName} trails ${cell.opponentName} ${record}`;
+  return `${rowName} is even with ${cell.opponentName} ${record}`;
 }
 
 export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
@@ -327,6 +346,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // streaks). Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
   const recordBook = useMemo(() => buildRecordBook(league), [league]);
+  // Rivalry matrix: this season's head-to-head W-L-T between every pair
+  // of teams. Hides when the sync fetched no matchups (old snapshots,
+  // guest mode) or no week is complete yet.
+  const rivalry = useMemo(() => buildRivalryMatrix(league), [league]);
   // Power rankings: each team's season scoring average shrunk toward the
   // league mean (the same rating the Playoff Race sims run on), with a
   // last-3-weeks form trend. Hides with no completed matchups.
@@ -993,6 +1016,67 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       {recordBook.longestLossStreak.toWeek}
                     </td>
                   </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {rivalry && (
+          <section className={styles.raceSection} aria-labelledby="rivalry-heading">
+            <h2 id="rivalry-heading" className={styles.sectionTitle}>
+              Rivalry Matrix
+            </h2>
+            <p className={styles.sectionHint}>
+              This season's head-to-head record between every pair of teams,
+              from the {rivalry.weeks} completed week
+              {rivalry.weeks === 1 ? '' : 's'}' scores. Rows read left to
+              right: the row team's record against each opponent. The
+              in-progress week is excluded, so a half-played game can never
+              count in a season series.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="Rivalry matrix: this season's head-to-head win-loss record between every pair of teams"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span className="visually-hidden">Team</span>
+                    </th>
+                    {rivalry.rows.map(r => (
+                      <th key={r.teamId} scope="col">
+                        {r.teamName}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rivalry.rows.map(row => (
+                    <tr key={row.teamId}>
+                      <th scope="row">{row.teamName}</th>
+                      {row.cells.map(cell => {
+                        const isSelf = cell.opponentId === row.teamId;
+                        const verdict = isSelf
+                          ? row.teamName
+                          : cell.games === 0
+                            ? `${row.teamName} and ${cell.opponentName} haven't met yet this season`
+                            : rivalryCellVerdict(row.teamName, cell);
+                        return (
+                          <td
+                            key={cell.opponentId}
+                            title={verdict}
+                            aria-label={verdict}
+                          >
+                            {isSelf || cell.games === 0
+                              ? '—'
+                              : rivalryCellRecord(cell)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
