@@ -151,3 +151,75 @@ describe('fetchNflScoreboard', () => {
     expect(url).toContain('week=9');
   });
 });
+
+describe('fetchNflScoreboard odds parsing (backlog item 97)', () => {
+  // Fixture mirrors the verified live ESPN shape (Nov 2, 2026): odds is an
+  // array of provider objects with flat details/overUnder/spread summary
+  // fields; completed games carry no odds field at all.
+  function eventWithOdds(odds: unknown) {
+    return event({
+      id: 'odds-game',
+      status: { type: { state: 'pre', shortDetail: 'Sun 4:25 PM ET' } },
+      competitions: [
+        {
+          competitors: [
+            competitor('away', 'CHI', ''),
+            competitor('home', 'SEA', ''),
+          ],
+          odds,
+        },
+      ],
+    });
+  }
+
+  it('parses the first provider entry', async () => {
+    mockFetch({
+      events: [
+        eventWithOdds([
+          {
+            provider: { id: '100', name: 'Draft Kings', priority: 1 },
+            details: 'SEA -3',
+            overUnder: 46.5,
+            spread: -3.0,
+          },
+        ]),
+      ],
+    });
+    const games = await fetchNflScoreboard(2026, 8);
+    expect(games[0].odds).toEqual({
+      details: 'SEA -3',
+      overUnder: 46.5,
+      spread: -3.0,
+    });
+  });
+
+  it('returns null odds when the feed carries no odds field', async () => {
+    mockFetch({ events: [eventWithOdds(undefined)] });
+    const games = await fetchNflScoreboard(2026, 8);
+    expect(games[0].odds).toBeNull();
+  });
+
+  it('returns null odds for an empty odds array', async () => {
+    mockFetch({ events: [eventWithOdds([])] });
+    const games = await fetchNflScoreboard(2026, 8);
+    expect(games[0].odds).toBeNull();
+  });
+
+  it('returns null odds when the provider entry has no summary fields', async () => {
+    mockFetch({ events: [eventWithOdds([{ provider: { name: 'X' } }])] });
+    const games = await fetchNflScoreboard(2026, 8);
+    expect(games[0].odds).toBeNull();
+  });
+
+  it('keeps partial odds (total but no spread)', async () => {
+    mockFetch({
+      events: [eventWithOdds([{ details: 'SEA -3', overUnder: 46.5 }])],
+    });
+    const games = await fetchNflScoreboard(2026, 8);
+    expect(games[0].odds).toEqual({
+      details: 'SEA -3',
+      overUnder: 46.5,
+      spread: null,
+    });
+  });
+});

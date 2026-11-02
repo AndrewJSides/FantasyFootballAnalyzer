@@ -31,6 +31,7 @@ function scoreGame(overrides: Partial<ScoreboardGame> = {}): ScoreboardGame {
     state: 'in',
     statusLine: '2:40 - 3rd',
     date: '2026-11-01T21:05Z',
+    odds: null,
     ...overrides,
   };
 }
@@ -212,5 +213,52 @@ describe('ScoreboardPage', () => {
     } finally {
       setIntervalSpy.mockRestore();
     }
+  });
+
+  it('shows the odds line with flags on an upcoming game', async () => {
+    mockFetch.mockResolvedValue([
+      scoreGame({
+        id: 'odds',
+        awayAbbr: 'CHI',
+        homeAbbr: 'SEA',
+        state: 'pre',
+        statusLine: 'Sun 4:25 PM ET',
+        odds: { details: 'SEA -3', overUnder: 52, spread: -10 },
+      }),
+    ]);
+    renderPage();
+    await waitFor(() =>
+      expect(
+        screen.getByText('SEA -3 · O/U 52 · Shootout · Blowout script'),
+      ).toBeInTheDocument(),
+    );
+    // The accessible version names the implied totals and impact.
+    const line = screen.getByText(
+      'SEA -3 · O/U 52 · Shootout · Blowout script',
+    );
+    expect(line.getAttribute('aria-label')).toContain(
+      'implied totals: SEA 31, CHI 21',
+    );
+    // The card's accessible name carries the odds too.
+    expect(screen.getByRole('listitem').getAttribute('aria-label')).toContain(
+      'Odds: the line is SEA -3',
+    );
+  });
+
+  it('hides the odds line on final games and when the feed has no odds', async () => {
+    mockFetch.mockResolvedValue([
+      scoreGame({
+        id: 'final',
+        state: 'post',
+        statusLine: 'Final',
+        odds: { details: 'SEA -3', overUnder: 46.5, spread: -3 },
+      }),
+      scoreGame({ id: 'pre-no-odds', state: 'pre', odds: null }),
+    ]);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText(/0 live · 1 upcoming · 1 final/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/O\/U/)).not.toBeInTheDocument();
   });
 });

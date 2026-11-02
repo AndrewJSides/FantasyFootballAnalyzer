@@ -164,6 +164,14 @@
   opacity: 0.8;
 }
 
+.odds {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--bone);
+  opacity: 0.85;
+}
+
 .myGuys {
   margin: 0.6rem 0 0;
   padding-top: 0.6rem;

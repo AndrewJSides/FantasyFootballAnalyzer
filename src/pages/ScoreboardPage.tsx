@@ -22,6 +22,7 @@ import {
 import { myTeamPoolIds } from '@/utils/myTeamNews';
 import { currentWeekEstimate } from '@/utils/matchupRating';
 import { timeAgo } from '@/utils/relativeTime';
+import { summarizeOdds } from '@/utils/gameOdds';
 import { POOL } from '@/data/draftPool';
 import type { League } from '@/types';
 import styles from './ScoreboardPage.module.css';
@@ -52,12 +53,19 @@ function gameAriaLabel(game: ScoreboardGame, myGuysLine: string): string {
   const away = `${game.awayName} ${game.awayAbbr}`;
   const home = `${game.homeName} ${game.homeAbbr}`;
   const guys = myGuysLine ? ` Your guys: ${myGuysLine}.` : '';
+  // Odds only ride on upcoming/live games (the feed drops them after
+  // finals); stale lines on a finished game would mislead.
+  const odds =
+    game.state !== 'post'
+      ? summarizeOdds(game.odds, game.awayAbbr, game.homeAbbr)
+      : null;
+  const oddsLine = odds ? ` ${odds.aria}` : '';
   if (game.state === 'in') {
     const score =
       game.awayScore !== null && game.homeScore !== null
         ? `${game.awayScore} to ${game.homeScore}`
         : 'score unavailable';
-    return `${away} at ${home}, live: ${score}, ${game.statusLine}.${guys}`;
+    return `${away} at ${home}, live: ${score}, ${game.statusLine}.${guys}${oddsLine}`;
   }
   if (game.state === 'post') {
     const score =
@@ -66,7 +74,7 @@ function gameAriaLabel(game: ScoreboardGame, myGuysLine: string): string {
         : 'score unavailable';
     return `${away} at ${home}, final: ${score}.${guys}`;
   }
-  return `${away} at ${home}, kicks off ${kickoffLabel(game.date)}.${guys}`;
+  return `${away} at ${home}, kicks off ${kickoffLabel(game.date)}.${guys}${oddsLine}`;
 }
 
 export function ScoreboardPage({ league }: ScoreboardPageProps) {
@@ -209,6 +217,10 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
           <ul className={styles.board} aria-label={`Week ${week} NFL scores`}>
             {sorted.map(game => {
               const myLine = gameMyPlayersLine(game, byTeam, livePoints);
+              const odds =
+                game.state !== 'post'
+                  ? summarizeOdds(game.odds, game.awayAbbr, game.homeAbbr)
+                  : null;
               return (
                 <li
                   key={game.id}
@@ -242,6 +254,15 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
                         : game.statusLine}
                     </span>
                   </div>
+                  {odds && (
+                    <p
+                      className={styles.odds}
+                      title={odds.aria}
+                      aria-label={odds.aria}
+                    >
+                      {odds.text}
+                    </p>
+                  )}
                   {myLine && (
                     <p className={styles.myGuys}>
                       <span className={styles.myGuysLabel}>Your guys:</span>{' '}
@@ -260,7 +281,10 @@ export function ScoreboardPage({ league }: ScoreboardPageProps) {
           players on your synced roster in league mode, with live fantasy
           points from Sleeper&apos;s free public stats once their game has
           started (partial while in progress); players waiting for kickoff
-          show the name only.
+          show the name only. Odds lines (spread, over/under, implied
+          totals, shootout/blowout flags) come from the same ESPN feed on
+          upcoming and live games — game-environment context for
+          streaming and lineup calls, not betting advice.
         </p>
       </div>
     </div>

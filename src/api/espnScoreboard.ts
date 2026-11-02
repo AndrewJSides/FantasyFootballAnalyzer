@@ -24,6 +24,20 @@ export function canonTeamAbbr(abbr: string | null | undefined): string {
 
 export type ScoreboardGameState = 'pre' | 'in' | 'post';
 
+/** Vegas lines from ESPN's scoreboard feed (backlog item 97). The feed
+ *  carries odds only on scheduled/live games — completed games have no
+ *  `odds` field. Verified live Nov 2, 2026: path is
+ *  events[].competitions[].odds, an array of provider objects; the first
+ *  entry's flat `details` (string), `overUnder` (number) and `spread`
+ *  (number) are the summary fields. */
+export interface GameOdds {
+  /** e.g. "SEA -3" — ESPN's line as printed, already attributed. */
+  details: string | null;
+  overUnder: number | null;
+  /** Home-team-relative spread (negative = home favored), e.g. -3.0. */
+  spread: number | null;
+}
+
 export interface ScoreboardGame {
   /** ESPN event id, stable for keying the list. */
   id: string;
@@ -40,6 +54,8 @@ export interface ScoreboardGame {
   statusLine: string;
   /** Kickoff ISO date (ESPN's `date`) — used to sort pre-game matchups. */
   date: string;
+  /** Null when the feed carries no odds (completed games, or no line yet). */
+  odds: GameOdds | null;
 }
 
 interface EspnCompetitor {
@@ -54,7 +70,7 @@ interface EspnEvent {
   status?: {
     type?: { state?: unknown; shortDetail?: unknown };
   };
-  competitions?: Array<{ competitors?: unknown }>;
+  competitions?: Array<{ competitors?: unknown; odds?: unknown }>;
 }
 
 function parseScore(raw: unknown): number | null {
@@ -64,6 +80,29 @@ function parseScore(raw: unknown): number | null {
     if (Number.isFinite(n)) return n;
   }
   return null;
+}
+
+function parseNumber(raw: unknown): number | null {
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+}
+
+/** Parse the first odds provider entry; null when the feed carries no
+ *  odds (completed games, or no line posted yet) so the page degrades to
+ *  the scoreline instead of showing stale lines. */
+function parseOdds(raw: unknown): GameOdds | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const first = raw[0];
+  if (typeof first !== 'object' || first === null) return null;
+  const entry = first as {
+    details?: unknown;
+    overUnder?: unknown;
+    spread?: unknown;
+  };
+  const details = typeof entry.details === 'string' ? entry.details : null;
+  const overUnder = parseNumber(entry.overUnder);
+  const spread = parseNumber(entry.spread);
+  if (details === null && overUnder === null && spread === null) return null;
+  return { details, overUnder, spread };
 }
 
 /** Parse one ESPN event; returns undefined for malformed events so one bad
@@ -105,6 +144,7 @@ function parseEvent(event: unknown): ScoreboardGame | undefined {
         ? e.status.type.shortDetail
         : '',
     date: typeof e.date === 'string' ? e.date : '',
+    odds: parseOdds(competition?.odds),
   };
 }
 
