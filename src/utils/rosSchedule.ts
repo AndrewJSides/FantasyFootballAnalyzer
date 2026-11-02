@@ -31,7 +31,8 @@ const ALLOWED = allowedJson as unknown as AllowedFile;
 
 const SKILL_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 
-function labelFor(avgRank: number): RosLabel {
+/** Verdict for a mean opponent allowed-vs-position rank: ≤10 soft, ≥23 tough. */
+export function labelFor(avgRank: number): RosLabel {
   if (avgRank <= 10) return 'favorable';
   if (avgRank >= 23) return 'tough';
   return 'neutral';

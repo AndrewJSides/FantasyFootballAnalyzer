@@ -15,6 +15,8 @@ import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
+import { buildTeamPlayoffSOS } from '@/utils/teamPlayoffSOS';
+import { playoffWeeksForLeague, rosShort } from '@/utils/rosSchedule';
 import { buildDraftRoi } from '@/utils/draftRoi';
 import { buildLineupEfficiency } from '@/utils/lineupEfficiency';
 import { buildPerfectLineupRecord } from '@/utils/perfectLineupRecord';
@@ -214,6 +216,23 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
     };
   };
 
+  // Per-team fantasy-playoff schedule softness (backlog item 88): each
+  // team's current optimal starters' playoff-week (W15–W17 by default)
+  // opponent ranks averaged — the trade-deadline "whose playoff schedule
+  // is soft" read. Hides with the Playoff Race section when rosters can't
+  // be priced.
+  const playoffWeeks = useMemo(
+    () => playoffWeeksForLeague(league.playoffStartWeek),
+    [league.playoffStartWeek],
+  );
+  const teamPlayoffSOS = useMemo(
+    () => (race.length > 0 ? buildTeamPlayoffSOS({ league, weeks: playoffWeeks }) : undefined),
+    [league, playoffWeeks, race.length],
+  );
+  const playoffSOSByTeam = useMemo(
+    () => new Map((teamPlayoffSOS ?? []).map(s => [s.teamId, s])),
+    [teamPlayoffSOS],
+  );
   // Highest championship share across the simulated seasons.
   const projectedChampion = useMemo(
     () =>
@@ -996,6 +1015,11 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               loss — "Clinches with a win" means the team made the playoffs
               in every forced-win season, "Out with a loss" means it missed
               in every forced-loss season (model verdict, not league-official).
+              PO SOS averages each team's current optimal starters'
+              fantasy-playoff (W{Math.min(...playoffWeeks)}–W{Math.max(...playoffWeeks)})
+              opponent ranks — 1 is the softest — on the same season-to-date
+              allowed-vs-position data as the Rankings page's PO SOS column;
+              a difficulty map for the trade deadline, not a forecast.
               Schedule from the owner's latest sync.
             </p>
             {projectedChampion && (
@@ -1007,7 +1031,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
               </p>
             )}
             <div className={`${styles.matrixWrapper} scroll-x-hint`}>
-              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, projected standings, seed, championship odds, status, this week's clinch scenarios, and odds">
+              <table className={styles.matrix} aria-label="Playoff race: remaining schedule, SOS, playoff schedule softness, projected standings, seed, championship odds, status, this week's clinch scenarios, and odds">
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
@@ -1016,6 +1040,7 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                     <th scope="col">Proj. seed</th>
                     <th scope="col">Remaining</th>
                     <th scope="col">SOS</th>
+                    <th scope="col">PO SOS</th>
                     <th scope="col">Playoff odds</th>
                     <th scope="col">Champ %</th>
                     <th scope="col">Status</th>
@@ -1054,6 +1079,30 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                       >
                         #{r.sosRank}
                       </td>
+                      {(() => {
+                        const sos = playoffSOSByTeam.get(r.teamId);
+                        if (!sos) return <td>—</td>;
+                        const verdict =
+                          sos.label === 'favorable'
+                            ? 'Soft'
+                            : sos.label === 'tough'
+                              ? 'Tough'
+                              : 'Average';
+                        return (
+                          <td
+                            title={
+                              `Fantasy-playoff schedule (W${Math.min(...playoffWeeks)}–W${Math.max(...playoffWeeks)}): ` +
+                              `${verdict} — this team's ${sos.starters} priced starters' playoff opponents ` +
+                              `average rank ${sos.avgRank.toFixed(1)} (1 = easiest). Priced on the same ` +
+                              `season-to-date allowed-vs-position averages as the Rankings page's PO SOS ` +
+                              `column; a difficulty map, not a forecast.`
+                            }
+                            aria-label={`Playoff schedule softness: ${verdict}, average opponent rank ${sos.avgRank.toFixed(1)} (1 = easiest)`}
+                          >
+                            {rosShort({ avgRank: sos.avgRank, label: sos.label, games: [] })}
+                          </td>
+                        );
+                      })()}
                       <td className={r.playoffProb >= 50 ? styles.raceLikely : styles.raceLong}>
                         {r.playoffProb}%
                       </td>

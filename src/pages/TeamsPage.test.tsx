@@ -778,3 +778,62 @@ describe('TeamsPage clinch watch', () => {
     expect(within(gamma!).getAllByText('—').length).toBeGreaterThan(0);
   });
 });
+
+describe('TeamsPage team playoff SOS', () => {
+  // Two rostered teams with steady weekly points; the bundled 2026 schedule
+  // and allowed-vs-position data price weeks 15–17, so the exact verdicts
+  // depend on real data — assert the shape, not the numbers.
+  const sosLeague = (status?: string): League => {
+    const mkPlayer = (id: string, pos: string, nfl: string): Player =>
+      ({ id, platformId: id, name: id, position: pos, team: nfl }) as Player;
+    const l = league();
+    const weekly: Record<string, Record<number, number>> = {};
+    l.teams = l.teams.slice(0, 2).map((t, ti) => {
+      const roster = [
+        mkPlayer(`${t.id}-qb`, 'QB', 'KC'),
+        mkPlayer(`${t.id}-rb`, 'RB', 'SF'),
+        mkPlayer(`${t.id}-wr`, 'WR', 'DAL'),
+        mkPlayer(`${t.id}-te`, 'TE', 'KC'),
+      ];
+      for (const p of roster) weekly[p.id] = { 1: 10 + ti * 5, 2: 10 + ti * 5, 3: 10 + ti * 5 };
+      return { ...t, roster };
+    });
+    return {
+      ...l,
+      status: status ?? 'live',
+      playerWeeklyPoints: weekly,
+      futureSchedule: [matchup(9, 'A', 'B')],
+    } as League;
+  };
+
+  it('renders a PO SOS verdict per team on the Playoff Race table', () => {
+    renderPage(sosLeague());
+    const table = screen.getByRole('table', {
+      name: /Playoff race: remaining schedule/,
+    });
+    expect(
+      within(table).getByRole('columnheader', { name: 'PO SOS' }),
+    ).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    const alpha = rows.find(r => within(r).queryByText('Alpha'));
+    const beta = rows.find(r => within(r).queryByText('Beta'));
+    // rosShort shape: "Soft (8.4)" / "Avg (15.2)" / "Tough (24.1)".
+    for (const row of [alpha!, beta!]) {
+      expect(
+        within(row).getByText(/^(Soft|Avg|Tough) \(\d+\.\d+\)$/),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it('renders dashes when the league cannot be priced', () => {
+    renderPage(sosLeague('archived'));
+    const table = screen.getByRole('table', {
+      name: /Playoff race: remaining schedule/,
+    });
+    const rows = within(table).getAllByRole('row');
+    const alpha = rows.find(r => within(r).queryByText('Alpha'));
+    // PO SOS is the 7th column (after SOS); the unpriced cell is a dash.
+    const cells = within(alpha!).getAllByRole('cell');
+    expect(cells[5]).toHaveTextContent('—');
+  });
+});
