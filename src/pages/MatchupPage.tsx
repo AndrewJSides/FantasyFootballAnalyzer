@@ -12,8 +12,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { League } from '@/types';
-import { previewWeeklyMatchups, type MatchupPreview } from '@/utils/matchupPreview';
+import { previewWeeklyMatchups, scoreTeamLineup, type MatchupPreview } from '@/utils/matchupPreview';
 import { buildGamePlan, TOSS_UP_THRESHOLD, type SwapFlag } from '@/utils/gamePlan';
+import { priceSwapImpacts, type SwapImpact } from '@/utils/swapImpact';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { buildHeadToHead, seriesHeadline } from '@/utils/headToHead';
 import { buildPositionBattles, EVEN_BAND, type PositionBattle } from '@/utils/positionBattles';
@@ -204,7 +205,9 @@ interface MatchupPageProps {
   league: League;
 }
 
-function SwapCall({ flag }: { flag: SwapFlag }) {
+function SwapCall({ flag, impact }: { flag: SwapFlag; impact?: SwapImpact }) {
+  const gainText =
+    impact && `${impact.gain >= 0 ? '+' : ''}${impact.gain.toFixed(1)} pts`;
   return (
     <li className={`${styles.flag} ${flag.kind === 'upgrade' ? styles.flagUpgrade : ''}`}>
       <div className={styles.flagTitle}>
@@ -212,6 +215,15 @@ function SwapCall({ flag }: { flag: SwapFlag }) {
         ({flag.challengerScore.toFixed(1)} vs {flag.starterScore.toFixed(1)} proj.)
       </div>
       <div className={styles.flagNote}>{flag.note}</div>
+      {impact && (
+        <div
+          className={styles.flagImpact}
+          title={`Same seeded 2,000-sim Monte Carlo as the baseline, so the delta is the swap's effect, not sim noise.`}
+          aria-label={`Making this swap moves the win chance ${gainText}`}
+        >
+          Win chance {gainText} with this swap
+        </div>
+      )}
     </li>
   );
 }
@@ -241,6 +253,27 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
     [focusTeam, league],
   );
   const focusName = teamById.get(focusId)?.name ?? '?';
+
+  // Swap impact: each close-call flag priced on this week's Monte Carlo
+  // win probability, so the flag answers "how much does my win chance move
+  // if I make this swap". Re-prices both optimal lineups on the same
+  // shared scoring core as the preview above, so the two can't disagree.
+  const swapImpacts = useMemo(() => {
+    const empty = new Map<string, SwapImpact>();
+    if (!plan || plan.swapFlags.length === 0) return empty;
+    const opponentId = focusId === preview.teamAId ? preview.teamBId : preview.teamAId;
+    const oppTeam = teamById.get(opponentId);
+    if (!focusTeam || !oppTeam) return empty;
+    const a = scoreTeamLineup(focusTeam, league);
+    const b = scoreTeamLineup(oppTeam, league);
+    if (!a || !b) return empty;
+    return new Map(
+      priceSwapImpacts(a.starters, b.starters, plan.swapFlags).map(i => [
+        `${i.slot}-${i.starterName}-${i.challengerName}`,
+        i,
+      ]),
+    );
+  }, [plan, preview, focusId, focusTeam, league, teamById]);
 
   // This season's series record between the two teams, from completed
   // weeks only (the current week's partial scores don't count yet).
@@ -550,7 +583,11 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
             {plan.swapFlags.length > 0 ? (
               <ul className={styles.flagList} aria-label="Close start-sit calls">
                 {plan.swapFlags.map(f => (
-                  <SwapCall key={`${f.slot}-${f.starterName}-${f.challengerName}`} flag={f} />
+                  <SwapCall
+                    key={`${f.slot}-${f.starterName}-${f.challengerName}`}
+                    flag={f}
+                    impact={swapImpacts.get(`${f.slot}-${f.starterName}-${f.challengerName}`)}
+                  />
                 ))}
               </ul>
             ) : (
@@ -632,7 +669,10 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         optimal lineup&apos;s starters by position and compare summed weekly
         projections (flexed players count in their own position group). Start/sit flags name bench
         players within {TOSS_UP_THRESHOLD} points of a starter&apos;s
-        projection — close calls worth a second look, not orders. Win-now
+        projection — close calls worth a second look, not orders. Each
+        close call also shows how the focus team&apos;s win chance moves
+        if the swap is made (same seeded 2,000-sim Monte Carlo as the
+        baseline, so the delta is the swap&apos;s effect, not sim noise). Win-now
         trades re-price the Trade Finder&apos;s 1-for-1 swaps on this
         week&apos;s Monte Carlo win probability (same seeded sims as the
         baseline), showing only swaps that lift the focus team&apos;s win

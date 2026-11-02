@@ -183,6 +183,12 @@
   color: var(--bone-dim);
 }
 
+.flagImpact {
+  color: var(--gold);
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
 .allClear {
   color: var(--bone-dim);
   font-size: 0.9rem;

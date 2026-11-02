@@ -119,6 +119,21 @@ describe('MatchupPage', () => {
     expect(within(flags).getByText(/consider A-rb4 over A-rb2/)).toBeInTheDocument();
   });
 
+  it('prices every close call on the win chance with a signed delta', () => {
+    renderPage(league());
+    const flags = screen.getByRole('list', { name: /close start-sit calls/i });
+    // A-rb4 challenges in two slots; every close call carries a signed
+    // win-chance delta line.
+    const impacts = within(flags).getAllByText(/Win chance [-+]\d+\.\d pts with this swap/);
+    expect(impacts.length).toBeGreaterThan(0);
+    for (const impact of impacts) {
+      expect(impact).toHaveAttribute(
+        'aria-label',
+        expect.stringMatching(/win chance [-+]\d+\.\d+ pts/),
+      );
+    }
+  });
+
   it('shows the all-clear line when no starter has a close call', () => {
     renderPage(league());
     // Switch to the Gamma vs Delta matchup: nobody has a close call there.

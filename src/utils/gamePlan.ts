@@ -23,8 +23,14 @@ export const TOSS_UP_THRESHOLD = 2;
 
 export interface SwapFlag {
   slot: string;
+  /** Roster-pick id of the starter, for matching against a priced lineup. */
+  starterId: string;
   starterName: string;
   starterScore: number;
+  /** Roster-pick id of the challenger. */
+  challengerId: string;
+  /** The full scored challenger, so the win-probability sim can price the swap. */
+  challenger: ScoredPlayer;
   challengerName: string;
   challengerScore: number;
   /** Challenger minus starter, 2dp. */
@@ -96,8 +102,11 @@ export function buildGamePlan(
       const gain = Math.round((best.score - starterScored.score) * 100) / 100;
       flags.push({
         slot: slot.slot,
+        starterId: starterScored.id,
         starterName: starterScored.name,
         starterScore: starterScored.score,
+        challengerId: best.id,
+        challenger: best,
         challengerName: best.name,
         challengerScore: best.score,
         gain,
