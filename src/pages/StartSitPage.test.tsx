@@ -227,3 +227,43 @@ describe('StartSitPage model report card (item 81)', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('StartSitPage boom probability (item 100)', () => {
+  it('renders a Boom % column in the Optimal starters table', () => {
+    renderPage(league(false, [matchup(9, 'W', 'S')]));
+    const table = screen.getByRole('table', {
+      name: 'Optimal starters for Strongmen',
+    });
+    expect(
+      within(table).getByRole('columnheader', { name: 'Boom %' }),
+    ).toBeInTheDocument();
+  });
+
+  it('prices certain booms and busts on the flat-score fixture', () => {
+    // Strongmen score a flat 25 every week: zero volatility, so a projection
+    // above the position boom bar is a certain boom (100%) and one at the
+    // bar is not (0%). RB/WR/TE bars sit below 25; the QB bar is 25.
+    renderPage(league(false, [matchup(9, 'W', 'S')]));
+    const table = screen.getByRole('table', {
+      name: 'Optimal starters for Strongmen',
+    });
+    expect(within(table).getAllByText('100%')).toHaveLength(6);
+    expect(within(table).getAllByText('0%')).toHaveLength(1);
+  });
+
+  it('names the boom bar and basis in the cell detail', () => {
+    renderPage(league(false, [matchup(9, 'W', 'S')]));
+    const table = screen.getByRole('table', {
+      name: 'Optimal starters for Strongmen',
+    });
+    // RB/WR bar is 20 (the TE cell names its own 15-pt bar instead).
+    const cells = within(table).getAllByLabelText(
+      /100% chance of a 20\+ pt boom week — TraderApe projects 25/,
+    );
+    expect(cells).toHaveLength(5);
+    expect(cells[0]).toHaveAttribute(
+      'title',
+      expect.stringContaining('his own played-week volatility'),
+    );
+  });
+});

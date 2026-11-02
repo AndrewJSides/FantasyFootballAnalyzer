@@ -48,10 +48,10 @@ function upcomingCell(playerId: string): string {
       return cells.length > 0 && (cells[0].textContent ?? '').includes(playerId);
     });
   expect(row).toBeDefined();
-  // Cells after the row header: Player, Proj., Range, Pts/game, Last 3,
-  // Matchup, Upcoming, Kickoff, Why they start.
+  // Cells after the row header: Player, Proj., Range, Boom %, Pts/game,
+  // Last 3, Matchup, Upcoming, Kickoff, Why they start.
   const cells = within(row!).getAllByRole('cell');
-  return cells[6].textContent ?? '';
+  return cells[7].textContent ?? '';
 }
 
 describe('StartSitPage upcoming matchups column', () => {

@@ -16,6 +16,7 @@ import {
   modeScore,
   modeScoreUnit,
   modeSlotVerb,
+  modeStdDev,
   modeTotalUnit,
   suggestedModeFromWinProb,
   type LineupMode,
@@ -28,6 +29,7 @@ import {
 } from '@/utils/optimalLineup';
 import { projectionReason } from '@/utils/weeklyProjection';
 import { consistencySummary } from '@/utils/consistency';
+import { boomChance } from '@/utils/boomProbability';
 import { planLineupWeeks, type PlannedWeek } from '@/utils/lineupPlanner';
 import {
   holeStreamerPicks,
@@ -246,6 +248,30 @@ export function StartSitPage({ league }: StartSitPageProps) {
       label: `${round1(c.floor)}–${round1(c.ceiling)}`,
       title: `Typical range: P25–P75 of ${c.games} played weeks`,
     };
+  };
+
+  // Boom probability (backlog item 100): the chance this week's score clears
+  // the position's boom bar — TraderApe's own upside number for the
+  // favorite/underdog call. Priced on this week's projection as the normal
+  // mean with the player's own week-to-week volatility as the std dev (the
+  // same distribution the weekly win-probability Monte Carlo draws from);
+  // below 2 played weeks the lineup-mode 45%-of-mean fallback stands in.
+  // Dash when there is no projection to price on.
+  const boomInfo = (
+    s: ScoredPlayer,
+  ): { label: string; title: string; aria: string } | null => {
+    const proj = s.projection?.projection;
+    if (proj == null || !Number.isFinite(proj)) return null;
+    const stdDev = modeStdDev(s, proj);
+    const { probability, boomBar } = boomChance(proj, stdDev, s.position);
+    if (probability === null) return null;
+    const pct = Math.round(probability * 100);
+    const basis =
+      s.stdDev !== null
+        ? 'his own played-week volatility'
+        : 'estimated volatility (fewer than 2 played weeks)';
+    const detail = `${pct}% chance of a ${boomBar}+ pt boom week — TraderApe projects ${round1(proj)} with ${basis}`;
+    return { label: `${pct}%`, title: detail, aria: detail };
   };
 
   const scored = useMemo<ScoredPlayer[]>(
@@ -881,6 +907,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Player</th>
                   <th scope="col">Proj.</th>
                   <th scope="col">Range</th>
+                  <th scope="col">Boom %</th>
                   <th scope="col">Pts/game</th>
                   <th scope="col">Last 3</th>
                   <th scope="col">Matchup</th>
@@ -893,6 +920,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 {lineup.starters.map((a, i) => {
                   const s = a.player as ScoredPlayer | null;
                   const range = s ? rangeInfo(s) : null;
+                  const boom = s ? boomInfo(s) : null;
                   return (
                     <tr key={`${a.slot}-${i}`}>
                       <th scope="row">{a.slot}</th>
@@ -910,6 +938,15 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <td>
                         {range ? (
                           <span title={range.title ?? undefined}>{range.label}</span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>
+                        {boom ? (
+                          <span title={boom.title} aria-label={boom.aria}>
+                            {boom.label}
+                          </span>
                         ) : (
                           '—'
                         )}
@@ -1000,6 +1037,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
               week can&apos;t over-swing it. Range is each starter&apos;s
               P25–P75 scoring band from their own played weeks (3+ needed) —
               a steady 14 and a volatile 14 are very different start calls.
+              Boom % is each starter&apos;s chance of clearing his
+              position&apos;s boom bar (QB 25 / RB-WR 20 / TE 15) — the
+              projection as the mean with his own week-to-week volatility,
+              the same distribution the weekly win-probability model draws
+              from.
               Safe &amp; risky ranks the optimal starters on the same data:
               steady history plus a kind matchup is safe, volatile history
               plus a tough matchup is risky.
