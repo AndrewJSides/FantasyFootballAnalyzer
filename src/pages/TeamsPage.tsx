@@ -15,6 +15,7 @@ import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
 import { buildTeamInjurySummaries } from '@/utils/teamInjuries';
 import { buildTeamGrades } from '@/utils/teamGrades';
+import { buildStackReport } from '@/utils/stackReport';
 import { buildTeamPlayoffSOS } from '@/utils/teamPlayoffSOS';
 import { playoffWeeksForLeague, rosShort } from '@/utils/rosSchedule';
 import { buildDraftRoi } from '@/utils/draftRoi';
@@ -277,6 +278,21 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
         : letter.startsWith('C')
           ? styles.gradeC
           : styles.gradeDF;
+  // Stack report: rostered QB + his WR/TE teammates per NFL team, ranked
+  // league-wide by TraderApe's own rest-of-season outlook, plus waiver
+  // stack-mates (unrostered pass-catchers sharing an NFL team with a
+  // rostered QB). Same roster gating as Team Grades.
+  const stackReport = useMemo(
+    () =>
+      hasRosters
+        ? buildStackReport({
+            league,
+            pool,
+            shape: pool.season === WEEKLY_SHAPE.season ? WEEKLY_SHAPE : undefined,
+          })
+        : undefined,
+    [league, pool, hasRosters],
+  );
   // Draft ROI: auction $ efficiency per team — actual auction spend vs
   // TraderApe's full-season outlook (points so far + projected rest).
   // Gated on auctioned draft picks existing (the util hides itself in
@@ -555,6 +571,96 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                 </tbody>
               </table>
             </div>
+          </section>
+        )}
+
+        {stackReport && (
+          <section className={styles.raceSection} aria-labelledby="stack-report-heading">
+            <h2 id="stack-report-heading" className={styles.sectionTitle}>
+              Stack Report
+            </h2>
+            <p className={styles.sectionHint}>
+              QB + pass-catcher stacks: a rostered QB paired with his rostered
+              WR/TE teammates on the same NFL team, ranked league-wide by
+              TraderApe&apos;s own rest-of-season outlook. Stacked teammates
+              spike together — when the QB erupts, his pass-catchers tend to
+              as well. QB–RB pairs don&apos;t correlate and aren&apos;t counted
+              as stacks.
+            </p>
+            {stackReport.stacks.length > 0 ? (
+              <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+                <table className={styles.matrix} aria-label="League stacks ranked by rest-of-season outlook">
+                  <thead>
+                    <tr>
+                      <th scope="col">Rank</th>
+                      <th scope="col">Team</th>
+                      <th scope="col">Stack</th>
+                      <th scope="col">ROS pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stackReport.stacks.map(s => (
+                      <tr key={`${s.teamId}-${s.nflTeam}`}>
+                        <td>{s.rank}</td>
+                        <th scope="row" title={s.teamName}>{shortName(s.teamName)}</th>
+                        <td
+                          title={`${s.teamName}: ${s.nflTeam} stack — ${[...s.qbNames, ...s.catcherNames].join(' + ')}: ${s.combinedRos.toFixed(1)} projected rest-of-season points, ranked ${s.rank} of ${stackReport.stacks.length} league stacks`}
+                          aria-label={`${s.nflTeam} stack: ${[...s.qbNames, ...s.catcherNames].join(', ')}, ${s.combinedRos.toFixed(1)} projected rest-of-season points, ranked ${s.rank} of ${stackReport.stacks.length}`}
+                        >
+                          {s.nflTeam}: {[...s.qbNames, ...s.catcherNames].join(' + ')}
+                        </td>
+                        <td>{s.combinedRos.toFixed(1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className={styles.sectionHint}>
+                No team rosters a QB with one of his WR/TE teammates yet — the
+                waiver stack-mates below are how to build one.
+              </p>
+            )}
+            {stackReport.waiverTargets.length > 0 && (
+              <>
+                <h3 id="stack-waiver-heading" className={styles.sectionTitle}>
+                  Waiver stack-mates
+                </h3>
+                <p className={styles.sectionHint}>
+                  Unrostered pass-catchers who share an NFL team with a
+                  rostered QB — add one to complete (or start) a stack.
+                </p>
+                <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+                  <table className={styles.matrix} aria-label="Waiver stack-mates: unrostered pass-catchers sharing an NFL team with a rostered quarterback">
+                    <thead>
+                      <tr>
+                        <th scope="col">Player</th>
+                        <th scope="col">Pos</th>
+                        <th scope="col">NFL</th>
+                        <th scope="col">Stacks with</th>
+                        <th scope="col">ROS pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stackReport.waiverTargets.map(t => (
+                        <tr key={`${t.poolId}-${t.qbTeamId}`}>
+                          <th scope="row">{t.name}</th>
+                          <td>{t.pos}</td>
+                          <td>{t.nflTeam}</td>
+                          <td
+                            title={`${t.name} (${t.nflTeam}) would stack with ${t.qbNames.join(' and ')} on ${t.qbTeamName}`}
+                            aria-label={`Stacks with ${t.qbNames.join(' and ')} on ${t.qbTeamName}`}
+                          >
+                            {shortName(t.qbTeamName)}&apos;s {t.qbNames.join(', ')}
+                          </td>
+                          <td>{t.ros.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </section>
         )}
 

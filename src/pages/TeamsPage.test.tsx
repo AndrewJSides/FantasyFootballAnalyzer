@@ -355,6 +355,101 @@ describe('TeamsPage team grades', () => {
   });
 });
 
+describe('TeamsPage stack report', () => {
+  // Stack Report: TeamsPage takes a pool override (bundled pool carries
+  // live Sleeper designations, unsuitable for assertions).
+  const mkPool = (): import('@/types/draft').DraftPoolFile => {
+    const player = (
+      id: string,
+      name: string,
+      pos: 'QB' | 'WR' | 'TE',
+      proj: number,
+      nfl: string,
+    ): import('@/types/draft').PoolPlayer =>
+      ({
+        id,
+        name,
+        team: nfl,
+        pos,
+        posRank: 1,
+        overallRank: 10,
+        tier: 1,
+        bye: 7,
+        baseValue: null,
+        projPtsPpr: proj,
+      }) as import('@/types/draft').PoolPlayer;
+    return {
+      season: 2026,
+      generatedAt: 'test',
+      baseline: { budget: 200, teams: 2, rounds: 16 },
+      players: [
+        player('qb1', 'Elite QB', 'QB', 340, 'KC'),
+        player('wr1', 'Top Wideout', 'WR', 270, 'KC'),
+        player('te1', 'Top Tight End', 'TE', 170, 'KC'),
+        player('wr9', 'Waiver Wideout', 'WR', 150, 'KC'),
+        player('qb2', 'Scrub QB', 'QB', 180, 'BUF'),
+        player('wr2', 'Second Wideout', 'WR', 120, 'BUF'),
+      ],
+    };
+  };
+
+  const stackedLeague = (): League => {
+    const mk = (id: string, name: string, pos: string): Player =>
+      ({ id, name, position: pos, team: 'KC' }) as Player;
+    const l = league();
+    l.teams = [
+      {
+        ...team('A', 'Alpha', 8, 0, 1200),
+        roster: [
+          mk('qb1', 'Elite QB', 'QB'),
+          mk('wr1', 'Top Wideout', 'WR'),
+          mk('te1', 'Top Tight End', 'TE'),
+        ],
+      },
+      {
+        ...team('B', 'Beta', 1, 7, 800),
+        roster: [mk('qb2', 'Scrub QB', 'QB'), mk('wr2', 'Second Wideout', 'WR')],
+      },
+    ];
+    return { ...l, status: 'live', totalTeams: 2 } as League;
+  };
+
+  const renderStacked = () =>
+    render(
+      <MemoryRouter>
+        <TeamsPage league={stackedLeague()} pool={mkPool()} />
+      </MemoryRouter>,
+    );
+
+  it('renders ranked league stacks with the stronger stack first', () => {
+    renderStacked();
+    expect(screen.getByRole('heading', { name: 'Stack Report' })).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /league stacks ranked/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3); // header + 2 stacks
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(rows[1]).toHaveTextContent('KC: Elite QB + Top Wideout (WR) + Top Tight End (TE)');
+    expect(rows[2]).toHaveTextContent('Beta');
+  });
+
+  it('names unrostered pass-catchers that would stack with a rostered QB', () => {
+    renderStacked();
+    const table = screen.getByRole('table', { name: /waiver stack-mates/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows[1]).toHaveTextContent('Waiver Wideout');
+    expect(rows[1]).toHaveTextContent("Alpha's Elite QB");
+  });
+
+  it('hides the section when teams have no rosters', () => {
+    render(
+      <MemoryRouter>
+        <TeamsPage league={league()} pool={mkPool()} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('heading', { name: 'Stack Report' })).not.toBeInTheDocument();
+  });
+});
+
 describe('TeamsPage projected bracket', () => {
   it('renders the bracket from projected seeds when a future schedule exists', () => {
     renderPage(league({ playoffTeams: 4 }));
