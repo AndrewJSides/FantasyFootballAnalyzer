@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  auctionDollars,
   buildTradeValueChart,
+  leagueAuctionSpend,
   PACKAGE_FAIR_BAND,
   packageTotals,
   tierForValue,
@@ -252,5 +254,42 @@ describe('tradeValueMovers', () => {
     ]);
     expect(info!.risers.map(m => m.poolId)).toEqual(['a']);
     expect(info!.fallers).toEqual([]);
+  });
+});
+
+describe('auctionDollars', () => {
+  const rows = buildTradeValueChart(pool(30, 'RB'), { league });
+
+  it('distributes the budget proportional to chart value in whole dollars', () => {
+    const dollars = auctionDollars(rows, 2000);
+    expect(dollars.size).toBe(rows.length);
+    const top = rows[0];
+    // Top player gets the biggest share; shares track the value ratios.
+    expect(dollars.get(top.player.id)!).toBeGreaterThan(
+      dollars.get(rows[rows.length - 1].player.id)!,
+    );
+    const second = rows[1];
+    const expected = Math.round((second.value / rows.reduce((s, r) => s + r.value, 0)) * 2000);
+    expect(dollars.get(second.player.id)).toBe(expected);
+    for (const d of dollars.values()) expect(Number.isInteger(d)).toBe(true);
+  });
+
+  it('returns an empty map for empty rows or non-positive budgets', () => {
+    expect(auctionDollars([], 2000).size).toBe(0);
+    expect(auctionDollars(rows, 0).size).toBe(0);
+    expect(auctionDollars(rows, -50).size).toBe(0);
+  });
+});
+
+describe('leagueAuctionSpend', () => {
+  const team = (picks: { auctionValue?: number }[]) =>
+    ({ draftPicks: picks }) as never;
+
+  it('sums auction spend across teams and returns null with no priced picks', () => {
+    expect(
+      leagueAuctionSpend({ teams: [team([{ auctionValue: 55 }, { auctionValue: 12 }]), team([{ auctionValue: 33 }])] } as never),
+    ).toBe(100);
+    expect(leagueAuctionSpend({ teams: [team([{ auctionValue: 0 }]), team([])] } as never)).toBeNull();
+    expect(leagueAuctionSpend({ teams: [] } as never)).toBeNull();
   });
 });

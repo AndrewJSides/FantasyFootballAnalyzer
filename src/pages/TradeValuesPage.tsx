@@ -16,7 +16,10 @@ import { injuryOf } from '@/utils/seasonOutlook';
 import { leagueOwnerMap } from '@/utils/rosRankings';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import {
+  auctionDollars,
   buildTradeValueChart,
+  GUEST_AUCTION_BUDGET,
+  leagueAuctionSpend,
   PACKAGE_FAIR_BAND,
   packageTotals,
   TRADE_VALUE_TIERS,
@@ -287,6 +290,19 @@ export function TradeValuesPage({
     () => new Map(rows.map(r => [r.player.id, r.value] as const)),
     [rows],
   );
+
+  // Auction-dollar translation of the chart (backlog item 83): league mode
+  // distributes the league's real total draft spend across chart values;
+  // guest mode degrades to the standard $200 × 10 budget. Hidden in live
+  // snake leagues, where auction dollars are meaningless.
+  const auctionBudget = useMemo(
+    () => (live ? leagueAuctionSpend(league) : GUEST_AUCTION_BUDGET),
+    [league, live],
+  );
+  const auctionByPoolId = useMemo(
+    () => (auctionBudget != null ? auctionDollars(rows, auctionBudget) : null),
+    [rows, auctionBudget],
+  );
   const validIds = useMemo(() => new Set(rows.map(r => r.player.id)), [rows]);
   const [sideA, setSideA] = useState<string[]>(() => loadStoredIds(SIDE_A_KEY, validIds));
   const [sideB, setSideB] = useState<string[]>(() => loadStoredIds(SIDE_B_KEY, validIds));
@@ -326,14 +342,24 @@ export function TradeValuesPage({
     () => packageTotals(valueByPoolId, sideA, sideB),
     [valueByPoolId, sideA, sideB],
   );
+  const auctionTotals = useMemo(() => {
+    if (!auctionByPoolId) return null;
+    const sum = (ids: string[]) =>
+      ids.reduce((s, id) => s + (auctionByPoolId.get(id) ?? 0), 0);
+    return { a: sum(sideA), b: sum(sideB) };
+  }, [auctionByPoolId, sideA, sideB]);
+  const dollarLine =
+    auctionTotals != null && (sideA.length > 0 || sideB.length > 0)
+      ? ` ($${auctionTotals.a} vs $${auctionTotals.b} in auction dollars)`
+      : '';
   const verdictText =
     sideA.length === 0 && sideB.length === 0
       ? null
       : verdict.winner === 'fair'
-        ? `Fair deal — the sides are within ${PACKAGE_FAIR_BAND} value points (${verdict.sideATotal} vs ${verdict.sideBTotal}).`
+        ? `Fair deal — the sides are within ${PACKAGE_FAIR_BAND} value points (${verdict.sideATotal} vs ${verdict.sideBTotal}).${dollarLine}`
         : verdict.winner === 'a'
-          ? `Side A wins by ${verdict.diff} value points (${verdict.sideATotal} vs ${verdict.sideBTotal}).`
-          : `Side B wins by ${verdict.diff} value points (${verdict.sideBTotal} vs ${verdict.sideATotal}).`;
+          ? `Side A wins by ${verdict.diff} value points (${verdict.sideATotal} vs ${verdict.sideBTotal}).${dollarLine}`
+          : `Side B wins by ${verdict.diff} value points (${verdict.sideBTotal} vs ${verdict.sideATotal}).${dollarLine}`;
 
   const tierLabel = (row: TradeValueRow) => `Tier ${row.tier} ${TRADE_VALUE_TIERS[row.tier]}`;
 
@@ -381,6 +407,14 @@ export function TradeValuesPage({
                     <th scope="col">Pos</th>
                     <th scope="col">NFL</th>
                     <th scope="col">Value</th>
+                    {auctionByPoolId && (
+                      <th
+                        scope="col"
+                        aria-label={`Auction dollar value, from a $${auctionBudget?.toLocaleString()} total budget`}
+                      >
+                        Auction $
+                      </th>
+                    )}
                     {deltaInfo && (
                       <th
                         scope="col"
@@ -409,6 +443,13 @@ export function TradeValuesPage({
                         </td>
                         <td>{row.player.team}</td>
                         <td className={styles.valueCell}>{row.value.toFixed(1)}</td>
+                        {auctionByPoolId && (
+                          <td
+                            title={`${row.player.name}: $${auctionByPoolId.get(row.player.id) ?? 0} of a $${auctionBudget?.toLocaleString()} auction budget`}
+                          >
+                            ${auctionByPoolId.get(row.player.id) ?? 0}
+                          </td>
+                        )}
                         {deltaInfo && (
                           <td>
                             <DeltaCell
@@ -489,6 +530,16 @@ export function TradeValuesPage({
               {' '}Δ compares the player&rsquo;s value on the standard 10-team
               full-PPR scale to the {longDate(deltaInfo.baselineDate)}{' '}
               baseline; the column appears once two chart snapshots exist.
+            </>
+          )}
+          {auctionByPoolId && (
+            <>
+              {' '}Auction $ distributes{' '}
+              {live
+                ? `your league\u2019s actual draft spend ($${auctionBudget?.toLocaleString()} total)`
+                : 'a standard $200 \u00d7 10 budget ($2,000 total)'}{' '}
+              across chart values proportionally, so the Package Evaluator
+              weighs deals in auction dollars too.
             </>
           )}
         </p>

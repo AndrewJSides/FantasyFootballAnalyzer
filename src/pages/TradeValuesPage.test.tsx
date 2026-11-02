@@ -165,4 +165,60 @@ describe('TradeValuesPage', () => {
     const verdict = screen.getByRole('status');
     expect(verdict).toHaveTextContent(/value points/);
   });
+
+  it('shows the Auction $ column in guest mode on the $2,000 default budget', () => {
+    renderPage(guestLeague);
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent ?? '');
+    const auctionIdx = headers.findIndex(h => h === 'Auction $');
+    expect(auctionIdx).toBeGreaterThan(-1);
+    const firstCells = within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
+    expect(firstCells[auctionIdx].textContent).toMatch(/^\$\d+$/);
+  });
+
+  it('prices auction dollars on the league\u2019s real draft spend in auction leagues', () => {
+    const auctionLeague = {
+      ...leagueWithRoster(),
+      draftType: 'auction',
+      teams: [
+        {
+          id: 't1',
+          name: 'Motha Puka',
+          roster: [],
+          draftPicks: [
+            { player: { name: 'Lead Back' }, auctionValue: 1200 },
+            { player: { name: 'Elite QB' }, auctionValue: 800 },
+          ],
+        },
+      ],
+    } as unknown as League;
+    renderPage(auctionLeague);
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent ?? '');
+    expect(headers).toContain('Auction $');
+  });
+
+  it('hides the Auction $ column in live snake leagues', () => {
+    renderPage(leagueWithRoster());
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent ?? '');
+    expect(headers).not.toContain('Auction $');
+  });
+
+  it('adds auction-dollar totals to the package verdict', () => {
+    renderPage(guestLeague);
+    const addA = screen.getByLabelText('Add a player to side a');
+    fireEvent.change(addA, { target: { value: 'Lead Back' } });
+    fireEvent.click(screen.getByRole('button', { name: /add lead back/i }));
+    const addB = screen.getByLabelText('Add a player to side b');
+    fireEvent.change(addB, { target: { value: 'Elite QB' } });
+    fireEvent.click(screen.getByRole('button', { name: /add elite qb/i }));
+    expect(screen.getByRole('status')).toHaveTextContent(/in auction dollars/);
+  });
 });

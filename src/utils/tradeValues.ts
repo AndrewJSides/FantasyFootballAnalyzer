@@ -13,6 +13,7 @@
 // valueLeagueFor(null).
 
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
+import type { League } from '@/types';
 import {
   DEFAULT_VOR_CONFIG,
   vorConfigFor,
@@ -258,3 +259,47 @@ export function packageTotals(
 }
 
 export { DEFAULT_VOR_CONFIG };
+
+// --- Auction-dollar equivalents (backlog item 83) ---------------------------
+
+/**
+ * The league's real total auction spend, summed from the synced draft picks'
+ * auctionValue. Null for snake leagues / leagues with no priced picks, so
+ * callers can hide the auction-dollar column instead of guessing.
+ */
+export function leagueAuctionSpend(league: League): number | null {
+  let total = 0;
+  let priced = false;
+  for (const team of league.teams ?? []) {
+    for (const pick of team.draftPicks ?? []) {
+      const cost = pick.auctionValue ?? 0;
+      if (cost > 0) {
+        total += cost;
+        priced = true;
+      }
+    }
+  }
+  return priced ? total : null;
+}
+
+/** Default auction budget priced in guest mode: $200 × 10 teams. */
+export const GUEST_AUCTION_BUDGET = 2000;
+
+/**
+ * Translate chart values into auction dollars: distribute the total budget
+ * across chart players proportional to their 0–100 values, whole dollars.
+ * Empty for empty charts / non-positive budgets; players off the chart are
+ * absent from the map (worth $0 of chart spend).
+ */
+export function auctionDollars(
+  rows: TradeValueRow[],
+  totalBudget: number,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  const totalValue = rows.reduce((s, r) => s + r.value, 0);
+  if (totalValue <= 0 || totalBudget <= 0) return out;
+  for (const r of rows) {
+    out.set(r.player.id, Math.round((r.value / totalValue) * totalBudget));
+  }
+  return out;
+}
