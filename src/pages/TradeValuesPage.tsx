@@ -8,6 +8,7 @@
 // data, no copied content.
 import { useEffect, useMemo, useState } from 'react';
 import { PosBadge, TradeValueMovers } from '@/components';
+import { PositionalScarcity } from '@/components/PositionalScarcity';
 import { POOL } from '@/data/draftPool';
 import snapshotsJson from '@/data/tradeValueSnapshots.2026.json';
 import type { League } from '@/types';
@@ -250,6 +251,20 @@ export function TradeValuesPage({
   const [pool] = useState(() => poolOverride ?? POOL);
   const live = league.status === 'live' && league.currentWeek != null;
 
+  // League shape for the chart and the scarcity meter (hoisted so both
+  // price the same league). Scoring adjustments hoisted too so the chart
+  // memo stays dependency-clean.
+  const valueLeague = useMemo(
+    () => valueLeagueFor(live ? league : null),
+    [live, league],
+  );
+  const tePremium = (league.tePremiumPerReception ?? 0) > 0;
+  const sixPtPassTd = (league.passTdPoints ?? 4) >= 6;
+  const vorCfg = useMemo(
+    () => vorConfigFor({ tePremium, sixPtPassTd }),
+    [tePremium, sixPtPassTd],
+  );
+
   useEffect(() => {
     document.title = 'Trade Value Chart · TraderApe';
     return () => {
@@ -258,21 +273,24 @@ export function TradeValuesPage({
   }, []);
 
   const rows = useMemo(() => {
-    const valueLeague = valueLeagueFor(live ? league : null);
     return buildTradeValueChart(pool.players, {
       league: valueLeague,
-      tePremium: (league.tePremiumPerReception ?? 0) > 0,
-      sixPtPassTd: (league.passTdPoints ?? 4) >= 6,
-      cfg: vorConfigFor({
-        tePremium: (league.tePremiumPerReception ?? 0) > 0,
-        sixPtPassTd: (league.passTdPoints ?? 4) >= 6,
-      }),
+      tePremium,
+      sixPtPassTd,
+      cfg: vorCfg,
     });
-  }, [league, live, pool]);
+  }, [pool, valueLeague, tePremium, sixPtPassTd, vorCfg]);
 
   const owners = useMemo(
     () => (live ? leagueOwnerMap(league, pool) : undefined),
     [league, live, pool],
+  );
+
+  // League mode: real rostered pool ids price the actual wire. Guest mode
+  // omits them and the scarcity meter assumes a typical draft order.
+  const rosteredIds = useMemo(
+    () => (live && owners ? new Set(owners.keys()) : undefined),
+    [live, owners],
   );
 
   const filtered = useMemo(
@@ -479,6 +497,8 @@ export function TradeValuesPage({
         </section>
 
         <TradeValueMovers snapshots={SNAPSHOTS} rows={rows} owners={owners} />
+
+        <PositionalScarcity rows={rows} valueLeague={valueLeague} rosteredIds={rosteredIds} />
 
         <section className={styles.evaluator} aria-label="Package trade evaluator">
           <h2 className={styles.sectionTitle}>Package Evaluator</h2>
