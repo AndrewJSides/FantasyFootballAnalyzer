@@ -1,0 +1,175 @@
+/* GRIDIRON · Top free agents panel (Waivers page, backlog item 80) */
+
+.panel {
+  background: var(--ink);
+  border: 2px solid var(--bone);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.heading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0 0 0.25rem;
+}
+
+.sub {
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+  margin: 0 0 1.25rem;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.filterButton {
+  background: none;
+  border: 1px solid var(--bone-dim);
+  color: var(--bone-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.filterButton:hover {
+  border-color: var(--bone);
+  color: var(--bone);
+}
+
+.active {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--bone-faint);
+  text-align: left;
+}
+
+.table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.rank {
+  font-family: var(--font-mono);
+  color: var(--bone-dim);
+  width: 2.5rem;
+}
+
+.player {
+  font-weight: 600;
+  color: var(--bone);
+}
+
+.injuryTag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--blood-text);
+  border: 1px solid var(--blood-text);
+  padding: 0.05rem 0.35rem;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.dim {
+  color: var(--bone-dim);
+}
+
+/* Weekly matchup difficulty: same favorable/tough/neutral color language as
+   the Rankings page and Trade Analyzer chips. */
+.muFav,
+.muTough,
+.muNeutral {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.muFav {
+  color: var(--lime);
+}
+
+.muTough {
+  color: var(--blood-text);
+}
+
+.muNeutral {
+  color: var(--bone-dim);
+}
+
+/* Consistency verdict chips: same color language as the matchup chips. */
+.volSteady,
+.volMixed,
+.volVolatile {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.volSteady {
+  color: var(--lime);
+}
+
+.volVolatile {
+  color: var(--blood-text);
+}
+
+.volMixed {
+  color: var(--bone-dim);
+}
+
+.status {
+  font-family: var(--font-display);
+  color: var(--bone);
+}
+
+.retryButton {
+  background: none;
+  border: 1px solid var(--lime);
+  color: var(--lime);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+}
+
+.retryButton:hover {
+  background: var(--lime);
+  color: var(--coal);
+}
+
+.footnote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--bone-dim);
+  margin: 1rem 0 0;
+}

@@ -20,6 +20,7 @@ export { TrendingAdds } from './TrendingAdds';
 export { TrendingDrops } from './TrendingDrops';
 export { NewsWaiverTargets } from './NewsWaiverTargets';
 export { TopFreeAgents } from './TopFreeAgents';
+export { NextWeekTargets } from './NextWeekTargets';
 export { BreakoutWatch } from './BreakoutWatch';
 export { OpportunityWatch } from './OpportunityWatch';
 export { AddDropMoves } from './AddDropMoves';

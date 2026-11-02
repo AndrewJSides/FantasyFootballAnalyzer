@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TopFreeAgents, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, NextWeekTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TopFreeAgents, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -46,6 +46,12 @@ export function WaiversPage({ league }: WaiversPageProps) {
             QB/RB/WR/TE ranked by this week's TraderApe projection — the
             plain counterpart to the team-scoped priority queue above. */}
         <TopFreeAgents league={league} />
+
+        {/* The advance-claims board: the best unrostered QB/RB/WR/TE ranked
+            by NEXT week's TraderApe projection — the plain counterpart to
+            the this-week board above, priced for the week the Tuesday-night
+            claims are actually for. */}
+        <NextWeekTargets league={league} />
 
         {/* Bid guidance prices the top available targets against this
             league's own FAAB norms — before the historical pickup table. */}
