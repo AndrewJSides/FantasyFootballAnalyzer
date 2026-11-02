@@ -222,3 +222,72 @@ describe('TradeValuesPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/in auction dollars/);
   });
 });
+
+describe('TradeValuesPage Next 3 column (backlog item 101)', () => {
+  function chartCellText(rowName: string, pool: DraftPoolFile, league: League): string {
+    render(
+      <MemoryRouter>
+        <TradeValuesPage league={league} pool={pool} />
+      </MemoryRouter>,
+    );
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent ?? '');
+    const next3Idx = headers.findIndex(h => h === 'Next 3');
+    expect(next3Idx).toBeGreaterThan(-1);
+    const row = within(table)
+      .getAllByRole('row')
+      .find(r => {
+        const cells = within(r).queryAllByRole('cell');
+        return cells.length > 0 && (cells[1].textContent ?? '').includes(rowName);
+      });
+    expect(row).toBeDefined();
+    return within(row!).getAllByRole('cell')[next3Idx].textContent ?? '';
+  }
+
+  it('renders a Next 3 header with an accessible name', () => {
+    renderPage(guestLeague);
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    expect(
+      within(table).getByRole('columnheader', {
+        name: /next 3 played weeks, matchup difficulty/i,
+      }),
+    ).toBeDefined();
+  });
+
+  it("shows the player's next 3 played weeks as chips", () => {
+    // Bundled 2026 schedule: KC plays NYJ (W9), @ATL (W10), ARI (W11);
+    // guest mode prices the current-week estimate (week 8).
+    expect(chartCellText('Elite QB', POOL, guestLeague)).toBe(
+      'W9 NYJW10 ATLW11 ARI',
+    );
+  });
+
+  it('names the full rating in the chip hover title and aria label', () => {
+    renderPage(guestLeague);
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    expect(
+      within(table).getAllByTitle(/vs NYJ · /).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(table).getAllByLabelText(/^Week 9: vs NYJ · /).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('renders a dim dash when the team has no schedule data', () => {
+    const mystery = poolPlayer({
+      id: 'zz1',
+      name: 'Mystery Man',
+      team: 'ZZZ',
+      pos: 'QB',
+      overallRank: 3,
+      projPtsPpr: 340,
+    });
+    const customPool: DraftPoolFile = {
+      ...POOL,
+      players: [mystery, ...POOL.players],
+    };
+    expect(chartCellText('Mystery Man', customPool, guestLeague)).toBe('—');
+  });
+});

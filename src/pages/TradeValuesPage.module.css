@@ -109,6 +109,36 @@
   color: var(--bone-dim);
 }
 
+.upcoming {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.upcoming .muFav,
+.upcoming .muTough,
+.upcoming .muNeutral {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.upcoming .muFav {
+  color: var(--lime);
+}
+
+.upcoming .muTough {
+  color: var(--blood-text);
+}
+
+.upcoming .muNeutral {
+  color: var(--bone-dim);
+}
+
+.upcomingNone {
+  color: var(--bone-dim);
+}
+
 .tier {
   font-family: var(--font-mono);
   font-size: 0.72rem;

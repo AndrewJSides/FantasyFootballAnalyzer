@@ -15,6 +15,8 @@ import type { League } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { injuryOf } from '@/utils/seasonOutlook';
 import { leagueOwnerMap } from '@/utils/rosRankings';
+import { currentWeekEstimate, matchupLabel } from '@/utils/matchupRating';
+import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import {
   auctionDollars,
@@ -108,6 +110,56 @@ function injuryTag(player: PoolPlayer): string | null {
   if (!info) return null;
   if (info.seasonEnding || info.outNow) return player.injuryStatus ?? 'OUT';
   return null;
+}
+
+/**
+ * One cell of the "Next 3" column (backlog item 101): the player's next 3
+ * played weeks as favorable/tough/neutral matchup chips, priced on the
+ * same season-to-date allowed-vs-position averages as the Start/Sit
+ * Upcoming column — a difficulty map, not a forecast. At the trade
+ * deadline this answers "is his schedule about to get soft or tough"
+ * right in the row where the value is priced.
+ */
+function UpcomingCell({
+  player,
+  week,
+}: {
+  player: PoolPlayer;
+  week: number;
+}) {
+  const chips = upcomingMatchupChips(player.team, player.pos, week);
+  if (chips.length === 0) {
+    return (
+      <span
+        className={styles.upcomingNone}
+        title={`No upcoming matchup ratings for ${player.name}`}
+      >
+        —
+      </span>
+    );
+  }
+  return (
+    <span className={styles.upcoming}>
+      {chips.map(c =>
+        c.rating ? (
+          <span
+            key={c.week}
+            className={
+              c.rating.label === 'favorable'
+                ? styles.muFav
+                : c.rating.label === 'tough'
+                  ? styles.muTough
+                  : styles.muNeutral
+            }
+            title={matchupLabel(c.rating, player.pos)}
+            aria-label={`Week ${c.week}: ${matchupLabel(c.rating, player.pos)}`}
+          >
+            W{c.week} {c.opponent}
+          </span>
+        ) : null,
+      )}
+    </span>
+  );
 }
 
 function searchPool(pool: DraftPoolFile, query: string, exclude: Set<string>, limit = 8): PoolPlayer[] {
@@ -250,6 +302,11 @@ export function TradeValuesPage({
   const [pos, setPos] = useState<PosFilter>('ALL');
   const [pool] = useState(() => poolOverride ?? POOL);
   const live = league.status === 'live' && league.currentWeek != null;
+
+  // The chart prices the deadline question "is his schedule about to get
+  // soft or tough" on the same week the matchup columns price elsewhere:
+  // the league's current week in league mode, the estimate in guest mode.
+  const chartWeek = league.currentWeek ?? currentWeekEstimate();
 
   // League shape for the chart and the scarcity meter (hoisted so both
   // price the same league). Scoring adjustments hoisted too so the chart
@@ -443,6 +500,12 @@ export function TradeValuesPage({
                     )}
                     <th scope="col">Tier</th>
                     <th scope="col">Pos rank</th>
+                    <th
+                      scope="col"
+                      aria-label="Next 3 played weeks, matchup difficulty"
+                    >
+                      Next 3
+                    </th>
                     {live && <th scope="col">Owner</th>}
                   </tr>
                 </thead>
@@ -485,6 +548,9 @@ export function TradeValuesPage({
                         <td>
                           {row.player.pos}
                           {row.posRank}
+                        </td>
+                        <td>
+                          <UpcomingCell player={row.player} week={chartWeek} />
                         </td>
                         {live && <td>{owners?.get(row.player.id) ?? 'Free agent'}</td>}
                       </tr>
@@ -562,6 +628,11 @@ export function TradeValuesPage({
               weighs deals in auction dollars too.
             </>
           )}
+          {' '}Next 3 shows each player&rsquo;s next three played weeks as
+          matchup-difficulty chips (favorable/tough/neutral) on the same
+          season-to-date averages as the weekly matchup ratings — a
+          difficulty map, not a forecast — so deadline deals price the
+          schedule ahead, not just the value today.
         </p>
       </div>
     </div>
