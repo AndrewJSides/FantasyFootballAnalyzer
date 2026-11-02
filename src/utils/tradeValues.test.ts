@@ -5,6 +5,7 @@ import {
   packageTotals,
   tierForValue,
   tradeValueDeltas,
+  tradeValueMovers,
   tradeValueOf,
   TRADE_VALUE_TIERS,
 } from './tradeValues';
@@ -186,5 +187,70 @@ describe('tradeValueDeltas', () => {
     expect(info!.baselineDate).toBe('2026-10-29');
     expect(info!.currentDate).toBe('2026-10-30');
     expect(info!.deltaByPoolId.get('a')).toBe(5);
+  });
+});
+
+describe('tradeValueMovers', () => {
+  const snap = (date: string, values: Record<string, number>) => ({ date, values });
+
+  it('returns null with fewer than two snapshots', () => {
+    expect(tradeValueMovers([])).toBeNull();
+    expect(tradeValueMovers([snap('2026-11-01', { a: 100 })])).toBeNull();
+  });
+
+  it('splits risers and fallers sorted by value change', () => {
+    const info = tradeValueMovers([
+      snap('2026-11-01', { a: 90, b: 80, c: 70, d: 60 }),
+      snap('2026-11-02', { a: 96, b: 72, c: 71, d: 60 }),
+    ]);
+    expect(info).not.toBeNull();
+    expect(info!.baselineDate).toBe('2026-11-01');
+    expect(info!.currentDate).toBe('2026-11-02');
+    expect(info!.risers.map(m => m.poolId)).toEqual(['a']);
+    expect(info!.risers[0].valueDelta).toBe(6);
+    expect(info!.risers[0].oldRank).toBe(1);
+    expect(info!.risers[0].newRank).toBe(1);
+    expect(info!.risers[0].rankDelta).toBe(0);
+    expect(info!.fallers.map(m => m.poolId)).toEqual(['b']);
+    expect(info!.fallers[0].valueDelta).toBe(-8);
+  });
+
+  it('reports rank movement across snapshots', () => {
+    const info = tradeValueMovers(
+      [
+        snap('2026-11-01', { a: 90, b: 80 }),
+        snap('2026-11-02', { a: 84, b: 88 }),
+      ],
+      1.5,
+    );
+    expect(info!.risers[0].poolId).toBe('b');
+    expect(info!.risers[0].oldRank).toBe(2);
+    expect(info!.risers[0].newRank).toBe(1);
+    expect(info!.risers[0].rankDelta).toBe(1);
+    expect(info!.fallers[0].poolId).toBe('a');
+    expect(info!.fallers[0].rankDelta).toBe(-1);
+  });
+
+  it('cuts noise below minDelta and caps at the limit', () => {
+    const info = tradeValueMovers(
+      [
+        snap('2026-11-01', { a: 90, b: 80, c: 70 }),
+        snap('2026-11-02', { a: 91, b: 85, c: 66 }),
+      ],
+      1.5,
+      1,
+    );
+    // a's +1 move is noise; limit 1 caps each side
+    expect(info!.risers.map(m => m.poolId)).toEqual(['b']);
+    expect(info!.fallers.map(m => m.poolId)).toEqual(['c']);
+  });
+
+  it('skips players missing from the baseline snapshot', () => {
+    const info = tradeValueMovers([
+      snap('2026-11-01', { a: 90 }),
+      snap('2026-11-02', { a: 95, b: 50 }),
+    ]);
+    expect(info!.risers.map(m => m.poolId)).toEqual(['a']);
+    expect(info!.fallers).toEqual([]);
   });
 });

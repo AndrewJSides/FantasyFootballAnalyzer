@@ -7,7 +7,7 @@
 // researched for feature shape only — values computed from TraderApe's own
 // data, no copied content.
 import { useEffect, useMemo, useState } from 'react';
-import { PosBadge } from '@/components';
+import { PosBadge, TradeValueMovers } from '@/components';
 import { POOL } from '@/data/draftPool';
 import snapshotsJson from '@/data/tradeValueSnapshots.2026.json';
 import type { League } from '@/types';
@@ -436,6 +436,8 @@ export function TradeValuesPage({
             )}
           </div>
         </section>
+
+        <TradeValueMovers snapshots={SNAPSHOTS} rows={rows} owners={owners} />
 
         <section className={styles.evaluator} aria-label="Package trade evaluator">
           <h2 className={styles.sectionTitle}>Package Evaluator</h2>

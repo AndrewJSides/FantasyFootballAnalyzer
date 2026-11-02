@@ -118,6 +118,92 @@ export interface TradeValueSnapshot {
   values: Record<string, number>;
 }
 
+/** One trade-value mover between two chart snapshots. */
+export interface TradeValueMover {
+  /** Player pool id. */
+  poolId: string;
+  /** Value in the baseline snapshot, one decimal. */
+  oldValue: number;
+  /** Value in the latest snapshot, one decimal. */
+  newValue: number;
+  /** newValue − oldValue, one decimal (positive = riser). */
+  valueDelta: number;
+  /** 1-based rank in the baseline snapshot (by value, desc). */
+  oldRank: number;
+  /** 1-based rank in the latest snapshot (by value, desc). */
+  newRank: number;
+  /** oldRank − newRank (positive = climbed). */
+  rankDelta: number;
+}
+
+/** The biggest trade-value movers between the two most recent snapshots. */
+export interface TradeValueMoversInfo {
+  risers: TradeValueMover[];
+  fallers: TradeValueMover[];
+  /** Date of the baseline snapshot. */
+  baselineDate: string;
+  /** Date of the latest snapshot. */
+  currentDate: string;
+}
+
+/**
+ * Biggest trade-value risers and fallers between the two most recent chart
+ * snapshots. Both snapshots are priced on the standard 10-team full-PPR
+ * scale, so deltas are apples-to-apples even in league mode. Players missing
+ * from either snapshot are skipped; |valueDelta| below minDelta is noise and
+ * is cut. Returns null with fewer than two snapshots.
+ */
+export function tradeValueMovers(
+  snapshots: TradeValueSnapshot[],
+  minDelta = 1.5,
+  limit = 8,
+): TradeValueMoversInfo | null {
+  if (snapshots.length < 2) return null;
+  const ordered = [...snapshots].sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+  );
+  const baseline = ordered[ordered.length - 2];
+  const current = ordered[ordered.length - 1];
+  const rankOf = (values: Record<string, number>) => {
+    const ids = Object.keys(values).sort((a, b) => values[b] - values[a]);
+    return new Map(ids.map((id, i) => [id, i + 1] as const));
+  };
+  const baselineRank = rankOf(baseline.values);
+  const currentRank = rankOf(current.values);
+  const movers: TradeValueMover[] = [];
+  for (const [id, newValue] of Object.entries(current.values)) {
+    const oldValue = baseline.values[id];
+    if (typeof oldValue !== 'number') continue;
+    const valueDelta = round1(newValue - oldValue);
+    if (Math.abs(valueDelta) < minDelta) continue;
+    const oldRank = baselineRank.get(id)!;
+    const newRank = currentRank.get(id)!;
+    movers.push({
+      poolId: id,
+      oldValue,
+      newValue,
+      valueDelta,
+      oldRank,
+      newRank,
+      rankDelta: oldRank - newRank,
+    });
+  }
+  const risers = movers
+    .filter(m => m.valueDelta > 0)
+    .sort((a, b) => b.valueDelta - a.valueDelta)
+    .slice(0, limit);
+  const fallers = movers
+    .filter(m => m.valueDelta < 0)
+    .sort((a, b) => a.valueDelta - b.valueDelta)
+    .slice(0, limit);
+  return {
+    risers,
+    fallers,
+    baselineDate: baseline.date,
+    currentDate: current.date,
+  };
+}
+
 /** Value-change deltas between the two most recent chart snapshots. */
 export interface TradeValueDeltaInfo {
   /** Player pool id → value change (current − baseline), one decimal. */

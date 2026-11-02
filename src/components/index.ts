@@ -32,6 +32,7 @@ export { KickerStreamers } from './KickerStreamers';
 export { SkillStreamers } from './SkillStreamers';
 export { StreamerPlanner } from './StreamerPlanner';
 export { TradeTable } from './TradeTable';
+export { TradeValueMovers } from './TradeValueMovers';
 export { RivalryCard } from './RivalryCard';
 export { NflTeamLabel } from './NflTeamLabel';
 export { PosBadge } from './PosBadge';
