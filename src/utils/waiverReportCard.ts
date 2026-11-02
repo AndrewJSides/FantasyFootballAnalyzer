@@ -4,6 +4,7 @@
 // pickup, and grades the team on the same percentile letter scale as Team
 // Grades. Guidance only — nothing here moves rosters.
 import type { Team } from '@/types';
+import type { FaabBudgetRow } from './faabGuidance';
 
 export interface WaiverReportCardRow {
   teamId: string;
@@ -82,4 +83,39 @@ export function buildWaiverReportCard(teams: Team[]): WaiverReportCardRow[] | nu
     ...r,
     grade: letterForPercentile((n - i) / n),
   }));
+}
+
+export interface FaabEfficiency {
+  // FAAB dollars spent on waiver/free-agent claims, whole dollars.
+  spent: number;
+  // Dollars of FAAB per point above replacement, one decimal. Null when the
+  // team spent FAAB but has no positive PAR to show for it (or the budget
+  // row is missing) — dividing would be misinformation.
+  dollarsPerPoint: number | null;
+  // True when the team produced positive PAR without spending a dollar
+  // (all $0 claims) — the cheapest production on the wire.
+  freeProduction: boolean;
+}
+
+// Joins the report-card rows to the FAAB Budgets rows (item 42) by team id:
+// who gets the most waiver production per FAAB dollar. Pure; a team with no
+// matching budget row is skipped.
+export function attachFaabEfficiency(
+  rows: WaiverReportCardRow[],
+  budgets: FaabBudgetRow[],
+): Map<string, FaabEfficiency> {
+  const byTeam = new Map(budgets.map(b => [b.teamId, b]));
+  const out = new Map<string, FaabEfficiency>();
+  for (const row of rows) {
+    const budget = byTeam.get(row.teamId);
+    if (!budget) continue;
+    const spent = budget.spent;
+    const freeProduction = spent === 0 && row.totalPar > 0;
+    const dollarsPerPoint =
+      spent > 0 && row.totalPar > 0
+        ? Math.round((spent / row.totalPar) * 10) / 10
+        : null;
+    out.set(row.teamId, { spent, dollarsPerPoint, freeProduction });
+  }
+  return out;
 }

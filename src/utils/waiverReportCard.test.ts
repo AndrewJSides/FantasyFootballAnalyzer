@@ -1,7 +1,7 @@
 // Waiver report card util: per-team waiver PAR totals, best/worst pickup
 // selection, grades, and the null hide-conditions.
 import { describe, it, expect } from 'vitest';
-import { buildWaiverReportCard } from './waiverReportCard';
+import { attachFaabEfficiency, buildWaiverReportCard } from './waiverReportCard';
 import type { Player, Team, Transaction } from '@/types';
 
 function pickup(name: string, par: number | null): Player {
@@ -91,5 +91,41 @@ describe('buildWaiverReportCard', () => {
     expect(rows![0].pickups).toBe(2);
     expect(rows![0].totalPar).toBe(5);
     expect(rows![0].bestPickup?.name).toBe('X');
+  });
+});
+
+describe('attachFaabEfficiency', () => {
+  it('prices dollars per PAR point, one decimal', () => {
+    const rows = buildWaiverReportCard([
+      mkTeam('a', 'Alpha', [wireTx('a', [pickup('Boom', 20)])]),
+      mkTeam('b', 'Beta', [wireTx('b', [pickup('Steady', 10)])]),
+    ])!;
+    const eff = attachFaabEfficiency(rows, [
+      { teamId: 'a', teamName: 'Alpha', claims: 1, spent: 25, biggestBid: 25, faabReceived: 0, faabSent: 0, estRemaining: 75 },
+      { teamId: 'b', teamName: 'Beta', claims: 1, spent: 40, biggestBid: 40, faabReceived: 0, faabSent: 0, estRemaining: 60 },
+    ]);
+    // 25 / 20 = 1.25 -> 1.3; 40 / 10 = 4.0
+    expect(eff.get('a')).toEqual({ spent: 25, dollarsPerPoint: 1.3, freeProduction: false });
+    expect(eff.get('b')).toEqual({ spent: 40, dollarsPerPoint: 4, freeProduction: false });
+  });
+
+  it('flags free production and no-return spend', () => {
+    const rows = buildWaiverReportCard([
+      mkTeam('a', 'Alpha', [wireTx('a', [pickup('Freebie', 8)])]),
+      mkTeam('b', 'Beta', [wireTx('b', [pickup('Dud', -2)])]),
+    ])!;
+    const eff = attachFaabEfficiency(rows, [
+      { teamId: 'a', teamName: 'Alpha', claims: 1, spent: 0, biggestBid: 0, faabReceived: 0, faabSent: 0, estRemaining: 100 },
+      { teamId: 'b', teamName: 'Beta', claims: 1, spent: 15, biggestBid: 15, faabReceived: 0, faabSent: 0, estRemaining: 85 },
+    ]);
+    expect(eff.get('a')).toEqual({ spent: 0, dollarsPerPoint: null, freeProduction: true });
+    expect(eff.get('b')).toEqual({ spent: 15, dollarsPerPoint: null, freeProduction: false });
+  });
+
+  it('skips teams with no matching budget row', () => {
+    const rows = buildWaiverReportCard([
+      mkTeam('a', 'Alpha', [wireTx('a', [pickup('Boom', 12)])]),
+    ])!;
+    expect(attachFaabEfficiency(rows, []).size).toBe(0);
   });
 });
