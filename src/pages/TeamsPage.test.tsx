@@ -997,3 +997,68 @@ describe('TeamsPage team playoff SOS', () => {
     expect(cells[5]).toHaveTextContent('—');
   });
 });
+
+describe('TeamsPage expectation gap', () => {
+  const SLOTS = {
+    QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0, BENCH: 5, IR: 0,
+  };
+
+  function gapLeague(): League {
+    // Week 2 is graded (week 1 has no history to price on; week 3 is live).
+    // Alpha's guy was projected 10 on week-1 form and scored 30 (+20, hot);
+    // Beta's was projected 30 and scored 10 (-20, cold).
+    return league({
+      status: 'live',
+      currentWeek: 3,
+      rosterSlots: SLOTS,
+      weeklyLineups: [
+        {
+          week: 2,
+          teamId: 'A',
+          slots: ['RB', 'BN'],
+          starters: [lp('ga', 'Gapper A', 'RB', 30)],
+          bench: [lp('sa', 'Scrub A', 'RB', 1)],
+        },
+        {
+          week: 2,
+          teamId: 'B',
+          slots: ['RB', 'BN'],
+          starters: [lp('gb', 'Gapper B', 'RB', 10)],
+          bench: [lp('sb', 'Scrub B', 'RB', 1)],
+        },
+      ] as import('@/types').WeeklyLineup[],
+      playerWeeklyPoints: {
+        ga: { 1: 10, 2: 30 },
+        sa: { 1: 1, 2: 1 },
+        gb: { 1: 30, 2: 10 },
+        sb: { 1: 1, 2: 1 },
+      },
+    });
+  }
+
+  it('ranks teams hottest first with the gap and read', () => {
+    renderPage(gapLeague());
+    expect(
+      screen.getByRole('heading', { name: 'Expectation Gap' }),
+    ).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /expectation gap/i });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3); // header + 2 teams
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(rows[1]).toHaveTextContent('+20.0');
+    expect(rows[1]).toHaveTextContent('Running hot');
+    expect(rows[2]).toHaveTextContent('Beta');
+    expect(rows[2]).toHaveTextContent('-20.0');
+    expect(rows[2]).toHaveTextContent('Running cold');
+    // The gap cell explains itself on hover.
+    const titled = within(rows[1]).getAllByTitle(/30 pts vs 10 expected/);
+    expect(titled[0]).toHaveTextContent('+20.0');
+  });
+
+  it('hides the section when the sync fetched no weekly lineups', () => {
+    renderPage(league());
+    expect(
+      screen.queryByRole('heading', { name: 'Expectation Gap' }),
+    ).not.toBeInTheDocument();
+  });
+});

@@ -94,8 +94,13 @@ function lineupPlayerTeam(lp: LineupPlayer, poolIndex: PoolIndex): string {
 }
 
 interface WeekReplay {
+  /** The model's recommended lineup's actual points. */
   model: number;
+  /** The manager's actual starters' points. */
   actual: number;
+  /** The model's recommended lineup's balanced projection (what it was
+   *  expected to score, priced on completed weeks only). */
+  projected: number;
 }
 
 function replayWeek(
@@ -168,7 +173,15 @@ function replayWeek(
       return sum + pts;
     }, 0),
   );
-  return { model: modelPts, actual: actualPoints(lineup) };
+  // The expectation side: what the model thought this lineup would score,
+  // using the same balanced score the optimizer ranked on.
+  const projected = round2(
+    model.starters.reduce((sum, a) => {
+      if (!a.player) return sum;
+      return sum + (byId.get(a.player.id)?.score ?? 0);
+    }, 0),
+  );
+  return { model: modelPts, actual: actualPoints(lineup), projected };
 }
 
 export function buildStartSitReportCard(league: LeagueSlice): StartSitReportCard | null {
@@ -228,4 +241,91 @@ export function reportCardVerdict(delta: number): string {
   if (delta >= 3) return 'Model beats you';
   if (delta <= -3) return 'You beat the model';
   return 'About even';
+}
+
+// ---------------------------------------------------------------------------
+// Expectation Gap — "Fantasy Points Over Expected" at the team level.
+// The report card above asks "would following the model have beaten your
+// gut". This asks a different question: is the roster producing more or
+// less than the model thought its best lineup would score — i.e. is the
+// team running hot or cold? It reuses the same no-lookahead weekly replay,
+// but prices expected = the model lineup's balanced projection against
+// actual = that same lineup's actual points, so manager start/sit skill
+// can't pollute the read. Same hide conditions as the report card
+// (best-ball, no weekly lineups/points, no graded weeks).
+
+export interface TeamExpectationGap {
+  teamId: string;
+  teamName: string;
+  /** Completed weeks with a gradeable replay. */
+  weeks: number;
+  /** Sum of the model lineup's balanced projections, 2dp. */
+  expectedPoints: number;
+  /** Sum of the model lineup's actual points, 2dp. */
+  actualPoints: number;
+  /** actualPoints - expectedPoints, 1dp. Positive = running hot. */
+  gap: number;
+  /** Average gap per graded week, 1dp. */
+  avgGap: number;
+}
+
+export interface TeamExpectationGapReport {
+  teams: TeamExpectationGap[];
+  /** Completed weeks with at least one gradeable team replay. */
+  weeksGraded: number;
+}
+
+export function buildTeamExpectationGap(
+  league: LeagueSlice,
+): TeamExpectationGapReport | null {
+  if (league.isBestBall) return null;
+  const lineups = league.weeklyLineups ?? [];
+  const weeklyPoints = league.playerWeeklyPoints;
+  if (lineups.length === 0 || !weeklyPoints) return null;
+  // Same cutoff as completedMatchups: the in-progress week's partial scores
+  // are not a final lineup.
+  const currentWeek =
+    league.status === 'live' && league.currentWeek ? league.currentWeek : null;
+  const slots = league.rosterSlots ?? DEFAULT_ROSTER_SLOTS;
+  const poolIndex = indexPool(POOL);
+  const names = new Map(league.teams.map(t => [t.id, t.name]));
+  const agg = new Map<string, { expected: number; actual: number; weeks: number }>();
+  const gradedWeeks = new Set<number>();
+  for (const l of lineups) {
+    if (currentWeek !== null && l.week >= currentWeek) continue;
+    const r = replayWeek(l, weeklyPoints, slots, league.season, league.gamesPlayed, poolIndex);
+    if (!r) continue;
+    gradedWeeks.add(l.week);
+    const a = agg.get(l.teamId) ?? { expected: 0, actual: 0, weeks: 0 };
+    a.expected += r.projected;
+    a.actual += r.model;
+    a.weeks += 1;
+    agg.set(l.teamId, a);
+  }
+  const teams: TeamExpectationGap[] = [];
+  for (const [teamId, a] of agg) {
+    if (a.weeks === 0) continue;
+    const expected = round2(a.expected);
+    const actual = round2(a.actual);
+    const gap = round1(actual - expected);
+    teams.push({
+      teamId,
+      teamName: names.get(teamId) ?? teamId,
+      weeks: a.weeks,
+      expectedPoints: expected,
+      actualPoints: actual,
+      gap,
+      avgGap: round1(gap / a.weeks),
+    });
+  }
+  if (teams.length === 0) return null;
+  teams.sort((a, b) => b.gap - a.gap || b.actualPoints - a.actualPoints);
+  return { teams, weeksGraded: gradedWeeks.size };
+}
+
+/** Plain-language read on a team's per-week average expectation gap. */
+export function expectationVerdict(avgGap: number): string {
+  if (avgGap >= 3) return 'Running hot';
+  if (avgGap <= -3) return 'Running cold';
+  return 'About right';
 }

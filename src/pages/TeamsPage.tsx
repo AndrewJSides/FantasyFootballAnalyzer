@@ -26,6 +26,10 @@ import { buildRecordBook } from '@/utils/recordBook';
 import { buildRivalryMatrix, type RivalryCell } from '@/utils/rivalryMatrix';
 import { buildStrengthOfVictory, SOV_VERDICT_LABEL } from '@/utils/strengthOfVictory';
 import {
+  buildTeamExpectationGap,
+  expectationVerdict,
+} from '@/utils/startSitReportCard';
+import {
   buildAllPlayRecord,
   formatRecord,
 } from '@/utils/allPlayRecord';
@@ -339,6 +343,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // his best legal lineup every completed week. Hides under the same
   // conditions as lineup efficiency.
   const perfectLineup = useMemo(() => buildPerfectLineupRecord(league), [league]);
+  // Expectation gap: actual points vs what the model expected each team's
+  // best lineup to score (no-lookahead replay). Hides under the same
+  // conditions as the Start/Sit model report card.
+  const expectationGap = useMemo(() => buildTeamExpectationGap(league), [league]);
   // All-play record: each team's record if it had played every other team
   // every week. Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
@@ -1202,6 +1210,69 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                 </tbody>
               </table>
             </div>
+          </section>
+        )}
+
+        {expectationGap && (
+          <section className={styles.raceSection} aria-labelledby="expectation-gap-heading">
+            <h2 id="expectation-gap-heading" className={styles.sectionTitle}>
+              Expectation Gap
+            </h2>
+            <p className={styles.sectionHint}>
+              Actual points vs what the model expected each team&apos;s best
+              lineup to score each completed week — positive means the roster
+              is producing more than expected (running hot), negative means
+              it&apos;s leaving points on the table (running cold). Hot teams
+              are regression candidates; cold teams are buy-low context.
+            </p>
+            <div className={`${styles.matrixWrapper} scroll-x-hint`}>
+              <table
+                className={styles.matrix}
+                aria-label="Expectation gap: each team's actual points vs model-expected points"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Expected</th>
+                    <th scope="col">Actual</th>
+                    <th scope="col">Gap</th>
+                    <th scope="col">Read</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expectationGap.teams.map((t, i) => {
+                    const read = expectationVerdict(t.avgGap);
+                    const detail =
+                      `Over ${t.weeks} graded ${t.weeks === 1 ? 'week' : 'weeks'} ${t.teamName}'s ` +
+                      `best lineups scored ${t.actualPoints} pts vs ${t.expectedPoints} expected ` +
+                      `(${t.gap >= 0 ? '+' : ''}${t.gap} pts, ${t.avgGap >= 0 ? '+' : ''}${t.avgGap} per week) — ${read.toLowerCase()}.`;
+                    return (
+                      <tr key={t.teamId}>
+                        <td>{i + 1}</td>
+                        <td>{t.teamName}</td>
+                        <td>{t.expectedPoints}</td>
+                        <td>{t.actualPoints}</td>
+                        <td title={detail} aria-label={detail}>
+                          {t.gap > 0 ? `+${t.gap.toFixed(1)}` : t.gap.toFixed(1)}
+                        </td>
+                        <td title={detail} aria-label={detail}>{read}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className={styles.note}>
+              Each completed week is replayed with the model&apos;s projection
+              priced on completed weeks only — no lookahead — using the same
+              balanced-mode optimal-lineup pass as the Start/Sit model report
+              card, with the same bye-week and injury-out benching. The live
+              week is excluded, and week 1 is skipped (the model has no
+              history to price on yet). Injury designations are the
+              pool&apos;s current ones, so an early-week replay may bench a
+              player who was healthy then.
+            </p>
           </section>
         )}
 

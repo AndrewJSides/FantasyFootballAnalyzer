@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { League, LineupPlayer, RosterSlots, WeeklyLineup } from '@/types';
 import {
   buildStartSitReportCard,
+  buildTeamExpectationGap,
+  expectationVerdict,
   reportCardVerdict,
 } from './startSitReportCard';
 
@@ -146,5 +148,71 @@ describe('reportCardVerdict', () => {
     expect(reportCardVerdict(2.9)).toBe('About even');
     expect(reportCardVerdict(-2.9)).toBe('About even');
     expect(reportCardVerdict(0)).toBe('About even');
+  });
+});
+
+describe('buildTeamExpectationGap', () => {
+  it('prices expected vs actual on the model lineup with no lookahead', () => {
+    const gap = buildTeamExpectationGap(baseLeague());
+    expect(gap).not.toBeNull();
+    expect(gap!.weeksGraded).toBe(2);
+    expect(gap!.teams).toHaveLength(1);
+    const t = gap!.teams[0];
+    expect(t.teamId).toBe('t1');
+    expect(t.teamName).toBe('Alpha');
+    expect(t.weeks).toBe(2);
+    // The model lineup (Bijan both graded weeks) actually scored 22 + 2;
+    // the no-lookahead projections expected 20 + 21.
+    expect(t.actualPoints).toBe(24);
+    expect(t.expectedPoints).toBe(41);
+    expect(t.gap).toBe(-17);
+    expect(t.avgGap).toBe(-8.5);
+  });
+
+  it('ranks hottest first and isolates expectation from manager picks', () => {
+    const league = baseLeague();
+    league.teams = [
+      { id: 't1', name: 'Alpha' },
+      { id: 't2', name: 'Beta' },
+    ];
+    // Beta's guy is projected ~2.5 on weeks 1-2 form and scores 30 in week 3.
+    // The manager's own start/sit skill is irrelevant here — the gap prices
+    // the model lineup's actuals vs its projection.
+    const HOT = 'hot-rb';
+    league.playerWeeklyPoints = {
+      ...weeklyPoints,
+      [HOT]: { 1: 2, 2: 3, 3: 30 },
+    };
+    league.weeklyLineups = [
+      ...(league.weeklyLineups ?? []),
+      lineup(2, 't2', [lp(HOT, 'Hot Hand', 3)], [lp(BROB, 'Brian Robinson Jr.', 6)]),
+      lineup(3, 't2', [lp(HOT, 'Hot Hand', 30)], [lp(BROB, 'Brian Robinson Jr.', 25)]),
+    ];
+    const gap = buildTeamExpectationGap(league);
+    expect(gap!.teams.map(t => t.teamId)).toEqual(['t2', 't1']);
+    const hot = gap!.teams[0];
+    expect(hot.gap).toBeGreaterThan(0);
+    expect(expectationVerdict(hot.avgGap)).toBe('Running hot');
+    const cold = gap!.teams[1];
+    expect(expectationVerdict(cold.avgGap)).toBe('Running cold');
+  });
+
+  it('hides with no weekly lineups, no weekly points, or best-ball', () => {
+    expect(buildTeamExpectationGap(baseLeague({ weeklyLineups: [] }))).toBeNull();
+    expect(buildTeamExpectationGap(baseLeague({ weeklyLineups: undefined }))).toBeNull();
+    expect(buildTeamExpectationGap(baseLeague({ playerWeeklyPoints: undefined }))).toBeNull();
+    expect(buildTeamExpectationGap(baseLeague({ isBestBall: true }))).toBeNull();
+  });
+});
+
+describe('expectationVerdict', () => {
+  it('names the read with a dead-band around even', () => {
+    expect(expectationVerdict(5)).toBe('Running hot');
+    expect(expectationVerdict(3)).toBe('Running hot');
+    expect(expectationVerdict(-5)).toBe('Running cold');
+    expect(expectationVerdict(-3)).toBe('Running cold');
+    expect(expectationVerdict(2.9)).toBe('About right');
+    expect(expectationVerdict(-2.9)).toBe('About right');
+    expect(expectationVerdict(0)).toBe('About right');
   });
 });
