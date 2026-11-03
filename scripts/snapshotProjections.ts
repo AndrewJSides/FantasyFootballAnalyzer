@@ -34,9 +34,21 @@ interface SleeperProjectionEntry {
 }
 
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
-  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  return (await res.json()) as T;
+  // Retry once on a transport failure: the sandbox proxy aggressively closes
+  // pooled keep-alive connections, so the second fetch in a process (state,
+  // then projections) deterministically dies with UND_ERR_SOCKET while an
+  // immediate retry on a fresh connection succeeds (observed Nov 2, 2026).
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': UA } });
+      if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+      return (await res.json()) as T;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 
 async function main(): Promise<void> {
