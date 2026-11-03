@@ -4,11 +4,18 @@
 // current week, with a method footnote; K/DST and bye-week players get a
 // dim dash instead.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Player, Team } from '@/types';
 import { PlayerJourneyPage } from './PlayerJourneyPage';
+
+// The detail pane's PlayerNews section (item 110) fetches ESPN on mount;
+// keep these tests offline and warning-free: a never-resolving fetch leaves
+// the section in its loading (renders-nothing) state.
+vi.mock('@/api/espnNews', () => ({
+  fetchNflNews: vi.fn(() => new Promise(() => {})),
+}));
 
 function player(overrides: Partial<Player>): Player {
   return {

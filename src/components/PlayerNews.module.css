@@ -1,0 +1,48 @@
+/* Latest-news section on the Player Journey detail pane (item 110). */
+
+.news { margin-top: 1.5rem; }
+
+.newsTitle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: var(--bone-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+.newsTitle::before { content: '★ '; color: var(--lime); }
+
+.newsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.newsItem {
+  padding: 0.85rem 1rem;
+  background: var(--ink-2);
+  border-left: 4px solid var(--rule);
+  font-family: var(--font-mono);
+}
+
+.newsLink {
+  color: var(--bone);
+  text-decoration: none;
+}
+.newsLink:hover { text-decoration: underline; }
+
+.newsTime {
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  white-space: nowrap;
+}
+
+.newsFootnote {
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin: 0.75rem 0 0;
+}

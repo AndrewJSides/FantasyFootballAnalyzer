@@ -4,6 +4,7 @@ import type { League, Player, DraftPick } from '@/types';
 import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { WeeklyPointsChart } from '@/components/WeeklyPointsChart';
+import { PlayerNews } from '@/components/PlayerNews';
 import { nflTeamInfo } from '@/data/nflTeams';
 import {
   buildMatchupCalendar,
@@ -751,6 +752,11 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                     </p>
                   </div>
                 )}
+
+                {/* Latest news (backlog item 110): newest ESPN headlines
+                    tagging this player — the story behind the injury tag.
+                    Hides itself when nothing tags him. */}
+                <PlayerNews playerName={selectedPlayer.player.name} />
 
                 {stints.length > 0 && (
                   <div className={styles.timeline}>
