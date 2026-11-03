@@ -22,6 +22,7 @@ export { NewsWaiverTargets } from './NewsWaiverTargets';
 export { TopFreeAgents } from './TopFreeAgents';
 export { NextWeekTargets } from './NextWeekTargets';
 export { BreakoutWatch } from './BreakoutWatch';
+export { SlumpWatch } from './SlumpWatch';
 export { OpportunityWatch } from './OpportunityWatch';
 export { UsageRisers } from './UsageRisers';
 export { AddDropMoves } from './AddDropMoves';

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, NextWeekTargets, OpportunityWatch, PlayoffStash, SkillStreamers, StashReport, StreamerPlanner, TopFreeAgents, TrendingAdds, TrendingDrops, UsageRisers, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, NextWeekTargets, OpportunityWatch, PlayoffStash, SkillStreamers, SlumpWatch, StashReport, StreamerPlanner, TopFreeAgents, TrendingAdds, TrendingDrops, UsageRisers, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -81,6 +81,12 @@ export function WaiversPage({ league }: WaiversPageProps) {
         {/* Players whose last-3 average is surging vs their own earlier
             pace — role expansions the season rankings haven't caught yet. */}
         <BreakoutWatch league={league} />
+
+        {/* The cooling mirror of Breakout Watch: players whose last-3
+            average fell 40%+ below their own earlier pace — fading
+            starters to sit or shop, and free agents to avoid on name
+            value. Rostered players stay in, with the owner named. */}
+        <SlumpWatch league={league} />
 
         {/* Available players earning a real role (55%+ snap share and/or
             20%+ target share over the last 3 weeks) — the opportunity is
