@@ -30,6 +30,7 @@ export { DstStreamers } from './DstStreamers';
 export { HandcuffReport } from './HandcuffReport';
 export { InjuryReport } from './InjuryReport';
 export { StashReport } from './StashReport';
+export { PlayoffStash } from './PlayoffStash';
 export { KickerStreamers } from './KickerStreamers';
 export { SkillStreamers } from './SkillStreamers';
 export { StreamerPlanner } from './StreamerPlanner';
