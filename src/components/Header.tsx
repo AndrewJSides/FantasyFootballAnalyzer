@@ -390,6 +390,14 @@ export function Header({
                   Efficiency
                 </Link>
                 <Link
+                  to="/peak-weeks"
+                  className={`${styles.navLink} ${location.pathname === '/peak-weeks' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/peak-weeks' ? 'page' : undefined}
+                >
+                  Peak Weeks
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -602,6 +610,14 @@ export function Header({
               aria-current={location.pathname === '/efficiency' ? 'page' : undefined}
             >
               Efficiency
+            </Link>
+            <Link
+              to="/peak-weeks"
+              className={`${styles.navLink} ${location.pathname === '/peak-weeks' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/peak-weeks' ? 'page' : undefined}
+            >
+              Peak Weeks
             </Link>
             <Link
               to="/watchlist"

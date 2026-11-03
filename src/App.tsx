@@ -57,6 +57,7 @@ const ScoreboardPage = lazyPage(() => import('@/pages/ScoreboardPage'), 'Scorebo
 const PointsAllowedPage = lazyPage(() => import('@/pages/PointsAllowedPage'), 'PointsAllowedPage');
 const SnapLeadersPage = lazyPage(() => import('@/pages/SnapLeadersPage'), 'SnapLeadersPage');
 const EfficiencyLeadersPage = lazyPage(() => import('@/pages/EfficiencyLeadersPage'), 'EfficiencyLeadersPage');
+const PeakWeeksPage = lazyPage(() => import('@/pages/PeakWeeksPage'), 'PeakWeeksPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
 import {
@@ -150,6 +151,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/points-allowed': 'Points Allowed',
   '/snaps': 'Snap Leaders',
   '/efficiency': 'Efficiency Leaders',
+  '/peak-weeks': 'Peak Weeks',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
@@ -1040,6 +1042,7 @@ function App() {
           <Route path="/points-allowed" element={<PointsAllowedPage />} />
           <Route path="/snaps" element={<SnapLeadersPage />} />
           <Route path="/efficiency" element={<EfficiencyLeadersPage />} />
+          <Route path="/peak-weeks" element={<PeakWeeksPage />} />
           {/* Watchlist works in guest mode on the manager's own picks
               (localStorage), like Compare and Start/Sit. */}
           <Route
