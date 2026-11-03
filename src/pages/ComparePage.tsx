@@ -289,6 +289,11 @@ export function ComparePage({ league }: { league: League }) {
               weeks {dataStart}–{dataEnd}; the rest-of-season outlook blends the
               player's pace with his season projection. VOR values are priced
               on {league.totalTeams || 10}-team {league.scoringType} scoring.
+              Consistency is the item-20 Steady/Mixed/Volatile verdict with its
+              P25–P75 floor–ceiling band over completed weeks (dash under 3
+              games); Boom % is the chance this week's score clears the
+              position's boom bar, priced on the projection with the player's
+              own week-to-week volatility.
             </p>
           </section>
         )}

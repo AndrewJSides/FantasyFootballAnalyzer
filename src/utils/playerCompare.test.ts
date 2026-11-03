@@ -76,7 +76,7 @@ describe('comparePlayers', () => {
     expect(r.metricsB.ppg).toBe(16.3);
   });
 
-  it('produces the seven expected rows with accessible text', () => {
+  it('produces the nine expected rows with accessible text', () => {
     const weekly = weeklyFor([
       ['allen-sid', [[1, 20], [2, 20], [3, 20], [4, 20]]],
       ['daniels-sid', [[1, 20], [2, 20], [3, 20], [4, 20]]],
@@ -90,11 +90,32 @@ describe('comparePlayers', () => {
       'total',
       'ros',
       'vor',
+      'consistency',
+      'boom',
     ]);
     // Identical stat lines tie on the stats rows.
-    for (const k of ['ppg', 'last3', 'total']) {
+    for (const k of ['ppg', 'last3', 'total', 'consistency', 'boom']) {
       expect(r.rows.find(x => x.key === k)!.winner).toBe('tie');
     }
+  });
+
+  it('ranks the steady player ahead on consistency and the volatile one ahead on boom %', () => {
+    const weekly = weeklyFor([
+      ['allen-sid', [[1, 20], [2, 21], [3, 20], [4, 21]]],
+      ['daniels-sid', [[1, 5], [2, 30], [3, 5], [4, 30]]],
+    ]);
+    const r = comparePlayers(allen(), daniels(), weekly, ctxFor());
+    expect(r.metricsA.consistency?.verdict).toBe('Steady');
+    expect(r.metricsB.consistency?.verdict).toBe('Volatile');
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('consistency')!.winner).toBe('A');
+    expect(byKey.get('consistency')!.a).toContain('Steady');
+    // Both projections sit below the QB 25-pt boom bar, so the volatile
+    // player's wide distribution carries the higher boom chance.
+    expect(r.metricsA.boomPct).not.toBeNull();
+    expect(r.metricsB.boomPct).not.toBeNull();
+    expect(r.metricsB.boomPct!).toBeGreaterThan(r.metricsA.boomPct!);
+    expect(byKey.get('boom')!.winner).toBe('B');
   });
 
   it('handles a player with no weekly data without crashing', () => {
@@ -107,6 +128,11 @@ describe('comparePlayers', () => {
     const byKey = new Map(r.rows.map(x => [x.key, x]));
     expect(byKey.get('ppg')!.winner).toBe('A');
     expect(byKey.get('total')!.winner).toBe('A');
+    // No series means no consistency verdict and no boom chance either.
+    expect(r.metricsB.consistency).toBeNull();
+    expect(r.metricsB.boomPct).toBeNull();
+    expect(byKey.get('consistency')!.winner).toBe('A');
+    expect(byKey.get('boom')!.winner).toBe('A');
     // ROS still resolves (pool-season projection basis), VOR is 0 for a fake id.
     expect(r.metricsB.rosProjected).not.toBeNull();
     expect(r.metricsB.vor).toBe(0);

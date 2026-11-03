@@ -9,6 +9,8 @@ import { POOL } from '@/data/draftPool';
 import { WEEKLY_SHAPE } from '@/data/weeklyShape';
 import type { DraftPick, GamesPlayed, RosterSlots, ScoringType } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
+import { boomChance } from '@/utils/boomProbability';
+import { consistencySummary, type ConsistencySummary } from '@/utils/consistency';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
 import {
   getMatchupRating,
@@ -47,6 +49,10 @@ export interface CompareMetrics {
   /** ROS outlook total: scored so far + missed-week replacement + projected. */
   rosTotal: number | null;
   vor: number;
+  /** Item-20 consistency verdict from completed weeks (null under 3 games). */
+  consistency: ConsistencySummary | null;
+  /** Item-100 chance this week's score clears the position's boom bar, 0–100. */
+  boomPct: number | null;
 }
 
 export interface CompareRow {
@@ -110,6 +116,23 @@ function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: Com
     projectWeeklyPoints(entries, gpCompleted.length > 0 ? gpCompleted.length : null, matchupContext)
       ?.projection ?? null;
 
+  // Consistency + boom chance price on the same completed-week series the
+  // projection uses. Volatility is the population std dev of completed
+  // weeks, null before 2 games (the rosterScoring convention); below 2
+  // games the lineup-mode 45%-of-mean fallback stands in, the same
+  // convention Start/Sit's Boom % column uses.
+  const weeklyRecord: Record<number, number> = {};
+  for (const e of entries) weeklyRecord[e.week] = e.pts;
+  const consistency = consistencySummary(weeklyRecord, p.pos);
+  const pts = entries.map(e => e.pts);
+  let stdDev: number | null = null;
+  if (pts.length >= 2) {
+    const mean = pts.reduce((s, v) => s + v, 0) / pts.length;
+    stdDev = Math.sqrt(pts.reduce((s, v) => s + (v - mean) ** 2, 0) / pts.length);
+  }
+  const pricedStd = stdDev ?? (projection !== null ? 0.45 * projection : null);
+  const boomProb = boomChance(projection, pricedStd, p.pos).probability;
+
   return {
     player: p,
     total,
@@ -117,6 +140,8 @@ function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: Com
     ppg,
     last3,
     projection: projection === null ? null : round1(projection),
+    consistency,
+    boomPct: boomProb === null ? null : round1(boomProb * 100),
     matchup,
     matchupText: matchup ? matchupShort(matchup) : null,
     // ROS + VOR are filled in by comparePlayers (they need shared maps).
@@ -224,6 +249,16 @@ function row(
   return { key, label, a: aText, b: bText, winner, margin };
 }
 
+const consistencyScore = (c: ConsistencySummary | null): number | null =>
+  c === null ? null : c.verdict === 'Steady' ? 2 : c.verdict === 'Mixed' ? 1 : 0;
+
+const consistencyText = (m: CompareMetrics): string | null =>
+  m.consistency === null
+    ? null
+    : `${m.consistency.verdict} (${round1(m.consistency.floor)}–${round1(m.consistency.ceiling)})`;
+
+const pctText = (pct: number | null): string | null => (pct === null ? null : `${round1(pct)}%`);
+
 function buildRows(a: CompareMetrics, b: CompareMetrics, currentWeek: number): CompareRow[] {
   return [
     row('projection', `Week ${currentWeek} projection`, a.projection, b.projection,
@@ -237,6 +272,11 @@ function buildRows(a: CompareMetrics, b: CompareMetrics, currentWeek: number): C
       fmtPts(a.rosProjected), fmtPts(b.rosProjected), ' pts'),
     row('vor', 'Value over replacement', a.vor, b.vor,
       `${round1(a.vor)} VOR`, `${round1(b.vor)} VOR`, ' VOR'),
+    row('consistency', 'Consistency (floor–ceiling)',
+      consistencyScore(a.consistency), consistencyScore(b.consistency),
+      consistencyText(a), consistencyText(b), ''),
+    row('boom', 'Boom % (chance of a boom week)', a.boomPct, b.boomPct,
+      pctText(a.boomPct), pctText(b.boomPct), '%'),
   ];
 }
 
