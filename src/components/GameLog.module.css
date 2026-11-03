@@ -1,0 +1,51 @@
+/* Game log section on the Player Journey detail pane (item 112). */
+
+.log { margin-top: 1.5rem; }
+
+.logTitle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: var(--bone-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.logTitle::before { content: '★ '; color: var(--lime); }
+
+.logTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.logTable caption {
+  text-align: left;
+  color: var(--bone-dim);
+  font-size: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.logTable th,
+.logTable td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+}
+
+.logTable th[scope='col'] {
+  color: var(--bone-dim);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.logDash { color: var(--bone-dim); }
+
+.logFootnote {
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin: 0.75rem 0 0;
+}

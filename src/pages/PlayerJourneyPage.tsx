@@ -5,6 +5,7 @@ import { NflTeamLabel, PosBadge } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { WeeklyPointsChart } from '@/components/WeeklyPointsChart';
 import { PlayerNews } from '@/components/PlayerNews';
+import { GameLog } from '@/components/GameLog';
 import { nflTeamInfo } from '@/data/nflTeams';
 import {
   buildMatchupCalendar,
@@ -611,6 +612,18 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                       weekly={weekly}
                     />
                   </div>
+                )}
+
+                {/* Game log (backlog item 112): the exact record behind the
+                    chart — opponent + points per completed week. Shares the
+                    chart's weekly series, so it hides in the same cases. */}
+                {weekly && (
+                  <GameLog
+                    playerName={selectedPlayer.player.name}
+                    team={selectedPlayer.player.team}
+                    weekly={weekly}
+                    toWeek={matchupDataWeeks()[1]}
+                  />
                 )}
 
                 {/* Week-to-week consistency (backlog item 20): how steady

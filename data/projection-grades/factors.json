@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-11-03T05:31:47.778Z",
+  "weeksGraded": 1,
+  "playersGraded": 230,
+  "meanDiff": -0.52,
+  "meanAbsDiff": 5.64,
+  "missShare": 0.474,
+  "usageDrivenMissShare": 0.202,
+  "tdVarianceMissShare": 0.128,
+  "didNotPlayMissShare": 0.294,
+  "byPosition": {
+    "QB": {
+      "weeksGraded": 1,
+      "playersGraded": 28,
+      "meanDiff": -1.4,
+      "meanAbsDiff": 6.94,
+      "missShare": 0.536,
+      "usageDrivenMissShare": 0.333,
+      "tdVarianceMissShare": 0.533,
+      "didNotPlayMissShare": 0
+    },
+    "RB": {
+      "weeksGraded": 1,
+      "playersGraded": 52,
+      "meanDiff": 0,
+      "meanAbsDiff": 6.48,
+      "missShare": 0.577,
+      "usageDrivenMissShare": 0.233,
+      "tdVarianceMissShare": 0.133,
+      "didNotPlayMissShare": 0.2
+    },
+    "WR": {
+      "weeksGraded": 1,
+      "playersGraded": 69,
+      "meanDiff": -1.2,
+      "meanAbsDiff": 5.62,
+      "missShare": 0.464,
+      "usageDrivenMissShare": 0.281,
+      "tdVarianceMissShare": 0.031,
+      "didNotPlayMissShare": 0.219
+    },
+    "TE": {
+      "weeksGraded": 1,
+      "playersGraded": 30,
+      "meanDiff": -0.19,
+      "meanAbsDiff": 5.38,
+      "missShare": 0.5,
+      "usageDrivenMissShare": 0.067,
+      "tdVarianceMissShare": 0.067,
+      "didNotPlayMissShare": 0.2
+    }
+  }
+}
