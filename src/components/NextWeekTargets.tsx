@@ -18,6 +18,8 @@ import {
 } from '@/api/sleeperWeeklyPoints';
 import { buildWeeklyRankings, type WeeklyRankRow } from '@/utils/weeklyRankings';
 import { topFreeAgents, TOP_FREE_AGENT_POSITIONS, type TopFreeAgentPosition } from '@/utils/topFreeAgents';
+import { faabNorms, suggestBid } from '@/utils/faabGuidance';
+import { teamProfiles } from '@/utils/tradeFinder';
 import { leagueOwnerMap } from '@/utils/rosRankings';
 import {
   currentWeekEstimate,
@@ -113,6 +115,17 @@ export function NextWeekTargets({ league, pool = POOL }: NextWeekTargetsProps) {
   const week = league.currentWeek ?? currentWeekEstimate();
   const targetWeek = week + 1;
 
+  // Per-player FAAB bid guidance (backlog item 113): the same league-norms +
+  // need-priced engine as the FAAB Bid Guidance panel and the Top Free
+  // Agents Bid column, priced for one team. The column only renders when
+  // the sync recorded FAAB bids — it hides gracefully for bid-less leagues.
+  const defaultTeam = league.teams.find(t => t.isMyTeam) ?? league.teams[0];
+  const [teamId, setTeamId] = useState<string>(defaultTeam?.id ?? '');
+  const team = league.teams.find(t => t.id === teamId) ?? defaultTeam;
+  const norms = useMemo(() => faabNorms(league, pool), [league, pool]);
+  const profiles = useMemo(() => teamProfiles(league, pool), [league, pool]);
+  const showBids = Boolean(norms && team);
+
   // Completed weeks only: the in-progress week's partial stats would halve
   // a player's pace (same convention as Weekly Rankings and Start/Sit).
   const load = useCallback(async () => {
@@ -203,6 +216,26 @@ export function NextWeekTargets({ league, pool = POOL }: NextWeekTargetsProps) {
               </button>
             ))}
           </div>
+          {showBids && team && (
+            <div className={styles.pricingBar}>
+              <label htmlFor="nwtTeam" className={styles.pricingLabel}>
+                Pricing bids for
+              </label>
+              <select
+                id="nwtTeam"
+                className="input"
+                value={team.id}
+                onChange={e => setTeamId(e.target.value)}
+                title="Price suggested bids for this team's positional need and remaining budget"
+              >
+                {league.teams.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div aria-live="polite">
             {active && active.rows.length > 0 ? (
               <table
@@ -229,11 +262,22 @@ export function NextWeekTargets({ league, pool = POOL }: NextWeekTargetsProps) {
                     <th scope="col" className={styles.num}>
                       <abbr title="Week-to-week consistency from completed weeks">Consistency</abbr>
                     </th>
+                    {showBids && (
+                      <th scope="col" className={styles.num}>
+                        <abbr title="Suggested FAAB bid range, priced on this league's spending norms, the player's pool value, and the selected team's need and remaining budget">
+                          Bid
+                        </abbr>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {active.rows.map((r, i) => {
                     const tag = injuryTag(r.player);
+                    const bid =
+                      showBids && team && norms
+                        ? suggestBid(r.player, team, profiles, norms)
+                        : null;
                     return (
                       <tr key={r.player.id}>
                         <td className={styles.rank}>{i + 1}</td>
@@ -249,6 +293,15 @@ export function NextWeekTargets({ league, pool = POOL }: NextWeekTargetsProps) {
                         <td className={styles.num}>{fmt(r.last3)}</td>
                         <MatchupCell row={r} week={targetWeek} />
                         <ConsistencyCell row={r} />
+                        {bid && (
+                          <td
+                            className={styles.num}
+                            title={bid.reasons.join(' ')}
+                            aria-label={`Suggested bid $${bid.low} to $${bid.high} for ${r.player.name}`}
+                          >
+                            ${bid.low}–${bid.high}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -265,7 +318,16 @@ export function NextWeekTargets({ league, pool = POOL }: NextWeekTargetsProps) {
             Ranked by TraderApe&apos;s own weekly projection for week{' '}
             {targetWeek} (recency-weighted form + season baseline), priced on
             full-PPR scoring; players on bye in week {targetWeek} are
-            excluded. Guidance only — nothing here adds a player.
+            excluded.
+            {showBids && (
+              <>
+                {' '}Suggested bids are priced on this league&apos;s FAAB
+                spending norms, the player&apos;s preseason pool value, and the
+                selected team&apos;s positional need, capped at the estimated
+                remaining budget (assumes a $100 season budget).
+              </>
+            )}
+            {' '}Guidance only — nothing here adds a player.
           </p>
         </>
       )}

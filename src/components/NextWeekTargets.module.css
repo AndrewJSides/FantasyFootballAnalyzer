@@ -51,6 +51,18 @@
   color: var(--lime);
 }
 
+.pricingBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.pricingLabel {
+  font-size: 0.8rem;
+  color: var(--bone-dim);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
