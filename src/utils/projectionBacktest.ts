@@ -10,7 +10,12 @@
 // A naive baseline (the player's prior mean, no recency weighting) is
 // scored on the same weeks, so the model has to beat doing nothing smart.
 
-import { projectWeeklyPoints, type MatchupContext, type WeekPoints } from './weeklyProjection';
+import {
+  projectWeeklyPoints,
+  type MatchupContext,
+  type TdRegression,
+  type WeekPoints,
+} from './weeklyProjection';
 
 export interface BacktestPrediction {
   week: number;
@@ -77,11 +82,16 @@ export function summarize(predictions: BacktestPrediction[]): BacktestSummary {
  *
  *  `matchupForWeek` is the matchup-aware model's input: a resolver that
  *  returns the MatchupContext the model would have seen for the TARGET
- *  week. Omit it to backtest the matchup-free model. */
+ *  week. Omit it to backtest the matchup-free model. `tdRegression` is
+ *  the TD term's pricing for this player (per-position variants pass a
+ *  different config per player); omit it for the TD-free model. Weeks
+ *  without tdPts score the TD term as 0, so a TD variant only moves
+ *  players whose series carries TD lines. */
 export function backtestPlayer(
   playerId: string,
   weeks: WeekPoints[],
   matchupForWeek?: (week: number) => MatchupContext | null,
+  tdRegression?: TdRegression | null,
 ): PlayerBacktest {
   const sorted = [...weeks]
     .filter(w => Number.isFinite(w.week) && Number.isFinite(w.pts))
@@ -94,6 +104,7 @@ export function backtestPlayer(
       history,
       null,
       matchupForWeek ? matchupForWeek(targetWeek) : undefined,
+      tdRegression,
     );
     if (!projected) continue;
     const naive =

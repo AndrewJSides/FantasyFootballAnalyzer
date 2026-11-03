@@ -21,6 +21,10 @@
 // variants decide what DEFAULT_MATCHUP_PRICING should be. The matchup
 // context for each scored week is rebuilt from completed weeks ONLY (see
 // src/utils/backtestMatchup.ts), so no lookahead leaks into the numbers.
+// `tdVariants` does the same for the TD regression term (backlog pipeline
+// follow-up, Nov 3, 2026): candidate strengths/caps plus a per-position
+// variant, scored matchup-free against the same baseline, deciding
+// DEFAULT_TD_REGRESSION.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -35,7 +39,11 @@ import {
   buildOpponentMap,
   matchupContextForWeek,
 } from '../src/utils/backtestMatchup';
-import type { MatchupPricing, WeekPoints } from '../src/utils/weeklyProjection';
+import type {
+  MatchupPricing,
+  TdRegression,
+  WeekPoints,
+} from '../src/utils/weeklyProjection';
 
 const UA = 'TraderApe (github.com/AndrewJSides/FantasyFootballAnalyzer)';
 const OUT_DIR = 'data/projection-backtests';
@@ -68,7 +76,37 @@ interface SleeperState {
 
 interface SleeperStats {
   pts_ppr?: number;
+  pass_td?: number;
+  rush_td?: number;
+  rec_td?: number;
 }
+
+/**
+ * Candidate pricings for the TD regression term (backlog pipeline
+ * follow-up, Nov 3, 2026 — the graded-weeks application rule is to regress
+ * projected TDs toward the player's TD mean in proportion to the
+ * TD-variance share of misses). Scored on the same weeks as the baseline,
+ * TD-free, so the winner (or no term) becomes DEFAULT_TD_REGRESSION.
+ * The per-position variant prices QB at the graded QB TD-variance share's
+ * neighborhood (0.533 of QB misses) and the other skill positions lower,
+ * matching factors.json's byPosition split.
+ */
+interface TdVariant {
+  name: string;
+  forPosition: (position: string | undefined) => TdRegression | null;
+}
+const tdConfig = (strength: number, cap: number): TdRegression => ({ strength, cap });
+const TD_VARIANTS: TdVariant[] = [
+  { name: 'no term (strength 0)', forPosition: () => tdConfig(0, 5) },
+  { name: 'strength 0.25, cap 3', forPosition: () => tdConfig(0.25, 3) },
+  { name: 'strength 0.5, cap 3', forPosition: () => tdConfig(0.5, 3) },
+  { name: 'strength 0.5, cap 5', forPosition: () => tdConfig(0.5, 5) },
+  { name: 'strength 1.0, cap 5', forPosition: () => tdConfig(1.0, 5) },
+  {
+    name: 'per-position (QB 0.5, others 0.125), cap 3',
+    forPosition: pos => tdConfig(pos === 'QB' ? 0.5 : 0.125, 3),
+  },
+];
 
 interface SleeperPlayer {
   position?: string;
@@ -128,7 +166,13 @@ async function main(): Promise<void> {
     for (const [id, s] of Object.entries(stats)) {
       if (typeof s.pts_ppr !== 'number') continue;
       const list = series.get(id) ?? [];
-      list.push({ week, pts: Math.round(s.pts_ppr * 10) / 10 });
+      // Standard Sleeper TD scoring: 4 per passing TD, 6 per rush/rec TD.
+      const tdPts =
+        Math.round(
+          (4 * (s.pass_td ?? 0) + 6 * (s.rush_td ?? 0) + 6 * (s.rec_td ?? 0)) *
+            10,
+        ) / 10;
+      list.push({ week, pts: Math.round(s.pts_ppr * 10) / 10, tdPts });
       series.set(id, list);
     }
   }
@@ -203,6 +247,26 @@ async function main(): Promise<void> {
     };
   });
 
+  // TD-term experiment: same weeks, matchup-free, one config per player
+  // (the per-position variant reads the player's Sleeper position).
+  const tdVariants = TD_VARIANTS.map(v => {
+    const vResults = ids.map(([id, weeks]) =>
+      backtestPlayer(id, weeks, undefined, v.forPosition(players[id]?.position)),
+    );
+    const vByPosition: Record<string, BacktestSummary> = {};
+    for (const pos of POSITIONS) {
+      vByPosition[pos] = aggregateBacktests(
+        vResults.filter(r => players[r.playerId]?.position === pos),
+      );
+    }
+    return {
+      name: v.name,
+      players: vResults.length,
+      overall: aggregateBacktests(vResults),
+      byPosition: vByPosition,
+    };
+  });
+
   mkdirSync(OUT_DIR, { recursive: true });
   const out = {
     season,
@@ -216,6 +280,7 @@ async function main(): Promise<void> {
       byPosition: byPositionMatchup,
     },
     pricingVariants,
+    tdVariants,
     generatedAt: new Date().toISOString(),
   };
   writeFileSync(join(OUT_DIR, `${season}.json`), JSON.stringify(out, null, 2) + '\n');
@@ -228,6 +293,10 @@ async function main(): Promise<void> {
   }
   console.log('Matchup-term pricing variants:');
   for (const v of pricingVariants) {
+    printSummary(`  ${v.name}`, v.overall);
+  }
+  console.log('TD-term variants (matchup-free):');
+  for (const v of tdVariants) {
     printSummary(`  ${v.name}`, v.overall);
   }
 }

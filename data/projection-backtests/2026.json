@@ -400,5 +400,253 @@
       }
     }
   ],
-  "generatedAt": "2026-11-03T05:32:29.393Z"
+  "tdVariants": [
+    {
+      "name": "no term (strength 0)",
+      "players": 446,
+      "overall": {
+        "predictions": 2257,
+        "mae": 6.74,
+        "naiveMae": 6.72,
+        "bias": -0.17,
+        "within5Rate": 0.536
+      },
+      "byPosition": {
+        "QB": {
+          "predictions": 208,
+          "mae": 6.85,
+          "naiveMae": 6.85,
+          "bias": -0.22,
+          "within5Rate": 0.442
+        },
+        "RB": {
+          "predictions": 448,
+          "mae": 5.46,
+          "naiveMae": 5.5,
+          "bias": -0.21,
+          "within5Rate": 0.583
+        },
+        "WR": {
+          "predictions": 630,
+          "mae": 5.72,
+          "naiveMae": 5.7,
+          "bias": -0.3,
+          "within5Rate": 0.546
+        },
+        "TE": {
+          "predictions": 340,
+          "mae": 5.2,
+          "naiveMae": 5.14,
+          "bias": -0.22,
+          "within5Rate": 0.597
+        }
+      }
+    },
+    {
+      "name": "strength 0.25, cap 3",
+      "players": 446,
+      "overall": {
+        "predictions": 2257,
+        "mae": 6.73,
+        "naiveMae": 6.72,
+        "bias": -0.16,
+        "within5Rate": 0.538
+      },
+      "byPosition": {
+        "QB": {
+          "predictions": 208,
+          "mae": 6.85,
+          "naiveMae": 6.85,
+          "bias": -0.21,
+          "within5Rate": 0.438
+        },
+        "RB": {
+          "predictions": 448,
+          "mae": 5.47,
+          "naiveMae": 5.5,
+          "bias": -0.21,
+          "within5Rate": 0.583
+        },
+        "WR": {
+          "predictions": 630,
+          "mae": 5.72,
+          "naiveMae": 5.7,
+          "bias": -0.29,
+          "within5Rate": 0.546
+        },
+        "TE": {
+          "predictions": 340,
+          "mae": 5.19,
+          "naiveMae": 5.14,
+          "bias": -0.21,
+          "within5Rate": 0.603
+        }
+      }
+    },
+    {
+      "name": "strength 0.5, cap 3",
+      "players": 446,
+      "overall": {
+        "predictions": 2257,
+        "mae": 6.73,
+        "naiveMae": 6.72,
+        "bias": -0.15,
+        "within5Rate": 0.539
+      },
+      "byPosition": {
+        "QB": {
+          "predictions": 208,
+          "mae": 6.84,
+          "naiveMae": 6.85,
+          "bias": -0.2,
+          "within5Rate": 0.442
+        },
+        "RB": {
+          "predictions": 448,
+          "mae": 5.48,
+          "naiveMae": 5.5,
+          "bias": -0.22,
+          "within5Rate": 0.578
+        },
+        "WR": {
+          "predictions": 630,
+          "mae": 5.72,
+          "naiveMae": 5.7,
+          "bias": -0.29,
+          "within5Rate": 0.549
+        },
+        "TE": {
+          "predictions": 340,
+          "mae": 5.18,
+          "naiveMae": 5.14,
+          "bias": -0.21,
+          "within5Rate": 0.6
+        }
+      }
+    },
+    {
+      "name": "strength 0.5, cap 5",
+      "players": 446,
+      "overall": {
+        "predictions": 2257,
+        "mae": 6.73,
+        "naiveMae": 6.72,
+        "bias": -0.15,
+        "within5Rate": 0.538
+      },
+      "byPosition": {
+        "QB": {
+          "predictions": 208,
+          "mae": 6.84,
+          "naiveMae": 6.85,
+          "bias": -0.2,
+          "within5Rate": 0.442
+        },
+        "RB": {
+          "predictions": 448,
+          "mae": 5.48,
+          "naiveMae": 5.5,
+          "bias": -0.22,
+          "within5Rate": 0.578
+        },
+        "WR": {
+          "predictions": 630,
+          "mae": 5.72,
+          "naiveMae": 5.7,
+          "bias": -0.29,
+          "within5Rate": 0.549
+        },
+        "TE": {
+          "predictions": 340,
+          "mae": 5.18,
+          "naiveMae": 5.14,
+          "bias": -0.21,
+          "within5Rate": 0.6
+        }
+      }
+    },
+    {
+      "name": "strength 1.0, cap 5",
+      "players": 446,
+      "overall": {
+        "predictions": 2257,
+        "mae": 6.74,
+        "naiveMae": 6.72,
+        "bias": -0.13,
+        "within5Rate": 0.531
+      },
+      "byPosition": {
+        "QB": {
+          "predictions": 208,
+          "mae": 6.88,
+          "naiveMae": 6.85,
+          "bias": -0.17,
+          "within5Rate": 0.438
+        },
+        "RB": {
+          "predictions": 448,
+          "mae": 5.51,
+          "naiveMae": 5.5,
+          "bias": -0.24,
+          "within5Rate": 0.567
+        },
+        "WR": {
+          "predictions": 630,
+          "mae": 5.74,
+          "naiveMae": 5.7,
+          "bias": -0.27,
+          "within5Rate": 0.548
+        },
+        "TE": {
+          "predictions": 340,
+          "mae": 5.16,
+          "naiveMae": 5.14,
+          "bias": -0.21,
+          "within5Rate": 0.579
+        }
+      }
+    },
+    {
+      "name": "per-position (QB 0.5, others 0.125), cap 3",
+      "players": 446,
+      "overall": {
+        "predictions": 2257,
+        "mae": 6.73,
+        "naiveMae": 6.72,
+        "bias": -0.16,
+        "within5Rate": 0.536
+      },
+      "byPosition": {
+        "QB": {
+          "predictions": 208,
+          "mae": 6.84,
+          "naiveMae": 6.85,
+          "bias": -0.2,
+          "within5Rate": 0.442
+        },
+        "RB": {
+          "predictions": 448,
+          "mae": 5.46,
+          "naiveMae": 5.5,
+          "bias": -0.21,
+          "within5Rate": 0.583
+        },
+        "WR": {
+          "predictions": 630,
+          "mae": 5.72,
+          "naiveMae": 5.7,
+          "bias": -0.29,
+          "within5Rate": 0.544
+        },
+        "TE": {
+          "predictions": 340,
+          "mae": 5.19,
+          "naiveMae": 5.14,
+          "bias": -0.21,
+          "within5Rate": 0.597
+        }
+      }
+    }
+  ],
+  "generatedAt": "2026-11-03T09:37:17.978Z"
 }

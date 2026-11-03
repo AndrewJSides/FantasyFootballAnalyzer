@@ -51,6 +51,26 @@ describe('backtestPlayer', () => {
     const b = backtestPlayer('p1', weeks, () => null);
     expect(b.predictions).toEqual(a.predictions);
   });
+
+  it('applies the TD term when the series carries TD points', () => {
+    // History weeks 1–2 flat 10 pts, TD spike in week 2: form TD
+    // (12*4 + 0*3) / 7 = 6.9 vs season TD 6, gap 0.9, strength 0.5 -> -0.4.
+    const wt = (week: number, pts: number, tdPts: number) => ({ week, pts, tdPts });
+    const weeks = [wt(1, 10, 0), wt(2, 10, 12), wt(3, 10)];
+    const free = backtestPlayer('p1', weeks);
+    const withTd = backtestPlayer('p1', weeks, undefined, { strength: 0.5, cap: 5 });
+    const week3free = free.predictions.find(p => p.week === 3)!;
+    const week3td = withTd.predictions.find(p => p.week === 3)!;
+    expect(week3free.predicted).toBe(10);
+    expect(week3td.predicted).toBe(9.6);
+  });
+
+  it('a series without TD points scores identically with the term on', () => {
+    const weeks = [w(1, 10), w(2, 12), w(3, 10)];
+    const a = backtestPlayer('p1', weeks);
+    const b = backtestPlayer('p1', weeks, undefined, { strength: 0.5, cap: 5 });
+    expect(b.predictions).toEqual(a.predictions);
+  });
 });
 
 describe('summarize / aggregateBacktests', () => {

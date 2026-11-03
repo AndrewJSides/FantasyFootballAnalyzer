@@ -52,6 +52,67 @@ describe('projectWeeklyPoints', () => {
   });
 });
 
+describe('projectWeeklyPoints TD regression', () => {
+  const wt = (week: number, pts: number, tdPts: number) => ({ week, pts, tdPts });
+
+  it('regresses a TD-inflated recent form down', () => {
+    // Flat 10-pt weeks; TD points spike in week 4 only: form TD 4.8 vs
+    // season TD 3, gap 1.8, strength 0.5 -> -0.9.
+    const p = projectWeeklyPoints(
+      [wt(1, 10, 0), wt(2, 10, 0), wt(3, 10, 0), wt(4, 10, 12)],
+      null,
+      null,
+      { strength: 0.5, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 9.1, tdAdjustment: -0.9 });
+    expect(projectionReason(p!)).toContain('TD regression adjusts it -0.9 pts');
+  });
+
+  it('regresses a TD-starved recent form up', () => {
+    // TD points dry up in weeks 2–4: form TD 1.2 vs season TD 3,
+    // gap -1.8, strength 0.5 -> +0.9.
+    const p = projectWeeklyPoints(
+      [wt(1, 10, 12), wt(2, 10, 0), wt(3, 10, 0), wt(4, 10, 0)],
+      null,
+      null,
+      { strength: 0.5, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 10.9, tdAdjustment: 0.9 });
+  });
+
+  it('caps the TD swing', () => {
+    // Gap 4.5 at strength 1, capped at 3.
+    const p = projectWeeklyPoints(
+      [wt(1, 10, 0), wt(2, 10, 0), wt(3, 10, 0), wt(4, 10, 30)],
+      null,
+      null,
+      { strength: 1, cap: 3 },
+    );
+    expect(p).toMatchObject({ projection: 7, tdAdjustment: -3 });
+  });
+
+  it('skips the term when any week lacks TD points', () => {
+    const p = projectWeeklyPoints(
+      [wt(1, 10, 0), wt(2, 10, 0), { week: 3, pts: 10 }, wt(4, 10, 12)],
+      null,
+      null,
+      { strength: 0.5, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 10, tdAdjustment: 0 });
+  });
+
+  it('strength 0 leaves the projection untouched', () => {
+    const p = projectWeeklyPoints(
+      [wt(1, 10, 0), wt(2, 10, 0), wt(3, 10, 0), wt(4, 10, 12)],
+      null,
+      null,
+      { strength: 0, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 10, tdAdjustment: 0 });
+    expect(projectionReason(p!)).not.toContain('TD regression');
+  });
+});
+
 describe('projectionReason', () => {
   it('names the trend and both numbers', () => {
     const p = projectWeeklyPoints([w(1, 5), w(2, 5), w(3, 5), w(4, 20)])!;

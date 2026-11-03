@@ -6,7 +6,10 @@
 // opponent's fantasy points allowed vs the position relative to the league
 // average (DEFAULT_MATCHUP_PRICING: the blend fraction and cap the Nov 1,
 // 2026 weeks 1–7 backtest settled on; a per-context pricing override exists
-// for the harness). Injuries and news are
+// for the harness), plus an optional TD regression term (DEFAULT_TD_REGRESSION,
+// measured by the harness's tdVariants; OFF until a nonzero strength wins)
+// that shrinks the gap between recency-weighted TD points and the season
+// TD average. Injuries and news are
 // out of scope — the page says so.
 //
 // Inputs are completed weeks only; the caller filters out the current and
@@ -18,6 +21,12 @@
 export interface WeekPoints {
   week: number;
   pts: number;
+  /**
+   * Fantasy points from touchdowns that week (standard Sleeper scoring:
+   * 4 per passing TD, 6 per rushing/receiving TD). Optional — the TD
+   * regression term is skipped for any series that doesn't carry it.
+   */
+  tdPts?: number;
 }
 
 /** Opponent context for the numeric matchup blend. */
@@ -51,6 +60,34 @@ export interface MatchupPricing {
  */
 export const DEFAULT_MATCHUP_PRICING: MatchupPricing = { blend: 0, cap: 5 };
 
+/**
+ * TD regression for the weekly projection model: the graded-weeks
+ * application rule (see LearnedFactors in predictionGrading.ts) is to
+ * regress projected touchdowns toward the player's TD mean in proportion
+ * to the TD-variance share of misses. The model's form window over-weights
+ * TD-inflated weeks, so the term shrinks the gap between the recency-
+ * weighted TD points and the season TD average back toward zero.
+ */
+export interface TdRegression {
+  /**
+   * Fraction of the (form TD pts - season TD pts) gap regressed away.
+   * 0 removes the term entirely; 1 fully regresses form TDs to the mean.
+   */
+  strength: number;
+  /** Absolute cap on the term's swing, in points. */
+  cap: number;
+}
+
+/**
+ * The production pricing for the TD term. Measured Nov 3, 2026 on
+ * weeks 1–8 (2,257 predictions, backtest tdVariants): no term MAE 6.74
+ * vs 6.73 at strengths 0.25–0.5 — a 0.01 wobble, not a win (RB slightly
+ * worse, TE slightly better, within ±5 flat at ~54%). Like the matchup
+ * term's Nov 1 repricing, a term that doesn't clearly win stays OFF;
+ * re-measure after more graded weeks accumulate before reconsidering.
+ */
+export const DEFAULT_TD_REGRESSION: TdRegression = { strength: 0, cap: 5 };
+
 export interface MatchupContext {
   /** Opponent's fantasy points per game allowed to the player's position. */
   avgAllowed: number;
@@ -75,6 +112,12 @@ export interface WeeklyProjection {
    * pricing (the Nov 1, 2026 backtest turned the numeric term off).
    */
   matchupAdjustment: number;
+  /**
+   * Points added by the TD regression term (negative when recent form
+   * was TD-inflated), rounded to 1dp. 0 when no TD data is passed or
+   * under the default pricing (strength 0).
+   */
+  tdAdjustment: number;
   /** Completed weeks with a score that fed the model. */
   weeksUsed: number;
   /** Games the baseline divides by (games played when known). */
@@ -114,10 +157,37 @@ function matchupAdjustmentFor(matchup: MatchupContext | null | undefined): numbe
   return round1(Math.max(-cap, Math.min(cap, raw)));
 }
 
+function tdAdjustmentFor(
+  sorted: WeekPoints[],
+  games: number,
+  tdRegression?: TdRegression | null,
+): number {
+  const { strength, cap } = tdRegression ?? DEFAULT_TD_REGRESSION;
+  if (strength === 0) return 0;
+  // The term needs a TD line for every week: a partial series would mix
+  // a full-points baseline with a partial TD average.
+  if (!sorted.every(w => Number.isFinite(w.tdPts))) return 0;
+  const last4 = sorted.slice(-4);
+  const weighted = last4
+    .slice()
+    .reverse()
+    .reduce((s, w, i) => s + (w.tdPts ?? 0) * FORM_WEIGHTS[i], 0);
+  const weightSum = last4
+    .slice()
+    .reverse()
+    .reduce((s, _w, i) => s + FORM_WEIGHTS[i], 0);
+  const formTd = weighted / weightSum;
+  const baselineTd =
+    sorted.reduce((s, w) => s + (w.tdPts ?? 0), 0) / games;
+  const raw = -strength * (formTd - baselineTd);
+  return round1(Math.max(-cap, Math.min(cap, raw)));
+}
+
 export function projectWeeklyPoints(
   weeks: WeekPoints[],
   gamesPlayed?: number | null,
   matchup?: MatchupContext | null,
+  tdRegression?: TdRegression | null,
 ): WeeklyProjection | null {
   const sorted = [...weeks]
     .filter(w => Number.isFinite(w.week) && Number.isFinite(w.pts))
@@ -142,7 +212,8 @@ export function projectWeeklyPoints(
   const w = formWeight(sorted.length);
   const baseProjection = w * form + (1 - w) * baseline;
   const matchupAdjustment = matchupAdjustmentFor(matchup);
-  const projection = round1(baseProjection + matchupAdjustment);
+  const tdAdjustment = tdAdjustmentFor(sorted, games, tdRegression);
+  const projection = round1(baseProjection + matchupAdjustment + tdAdjustment);
   const trend =
     form >= baseline + 2 ? 'hot' : form <= baseline - 2 ? 'cooling' : 'steady';
   return {
@@ -150,6 +221,7 @@ export function projectWeeklyPoints(
     baseline,
     form,
     matchupAdjustment,
+    tdAdjustment,
     weeksUsed: sorted.length,
     games,
     trend,
@@ -172,8 +244,15 @@ export function projectionReason(
         : 'Steady form';
   const sample = p.weeksUsed < 4 ? ` (only ${p.weeksUsed} game${p.weeksUsed === 1 ? '' : 's'} so far)` : '';
   const base = `${trend} — last-4 avg ${p.form} vs ${p.baseline} season avg${sample}.`;
-  if (p.matchupAdjustment === 0) return base;
-  const sign = p.matchupAdjustment > 0 ? '+' : '';
-  const where = opponent ? ` vs ${opponent}` : '';
-  return `${base} Matchup${where} adjusts it ${sign}${p.matchupAdjustment} pts.`;
+  let out = base;
+  if (p.matchupAdjustment !== 0) {
+    const sign = p.matchupAdjustment > 0 ? '+' : '';
+    const where = opponent ? ` vs ${opponent}` : '';
+    out += ` Matchup${where} adjusts it ${sign}${p.matchupAdjustment} pts.`;
+  }
+  if (p.tdAdjustment !== 0) {
+    const sign = p.tdAdjustment > 0 ? '+' : '';
+    out += ` TD regression adjusts it ${sign}${p.tdAdjustment} pts.`;
+  }
+  return out;
 }
