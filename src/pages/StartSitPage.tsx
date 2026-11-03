@@ -11,6 +11,7 @@ import { gameKickoff } from '@/utils/gameTimes';
 import { lateSwapAlerts } from '@/utils/lateSwap';
 import { WeatherWatch } from '@/components/WeatherWatch';
 import { round1, scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
+import { mapSleeperComponentsToRosterKeys } from '@/utils/leagueComponents';
 import {
   LINEUP_MODES,
   modeScore,
@@ -216,6 +217,33 @@ export function StartSitPage({ league }: StartSitPageProps) {
       .catch(() => setGuestWeeklyState('error'));
   };
 
+  // --- League TD/usage components: the same free Sleeper fetch ------------
+  // League playerWeeklyPoints is points-only, so league Start/Sit priced
+  // the TD regression and usage-trend terms as 0. The sync stores no
+  // component lines, so instead of a schema change the page fetches the
+  // same Sleeper weekly stats as guest mode and joins the TD/usage series
+  // onto roster keys at render (see leagueComponents.ts). Only the
+  // component maps are used — league points stay authoritative — and a
+  // failed fetch degrades silently to the old behavior: no error state,
+  // the terms just stay 0.
+  const [leagueComponents, setLeagueComponents] = useState<WeeklyPprPoints | null>(null);
+  useEffect(() => {
+    if (isGuest) return;
+    const throughWeek = (currentWeek ?? 1) - 1;
+    if (throughWeek < 1) return;
+    let cancelled = false;
+    fetchWeeklyPprPoints(league.season, throughWeek)
+      .then(r => {
+        if (!cancelled && r && r.weeks.length > 0) setLeagueComponents(r);
+      })
+      .catch(() => {
+        // Silent degrade: league points still render, terms stay 0.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isGuest, league.season, currentWeek]);
+
   // --- Score the active roster ----------------------------------------------
   const roster: Player[] = useMemo(
     () =>
@@ -231,6 +259,20 @@ export function StartSitPage({ league }: StartSitPageProps) {
     [isGuest, guestRoster, team],
   );
   const weeklyPoints = isGuest ? guestWeekly?.pointsBySleeperId : league.playerWeeklyPoints;
+
+  // League-mode component maps: Sleeper TD/usage series re-keyed onto
+  // roster platform ids (null until the fetch lands, or on failure).
+  const leagueComponentMaps = useMemo(
+    () =>
+      !isGuest && leagueComponents
+        ? mapSleeperComponentsToRosterKeys(
+            roster,
+            leagueComponents.tdPtsBySleeperId,
+            leagueComponents.usageBySleeperId,
+          )
+        : null,
+    [isGuest, leagueComponents, roster],
+  );
 
   // Projected range (backlog item 62): each starter's P25–P75 weekly band
   // from their own played weeks (the consistency engine's percentiles), so
@@ -279,12 +321,19 @@ export function StartSitPage({ league }: StartSitPageProps) {
       scoreRosterPlayers({
         roster,
         weeklyPoints,
-        // Guest mode only: the Sleeper fetch carries TD/usage component
-        // lines, so the projection model's TD regression and usage-trend
-        // terms price when a future default turns them on. League mode
-        // has no component store (playerWeeklyPoints is points-only).
-        weeklyTdPoints: isGuest ? guestWeekly?.tdPtsBySleeperId : undefined,
-        weeklyUsage: isGuest ? guestWeekly?.usageBySleeperId : undefined,
+        // TD/usage component lines for the projection model's terms:
+        // guest mode reads them straight off the Sleeper fetch; league
+        // mode reads the runtime join above (league points stay
+        // authoritative, only the components come from Sleeper). At the
+        // production defaults both terms are strength 0, so wiring them
+        // changes no number today — a future nonzero default moves both
+        // modes together.
+        weeklyTdPoints: isGuest
+          ? guestWeekly?.tdPtsBySleeperId
+          : leagueComponentMaps?.weeklyTdPoints,
+        weeklyUsage: isGuest
+          ? guestWeekly?.usageBySleeperId
+          : leagueComponentMaps?.weeklyUsage,
         gamesBySleeperId: isGuest
           ? guestWeekly?.gamesBySleeperId
           : league.gamesPlayed?.bySleeperId,
@@ -292,7 +341,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
         season: league.season,
         currentWeek,
       }),
-    [roster, weeklyPoints, isGuest, guestWeekly, league.gamesPlayed, league.season, currentWeek],
+    [roster, weeklyPoints, isGuest, guestWeekly, leagueComponentMaps, league.gamesPlayed, league.season, currentWeek],
   );
 
   // --- Lineup mode: floor/ceiling re-ranking (backlog item 25) ----------------

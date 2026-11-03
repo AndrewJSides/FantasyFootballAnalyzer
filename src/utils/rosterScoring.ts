@@ -59,18 +59,18 @@ export interface RosterScoreInputs {
   weeklyPoints?: Record<string, Record<string, number>>;
   /**
    * Per-week TD fantasy points keyed like weeklyPoints (guest mode: from
-   * the Sleeper fetch's component lines). When a player's series carries
-   * a TD line for every week, the projection model's TD regression term
-   * prices it; a partial series is skipped by the model, never guessed.
-   * League mode has no such store yet — playerWeeklyPoints is points-only
-   * — so league projections still price the TD term as 0.
+   * the Sleeper fetch's component lines; league mode: from the runtime
+   * Sleeper join in leagueComponents.ts, since the sync stores no
+   * component lines). When a player's series carries a TD line for every
+   * week, the projection model's TD regression term prices it; a partial
+   * series is skipped by the model, never guessed.
    */
   weeklyTdPoints?: Record<string, Record<string, number>>;
   /**
    * Per-week opportunities (targets + carries + pass attempts) keyed like
    * weeklyPoints, feeding the projection model's usage-trend term under
-   * the same full-series rule as weeklyTdPoints. Guest mode only, same
-   * league-mode gap as above.
+   * the same full-series rule as weeklyTdPoints. Guest mode from the
+   * Sleeper fetch, league mode from the runtime join.
    */
   weeklyUsage?: Record<string, Record<string, number>>;
   /**
