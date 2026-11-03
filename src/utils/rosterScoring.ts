@@ -9,7 +9,14 @@
 import type { Player } from '@/types';
 import { POOL } from '@/data/draftPool';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
-import { projectWeeklyPoints, type WeeklyProjection } from '@/utils/weeklyProjection';
+import {
+  DEFAULT_TD_REGRESSION,
+  DEFAULT_USAGE_TREND,
+  projectWeeklyPoints,
+  type TdRegression,
+  type UsageTrend,
+  type WeeklyProjection,
+} from '@/utils/weeklyProjection';
 import {
   getMatchupRating,
   leagueAvgAllowed,
@@ -50,6 +57,31 @@ export interface ScoredPlayer extends OptimalLineupPlayer {
 export interface RosterScoreInputs {
   roster: Player[];
   weeklyPoints?: Record<string, Record<string, number>>;
+  /**
+   * Per-week TD fantasy points keyed like weeklyPoints (guest mode: from
+   * the Sleeper fetch's component lines). When a player's series carries
+   * a TD line for every week, the projection model's TD regression term
+   * prices it; a partial series is skipped by the model, never guessed.
+   * League mode has no such store yet — playerWeeklyPoints is points-only
+   * — so league projections still price the TD term as 0.
+   */
+  weeklyTdPoints?: Record<string, Record<string, number>>;
+  /**
+   * Per-week opportunities (targets + carries + pass attempts) keyed like
+   * weeklyPoints, feeding the projection model's usage-trend term under
+   * the same full-series rule as weeklyTdPoints. Guest mode only, same
+   * league-mode gap as above.
+   */
+  weeklyUsage?: Record<string, Record<string, number>>;
+  /**
+   * Pricing overrides for the TD regression and usage-trend terms.
+   * Omitted = the production defaults (both strength 0 today, measured
+   * OFF on weeks 1–8) — so wiring the data through changes no production
+   * number until a future re-measurement turns a term on, at which point
+   * every scoreRosterPlayers consumer moves together.
+   */
+  tdRegression?: TdRegression | null;
+  usageTrend?: UsageTrend | null;
   gamesBySleeperId?: Record<string, number[]>;
   gamesSeason?: number;
   season?: number;
@@ -66,15 +98,44 @@ export function round1(n: number): number {
 // all) so a roster still gets a lineup instead of an empty one.
 export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
   const poolIndex = indexPool(POOL);
-  const { roster, weeklyPoints, gamesBySleeperId, gamesSeason, season, currentWeek } = inputs;
+  const {
+    roster,
+    weeklyPoints,
+    weeklyTdPoints,
+    weeklyUsage,
+    tdRegression,
+    usageTrend,
+    gamesBySleeperId,
+    gamesSeason,
+    season,
+    currentWeek,
+  } = inputs;
   return roster.map(rosterPlayer => {
     // Weekly points are keyed by platform player id; try both id spaces
-    // (Sleeper ids live in one, ESPN/Yahoo in the other).
+    // (Sleeper ids live in one, ESPN/Yahoo in the other). TD and usage
+    // lines use the same keying and are attached per week only when the
+    // week carries a finite value, so a partial component series reaches
+    // the model as-is and its term is skipped rather than guessed.
     const weekly =
       weeklyPoints?.[rosterPlayer.platformId] ?? weeklyPoints?.[rosterPlayer.id];
+    const weeklyTd =
+      weeklyTdPoints?.[rosterPlayer.platformId] ?? weeklyTdPoints?.[rosterPlayer.id];
+    const weeklyUse =
+      weeklyUsage?.[rosterPlayer.platformId] ?? weeklyUsage?.[rosterPlayer.id];
     const weeks = weekly
       ? Object.entries(weekly)
-          .map(([w, pts]) => ({ week: Number(w), pts }))
+          .map(([w, pts]) => {
+            const td = weeklyTd?.[w];
+            const usage = weeklyUse?.[w];
+            return {
+              week: Number(w),
+              pts,
+              ...(typeof td === 'number' && Number.isFinite(td) ? { tdPts: td } : {}),
+              ...(typeof usage === 'number' && Number.isFinite(usage)
+                ? { usage }
+                : {}),
+            };
+          })
           .filter(e => Number.isFinite(e.week))
           .sort((a, b) => a.week - b.week)
       : [];
@@ -116,7 +177,13 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
       matchup !== null && leagueAvg !== null
         ? { avgAllowed: matchup.avgAllowed, leagueAverage: leagueAvg }
         : null;
-    const projection = projectWeeklyPoints(completed, gpCompleted, matchupContext);
+    const projection = projectWeeklyPoints(
+      completed,
+      gpCompleted,
+      matchupContext,
+      tdRegression ?? DEFAULT_TD_REGRESSION,
+      usageTrend ?? DEFAULT_USAGE_TREND,
+    );
     const poolPlayer = resolvePoolPlayer(rosterPlayer, poolIndex);
     const bye = poolPlayer?.bye ?? null;
     // Injury designations from the bundled pool (refreshed twice daily):

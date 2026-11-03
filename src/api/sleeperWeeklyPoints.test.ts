@@ -4,7 +4,22 @@ import { fetchWeeklyPprPoints } from './sleeperWeeklyPoints';
 vi.mock('@/utils/logger', () => ({ logger: { warn: vi.fn(), debug: vi.fn() } }));
 
 function mockWeeks(
-  byWeek: Record<number, Record<string, { pts_ppr?: number; gp?: number } | null> | 'fail'>,
+  byWeek: Record<
+    number,
+    Record<
+      string,
+      {
+        pts_ppr?: number;
+        gp?: number;
+        pass_td?: number;
+        rush_td?: number;
+        rec_td?: number;
+        rec_tgt?: number;
+        rush_att?: number;
+        pass_att?: number;
+      } | null
+    > | 'fail'
+  >,
 ) {
   vi.stubGlobal(
     'fetch',
@@ -50,6 +65,25 @@ describe('fetchWeeklyPprPoints', () => {
     mockWeeks({ 1: 'fail' });
     expect(await fetchWeeklyPprPoints(2026, 1)).toBeUndefined();
     expect(await fetchWeeklyPprPoints(2026, 0)).toBeUndefined();
+  });
+
+  it('carries TD points and usage component lines per played week', async () => {
+    mockWeeks({
+      1: {
+        a: { pts_ppr: 18, gp: 1, pass_td: 1, rush_td: 1, rec_tgt: 5, rush_att: 10 },
+        b: { pts_ppr: 4, gp: 1, rec_td: 0, rec_tgt: 2 },
+        c: { pts_ppr: 9, gp: 0, pass_td: 2 },
+        d: { gp: 1, rush_td: 1 },
+      },
+      2: { a: { pts_ppr: 12, gp: 1, rush_td: 2, rec_tgt: 3, rush_att: 8, pass_att: 4 } },
+    });
+    const r = await fetchWeeklyPprPoints(2026, 2);
+    // TD scoring: 4 per passing TD, 6 per rush/rec TD.
+    expect(r?.tdPtsBySleeperId).toEqual({ a: { 1: 10, 2: 12 }, b: { 1: 0 } });
+    expect(r?.usageBySleeperId).toEqual({ a: { 1: 15, 2: 15 }, b: { 1: 2 } });
+    // No points line, no component lines — the series stay aligned.
+    expect(r?.tdPtsBySleeperId.d).toBeUndefined();
+    expect(r?.usageBySleeperId.d).toBeUndefined();
   });
 
   it('caps the request at 18 weeks', async () => {

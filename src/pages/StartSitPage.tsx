@@ -279,6 +279,12 @@ export function StartSitPage({ league }: StartSitPageProps) {
       scoreRosterPlayers({
         roster,
         weeklyPoints,
+        // Guest mode only: the Sleeper fetch carries TD/usage component
+        // lines, so the projection model's TD regression and usage-trend
+        // terms price when a future default turns them on. League mode
+        // has no component store (playerWeeklyPoints is points-only).
+        weeklyTdPoints: isGuest ? guestWeekly?.tdPtsBySleeperId : undefined,
+        weeklyUsage: isGuest ? guestWeekly?.usageBySleeperId : undefined,
         gamesBySleeperId: isGuest
           ? guestWeekly?.gamesBySleeperId
           : league.gamesPlayed?.bySleeperId,

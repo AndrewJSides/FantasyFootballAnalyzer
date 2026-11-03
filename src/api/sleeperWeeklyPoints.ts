@@ -18,6 +18,19 @@ export interface WeeklyPprPoints {
   pointsBySleeperId: Record<string, Record<number, number>>;
   /** Sleeper player id -> weeks with gp > 0 (played, even if scoreless). */
   gamesBySleeperId: Record<string, number[]>;
+  /**
+   * Sleeper player id -> week -> fantasy points from touchdowns (standard
+   * Sleeper scoring: 4 per passing TD, 6 per rushing/receiving TD). Feeds
+   * the weekly projection model's TD regression term in guest mode — the
+   * same component lines the backtest harness prices.
+   */
+  tdPtsBySleeperId: Record<string, Record<number, number>>;
+  /**
+   * Sleeper player id -> week -> opportunities (targets + carries + pass
+   * attempts, the grading attribution's usage definition). Feeds the
+   * weekly projection model's usage-trend term in guest mode.
+   */
+  usageBySleeperId: Record<string, Record<number, number>>;
 }
 
 /**
@@ -35,6 +48,10 @@ export interface WeekPprStats {
   pointsBySleeperId: Record<string, number>;
   /** Sleeper player ids with gp > 0 this week (game underway or finished). */
   playedSleeperIds: Set<string>;
+  /** Sleeper player id -> TD fantasy points this week (same gp > 0 set). */
+  tdPtsBySleeperId: Record<string, number>;
+  /** Sleeper player id -> opportunities this week (same gp > 0 set). */
+  usageBySleeperId: Record<string, number>;
 }
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -52,9 +69,20 @@ export async function fetchWeekPprStats(
     if (!res.ok) throw new Error(`Sleeper stats week ${week}: HTTP ${res.status}`);
     const data = (await res.json()) as Record<
       string,
-      { pts_ppr?: number; gp?: number } | null
+      {
+        pts_ppr?: number;
+        gp?: number;
+        pass_td?: number;
+        rush_td?: number;
+        rec_td?: number;
+        rec_tgt?: number;
+        rush_att?: number;
+        pass_att?: number;
+      } | null
     >;
     const pointsBySleeperId: Record<string, number> = {};
+    const tdPtsBySleeperId: Record<string, number> = {};
+    const usageBySleeperId: Record<string, number> = {};
     const playedSleeperIds = new Set<string>();
     for (const [id, stats] of Object.entries(data)) {
       // gp > 0 marks a played week; a 0-point game still counts toward the
@@ -64,10 +92,23 @@ export async function fetchWeekPprStats(
         const pts = stats?.pts_ppr;
         if (typeof pts === 'number' && Number.isFinite(pts)) {
           pointsBySleeperId[id] = pts;
+          // Same component lines as the backtest harness: standard Sleeper
+          // TD scoring, and usage = targets + carries + pass attempts.
+          // Kept on the same gp > 0 + finite-points set as the points map
+          // so a TD/usage series never outruns its points series.
+          tdPtsBySleeperId[id] =
+            Math.round(
+              (4 * (stats?.pass_td ?? 0) +
+                6 * (stats?.rush_td ?? 0) +
+                6 * (stats?.rec_td ?? 0)) *
+                10,
+            ) / 10;
+          usageBySleeperId[id] =
+            (stats?.rec_tgt ?? 0) + (stats?.rush_att ?? 0) + (stats?.pass_att ?? 0);
         }
       }
     }
-    return { season, week, pointsBySleeperId, playedSleeperIds };
+    return { season, week, pointsBySleeperId, playedSleeperIds, tdPtsBySleeperId, usageBySleeperId };
   } catch (e) {
     logger.warn('[weeklyPpr] week fetch failed:', e);
     return undefined;
@@ -96,6 +137,8 @@ export async function fetchWeeklyPprPoints(
             : {
                 points: stats.pointsBySleeperId,
                 played: stats.playedSleeperIds,
+                tdPts: stats.tdPtsBySleeperId,
+                usage: stats.usageBySleeperId,
               },
       };
     }),
@@ -104,6 +147,8 @@ export async function fetchWeeklyPprPoints(
   const loaded: number[] = [];
   const pointsBySleeperId: Record<string, Record<number, number>> = {};
   const gamesBySleeperId: Record<string, number[]> = {};
+  const tdPtsBySleeperId: Record<string, Record<number, number>> = {};
+  const usageBySleeperId: Record<string, Record<number, number>> = {};
   for (const { week, data } of results) {
     if (!data) continue;
     loaded.push(week);
@@ -112,9 +157,17 @@ export async function fetchWeeklyPprPoints(
       const pts = data.points[id];
       if (typeof pts === 'number' && Number.isFinite(pts)) {
         (pointsBySleeperId[id] ??= {})[week] = pts;
+        const td = data.tdPts[id];
+        if (typeof td === 'number' && Number.isFinite(td)) {
+          (tdPtsBySleeperId[id] ??= {})[week] = td;
+        }
+        const usage = data.usage[id];
+        if (typeof usage === 'number' && Number.isFinite(usage)) {
+          (usageBySleeperId[id] ??= {})[week] = usage;
+        }
       }
     }
   }
   if (loaded.length === 0) return undefined;
-  return { season, weeks: loaded, pointsBySleeperId, gamesBySleeperId };
+  return { season, weeks: loaded, pointsBySleeperId, gamesBySleeperId, tdPtsBySleeperId, usageBySleeperId };
 }

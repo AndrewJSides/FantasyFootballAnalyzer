@@ -166,3 +166,64 @@ describe('buildGamePlan', () => {
     }
   });
 });
+
+describe('scoreRosterPlayers TD/usage wiring (pipeline follow-up)', () => {
+  // Flat 10-pt weeks 1–7 so the base projection is exactly 10 and any
+  // movement is purely the wired term. Team XXX has no matchup rating,
+  // so the matchup term stays 0.
+  const flat10 = (): Record<string, number> => {
+    const w: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) w[String(week)] = 10;
+    return w;
+  };
+  const base = {
+    roster: [RB_HEALTHY()],
+    weeklyPoints: { 'rb-healthy': flat10() },
+    season: 2026,
+    currentWeek: 8,
+  };
+
+  it('prices a rising usage trend when the series carries every week', () => {
+    const usage: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) usage[String(week)] = week <= 4 ? 10 : 20;
+    const [scored] = scoreRosterPlayers({
+      ...base,
+      weeklyUsage: { 'rb-healthy': usage },
+      usageTrend: { strength: 1, cap: 5 },
+    });
+    expect(scored.projection?.usageAdjustment).toBe(3.3);
+    expect(scored.projection?.projection).toBe(13.3);
+  });
+
+  it('regresses TD-inflated recent form when the series carries every week', () => {
+    const td: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) td[String(week)] = week <= 4 ? 0 : 12;
+    const [scored] = scoreRosterPlayers({
+      ...base,
+      weeklyTdPoints: { 'rb-healthy': td },
+      tdRegression: { strength: 0.5, cap: 5 },
+    });
+    expect(scored.projection?.tdAdjustment).toBe(-2.8);
+    expect(scored.projection?.projection).toBe(7.2);
+  });
+
+  it('skips the term on a partial component series instead of guessing', () => {
+    const partial: Record<string, number> = { '1': 10, '2': 10, '3': 10 };
+    const [scored] = scoreRosterPlayers({
+      ...base,
+      weeklyUsage: { 'rb-healthy': partial },
+      usageTrend: { strength: 1, cap: 5 },
+    });
+    expect(scored.projection?.usageAdjustment).toBe(0);
+    expect(scored.projection?.projection).toBe(10);
+  });
+
+  it('changes nothing under the production defaults (both terms OFF)', () => {
+    const usage: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) usage[String(week)] = week <= 4 ? 10 : 20;
+    const [scored] = scoreRosterPlayers({ ...base, weeklyUsage: { 'rb-healthy': usage } });
+    expect(scored.projection?.usageAdjustment).toBe(0);
+    expect(scored.projection?.tdAdjustment).toBe(0);
+    expect(scored.projection?.projection).toBe(10);
+  });
+});
