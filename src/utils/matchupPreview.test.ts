@@ -165,3 +165,49 @@ describe('previewWeeklyMatchups', () => {
     expect(previewWeeklyMatchups(l)).toEqual([]);
   });
 });
+
+describe('componentMaps wiring (league-mode TD/usage terms)', () => {
+  // rb1 scores a steady 12 pts/week; his TD line spikes only in week 7
+  // (12 TD pts after six scoreless weeks) and his usage line surges in
+  // week 7 (20 opps after six 10-opp weeks). At the production defaults
+  // both terms are strength 0, so the maps must not move any number;
+  // with a strength-1 override the terms must actually reach the model.
+  const tdSpike: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 12 };
+  const usageSurge: Record<number, number> = { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 20 };
+
+  it('changes nothing at the production defaults', () => {
+    const l = league();
+    const base = projectTeamScore(l.teams[0], l)!;
+    const wired = projectTeamScore(l.teams[0], l, {
+      componentMaps: { weeklyTdPoints: { rb1: tdSpike }, weeklyUsage: { rb1: usageSurge } },
+    })!;
+    expect(wired.projectedScore).toBe(base.projectedScore);
+  });
+
+  it('regresses a TD spike when the term is priced', () => {
+    const l = league();
+    const base = projectTeamScore(l.teams[0], l)!;
+    const wired = projectTeamScore(l.teams[0], l, {
+      componentMaps: { weeklyTdPoints: { rb1: tdSpike }, weeklyUsage: {} },
+      tdRegression: { strength: 1, cap: 5 },
+    })!;
+    // Form TD 4.8 vs season mean 12/7: -1 * (4.8 - 1.7) ≈ -3.1 pts.
+    const drop = base.projectedScore - wired.projectedScore;
+    expect(drop).toBeGreaterThan(2.5);
+    expect(drop).toBeLessThan(3.5);
+  });
+
+  it('prices a usage surge when the term is priced', () => {
+    const l = league();
+    const base = projectTeamScore(l.teams[0], l)!;
+    const wired = projectTeamScore(l.teams[0], l, {
+      componentMaps: { weeklyTdPoints: {}, weeklyUsage: { rb1: usageSurge } },
+      usageTrend: { strength: 1, cap: 5 },
+    })!;
+    // Form usage 14 vs season mean 80/7 at 84/80 pts-per-opp:
+    // +1 * (14 - 11.4) * 1.05 ≈ +2.7 pts.
+    const gain = wired.projectedScore - base.projectedScore;
+    expect(gain).toBeGreaterThan(2.0);
+    expect(gain).toBeLessThan(3.5);
+  });
+});

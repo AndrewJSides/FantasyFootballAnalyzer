@@ -25,7 +25,8 @@ import ScoreDistBars from '@/components/ScoreDistBars';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import { timeAgo } from '@/utils/relativeTime';
-import { fetchWeekPprStats, type WeekPprStats } from '@/api/sleeperWeeklyPoints';
+import { fetchWeekPprStats, fetchWeeklyPprPoints, type WeekPprStats, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
+import { mapSleeperComponentsToRosterKeys, type RosterComponentMaps } from '@/utils/leagueComponents';
 import { liveForPreview, type LiveMatchup, type LiveTeamScore } from '@/utils/liveMatchup';
 import styles from './MatchupPage.module.css';
 
@@ -228,7 +229,7 @@ function SwapCall({ flag, impact }: { flag: SwapFlag; impact?: SwapImpact }) {
   );
 }
 
-function MatchupDetail({ league, preview }: { league: League; preview: MatchupPreview }) {
+function MatchupDetail({ league, preview, componentMaps }: { league: League; preview: MatchupPreview; componentMaps?: RosterComponentMaps }) {
   const location = useLocation();
   const teamById = useMemo(() => new Map(league.teams.map(t => [t.id, t])), [league.teams]);
   const aName = teamById.get(preview.teamAId)?.name ?? '?';
@@ -264,8 +265,8 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
     const opponentId = focusId === preview.teamAId ? preview.teamBId : preview.teamAId;
     const oppTeam = teamById.get(opponentId);
     if (!focusTeam || !oppTeam) return empty;
-    const a = scoreTeamLineup(focusTeam, league);
-    const b = scoreTeamLineup(oppTeam, league);
+    const a = scoreTeamLineup(focusTeam, league, { componentMaps });
+    const b = scoreTeamLineup(oppTeam, league, { componentMaps });
     if (!a || !b) return empty;
     return new Map(
       priceSwapImpacts(a.starters, b.starters, plan.swapFlags).map(i => [
@@ -273,7 +274,7 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
         i,
       ]),
     );
-  }, [plan, preview, focusId, focusTeam, league, teamById]);
+  }, [plan, preview, focusId, focusTeam, league, teamById, componentMaps]);
 
   // This season's series record between the two teams, from completed
   // weeks only (the current week's partial scores don't count yet).
@@ -604,7 +605,46 @@ function MatchupDetail({ league, preview }: { league: League; preview: MatchupPr
 }
 
 export default function MatchupPage({ league }: MatchupPageProps) {
-  const previews = useMemo(() => previewWeeklyMatchups(league), [league]);
+  // --- League TD/usage components: the same free Sleeper fetch + join
+  // as Start/Sit (see leagueComponents.ts). League playerWeeklyPoints is
+  // points-only, so the Matchup page priced the TD regression and
+  // usage-trend terms as 0; the runtime join covers every league roster,
+  // and a failed fetch degrades silently to the old behavior. League
+  // points stay authoritative — only the components come from Sleeper.
+  // At the production defaults both terms are strength 0, so wiring them
+  // changes no number today.
+  const [leagueComponents, setLeagueComponents] = useState<WeeklyPprPoints | null>(null);
+  useEffect(() => {
+    const throughWeek = (league.currentWeek ?? 1) - 1;
+    if (throughWeek < 1) return;
+    let cancelled = false;
+    fetchWeeklyPprPoints(league.season, throughWeek)
+      .then(r => {
+        if (!cancelled && r && r.weeks.length > 0) setLeagueComponents(r);
+      })
+      .catch(() => {
+        // Silent degrade: league points still render, terms stay 0.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, league.currentWeek]);
+  const componentMaps = useMemo(
+    () =>
+      leagueComponents
+        ? mapSleeperComponentsToRosterKeys(
+            league.teams.flatMap(t => t.roster ?? []),
+            leagueComponents.tdPtsBySleeperId,
+            leagueComponents.usageBySleeperId,
+          )
+        : undefined,
+    [leagueComponents, league.teams],
+  );
+
+  const previews = useMemo(
+    () => previewWeeklyMatchups(league, { componentMaps }),
+    [league, componentMaps],
+  );
   const teamById = useMemo(() => new Map(league.teams.map(t => [t.id, t])), [league.teams]);
 
   const defaultIndex = useMemo(() => {
@@ -654,7 +694,7 @@ export default function MatchupPage({ league }: MatchupPageProps) {
               );
             })}
           </div>
-          {preview && <MatchupDetail key={`${preview.week}-${preview.teamAId}-${preview.teamBId}`} league={league} preview={preview} />}
+          {preview && <MatchupDetail key={`${preview.week}-${preview.teamAId}-${preview.teamBId}`} league={league} preview={preview} componentMaps={componentMaps} />}
         </>
       )}
 

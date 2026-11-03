@@ -42,7 +42,12 @@ vi.mock('@/data/draftPool', () => ({
   POOL: { players: h.players, season: 2026 },
 }));
 
-vi.mock('@/api/sleeperWeeklyPoints', () => ({ fetchWeekPprStats: vi.fn() }));
+vi.mock('@/api/sleeperWeeklyPoints', () => ({
+  fetchWeekPprStats: vi.fn(),
+  // The page's league TD/usage join resolves to nothing here, so the
+  // preview prices the terms as 0 exactly as before the wiring.
+  fetchWeeklyPprPoints: vi.fn().mockResolvedValue(null),
+}));
 
 import { fetchWeekPprStats } from '@/api/sleeperWeeklyPoints';
 import MatchupPage from './MatchupPage';

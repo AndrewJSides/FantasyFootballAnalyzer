@@ -11,9 +11,11 @@
 
 import type { League, Team } from '@/types';
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
+import type { RosterComponentMaps } from '@/utils/leagueComponents';
 import { optimalLineup } from '@/utils/optimalLineup';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 import { monteCarloWinProb, type ScoreDistribution, type SwingPlayer } from '@/utils/weeklyWinProb';
+import type { TdRegression, UsageTrend } from '@/utils/weeklyProjection';
 
 /** A 30-pt projected-score gap ≈ 91% win probability — the same calibration
  *  as the playoff-race elo scale, fitted to typical full-PPR weekly spreads. */
@@ -52,18 +54,35 @@ export function winProbFromProjDiff(diff: number): number {
   return 1 / (1 + Math.pow(10, -diff / PROJ_DIFF_SCALE));
 }
 
+/** Optional TD/usage wiring for the preview engine (pipeline follow-up:
+ *  league-mode component maps, same runtime Sleeper join as Start/Sit).
+ *  At the production defaults both terms are strength 0, so passing maps
+ *  changes no number today — a future nonzero default moves the Matchup
+ *  page together with Start/Sit. The overrides exist so tests can prove
+ *  the maps actually reach the model. */
+export interface ScoreTeamLineupOptions {
+  componentMaps?: RosterComponentMaps;
+  tdRegression?: TdRegression;
+  usageTrend?: UsageTrend;
+}
+
 export function scoreTeamLineup(
   team: Team,
   league: Pick<
     League,
     'rosterSlots' | 'currentWeek' | 'season' | 'playerWeeklyPoints' | 'gamesPlayed'
   >,
+  opts: ScoreTeamLineupOptions = {},
 ): ScoredLineup | null {
   const roster = team.roster;
   if (!roster || roster.length === 0) return null;
   const scored = scoreRosterPlayers({
     roster,
     weeklyPoints: league.playerWeeklyPoints,
+    weeklyTdPoints: opts.componentMaps?.weeklyTdPoints,
+    weeklyUsage: opts.componentMaps?.weeklyUsage,
+    tdRegression: opts.tdRegression,
+    usageTrend: opts.usageTrend,
     gamesBySleeperId: league.gamesPlayed?.bySleeperId,
     gamesSeason: league.gamesPlayed?.season,
     season: league.season,
@@ -95,11 +114,12 @@ export function projectTeamScore(
     League,
     'rosterSlots' | 'currentWeek' | 'season' | 'playerWeeklyPoints' | 'gamesPlayed'
   >,
+  opts: ScoreTeamLineupOptions = {},
 ): TeamScorePreview | null {
-  return scoreTeamLineup(team, league)?.preview ?? null;
+  return scoreTeamLineup(team, league, opts)?.preview ?? null;
 }
 
-export interface PreviewMatchupOptions {
+export interface PreviewMatchupOptions extends ScoreTeamLineupOptions {
   /** Simulation seed — tests pass one for stable results. */
   seed?: number;
   /** Simulation count override (tests). */
@@ -122,7 +142,7 @@ export function previewWeeklyMatchups(
   }
   const scored = new Map<string, ScoredLineup>();
   for (const team of teams) {
-    const p = scoreTeamLineup(team, league);
+    const p = scoreTeamLineup(team, league, opts);
     // A zero projection means no weekly or season data for anyone on the
     // roster — a preview against it would be noise, so skip the team.
     if (p !== null && p.preview.projectedScore > 0) scored.set(team.id, p);
