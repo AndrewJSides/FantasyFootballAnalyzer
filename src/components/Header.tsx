@@ -342,6 +342,14 @@ export function Header({
                   Model Report
                 </Link>
                 <Link
+                  to="/depth-charts"
+                  className={`${styles.navLink} ${location.pathname === '/depth-charts' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/depth-charts' ? 'page' : undefined}
+                >
+                  Depth Charts
+                </Link>
+                <Link
                   to="/rest-of-season"
                   className={`${styles.navLink} ${location.pathname === '/rest-of-season' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -594,6 +602,14 @@ export function Header({
               aria-current={location.pathname === '/model-report' ? 'page' : undefined}
             >
               Model Report
+            </Link>
+            <Link
+              to="/depth-charts"
+              className={`${styles.navLink} ${location.pathname === '/depth-charts' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/depth-charts' ? 'page' : undefined}
+            >
+              Depth Charts
             </Link>
             <Link
               to="/players"

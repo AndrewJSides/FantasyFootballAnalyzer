@@ -1,0 +1,109 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · Depth Charts
+   ───────────────────────────────────────────── */
+
+.page {
+  padding: 3rem 0 5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+
+.selectRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.selectLabel {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.select {
+  background: var(--ink);
+  color: var(--bone);
+  border: 1px solid var(--bone);
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+
+.teamSection {
+  margin-bottom: 2.5rem;
+}
+
+.teamHeading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.table caption {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--bone);
+}
+
+.injuryTag {
+  color: var(--amber, #f5b942);
+}
+
+.note {
+  color: var(--bone);
+  opacity: 0.8;
+}
+
+.footnote {
+  font-size: 0.85rem;
+  color: var(--bone);
+  opacity: 0.8;
+}

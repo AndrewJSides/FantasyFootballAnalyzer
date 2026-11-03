@@ -61,6 +61,7 @@ const EfficiencyLeadersPage = lazyPage(() => import('@/pages/EfficiencyLeadersPa
 const PeakWeeksPage = lazyPage(() => import('@/pages/PeakWeeksPage'), 'PeakWeeksPage');
 const TargetLeadersPage = lazyPage(() => import('@/pages/TargetLeadersPage'), 'TargetLeadersPage');
 const OpportunityLeadersPage = lazyPage(() => import('@/pages/OpportunityLeadersPage'), 'OpportunityLeadersPage');
+const DepthChartsPage = lazyPage(() => import('@/pages/DepthChartsPage'), 'DepthChartsPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
 import {
@@ -158,6 +159,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/peak-weeks': 'Peak Weeks',
   '/targets': 'Target Share Leaders',
   '/opportunity': 'Opportunity Share Leaders',
+  '/depth-charts': 'Depth Charts',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
@@ -1054,6 +1056,11 @@ function App() {
           <Route path="/peak-weeks" element={<PeakWeeksPage />} />
           <Route path="/targets" element={<TargetLeadersPage />} />
           <Route path="/opportunity" element={<OpportunityLeadersPage />} />
+          {/* NFL depth charts are league-independent: the bundled pool's
+              depth order, no auth — the same page for league and guest
+              visitors. The page takes the league when one is loaded so it
+              can tag each player with his fantasy owner (backlog item 116). */}
+          <Route path="/depth-charts" element={<DepthChartsPage league={league ?? undefined} />} />
           {/* Watchlist works in guest mode on the manager's own picks
               (localStorage), like Compare and Start/Sit. */}
           <Route
