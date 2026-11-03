@@ -406,6 +406,14 @@ export function Header({
                   Target Share
                 </Link>
                 <Link
+                  to="/opportunity"
+                  className={`${styles.navLink} ${location.pathname === '/opportunity' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/opportunity' ? 'page' : undefined}
+                >
+                  Opportunity Share
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -634,6 +642,14 @@ export function Header({
               aria-current={location.pathname === '/targets' ? 'page' : undefined}
             >
               Target Share
+            </Link>
+            <Link
+              to="/opportunity"
+              className={`${styles.navLink} ${location.pathname === '/opportunity' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/opportunity' ? 'page' : undefined}
+            >
+              Opportunity Share
             </Link>
             <Link
               to="/watchlist"
