@@ -398,6 +398,14 @@ export function Header({
                   Peak Weeks
                 </Link>
                 <Link
+                  to="/targets"
+                  className={`${styles.navLink} ${location.pathname === '/targets' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/targets' ? 'page' : undefined}
+                >
+                  Target Share
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -618,6 +626,14 @@ export function Header({
               aria-current={location.pathname === '/peak-weeks' ? 'page' : undefined}
             >
               Peak Weeks
+            </Link>
+            <Link
+              to="/targets"
+              className={`${styles.navLink} ${location.pathname === '/targets' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/targets' ? 'page' : undefined}
+            >
+              Target Share
             </Link>
             <Link
               to="/watchlist"
