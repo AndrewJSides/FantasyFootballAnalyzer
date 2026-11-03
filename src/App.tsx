@@ -49,6 +49,7 @@ const HistoryPage = lazyPage(() => import('@/pages/HistoryPage'), 'HistoryPage')
 const AwardsPage = lazyPage(() => import('@/pages/AwardsPage'), 'AwardsPage');
 const LuckPage = lazyPage(() => import('@/pages/LuckPage'), 'LuckPage');
 const RecapPage = lazyPage(() => import('@/pages/RecapPage'), 'RecapPage');
+const ModelReportPage = lazyPage(() => import('@/pages/ModelReportPage'), 'ModelReportPage');
 const RestOfSeasonPage = lazyPage(() => import('@/pages/RestOfSeasonPage'), 'RestOfSeasonPage');
 const WeeklyRankingsPage = lazyPage(() => import('@/pages/WeeklyRankingsPage'), 'WeeklyRankingsPage');
 const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'PlayerJourneyPage');
@@ -145,6 +146,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/awards': 'Awards',
   '/luck': 'Luck',
   '/recap': 'Weekly Recap',
+  '/model-report': 'Model Report',
   '/rest-of-season': 'Rest-of-Season Rankings',
   '/weekly-rankings': 'Weekly Rankings',
   '/players': 'Player Journey',
@@ -1015,6 +1017,9 @@ function App() {
           <Route path="/awards" element={dataRoute(l => <AwardsPage league={l} />)} />
           <Route path="/luck" element={dataRoute(l => <LuckPage league={l} />)} />
           <Route path="/recap" element={dataRoute(l => <RecapPage league={l} />)} />
+          {/* Model Report needs no league data — the bundled backtest
+              snapshot — so league and guest modes share the plain route. */}
+          <Route path="/model-report" element={<ModelReportPage />} />
           {/* Rest-of-Season Rankings works in guest mode on season
               projections (no auth), like Compare and Start/Sit. */}
           <Route

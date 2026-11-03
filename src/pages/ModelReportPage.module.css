@@ -1,0 +1,60 @@
+/* ─────────────────────────────────────────────
+   GRIDIRON · Model Report
+   ───────────────────────────────────────────── */
+
+.page {
+  padding: 3rem 0 5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--bone);
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: var(--page-title);
+  font-weight: 400;
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.table caption {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--bone);
+}
+
+.footnote {
+  font-size: 0.85rem;
+  color: var(--bone);
+  opacity: 0.8;
+}

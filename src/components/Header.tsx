@@ -334,6 +334,14 @@ export function Header({
                   Compare
                 </Link>
                 <Link
+                  to="/model-report"
+                  className={`${styles.navLink} ${location.pathname === '/model-report' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/model-report' ? 'page' : undefined}
+                >
+                  Model Report
+                </Link>
+                <Link
                   to="/rest-of-season"
                   className={`${styles.navLink} ${location.pathname === '/rest-of-season' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -578,6 +586,14 @@ export function Header({
               aria-current={location.pathname === '/recap' ? 'page' : undefined}
             >
               Recap
+            </Link>
+            <Link
+              to="/model-report"
+              className={`${styles.navLink} ${location.pathname === '/model-report' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/model-report' ? 'page' : undefined}
+            >
+              Model Report
             </Link>
             <Link
               to="/players"
