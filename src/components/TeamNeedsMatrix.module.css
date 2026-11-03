@@ -1,0 +1,99 @@
+/* GRIDIRON · Team needs matrix panel (Trade Finder page, backlog item 118) */
+
+.panel {
+  background: var(--ink);
+  border: 2px solid var(--bone);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.heading {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin: 0 0 0.5rem;
+}
+
+.intro {
+  font-size: 0.9rem;
+  color: var(--bone-dim);
+  margin: 0 0 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--bone-dim);
+}
+
+.table th[scope='col'] {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.team {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cell {
+  min-width: 9rem;
+}
+
+.player {
+  font-weight: 600;
+}
+
+.vor {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--bone-dim);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.chips span {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+}
+
+.need {
+  color: var(--red, #e05252);
+}
+
+.surplus {
+  color: var(--lime);
+}
+
+.balanced {
+  color: var(--bone-dim);
+}
+
+.footnote {
+  font-size: 0.85rem;
+  color: var(--bone-dim);
+  margin: 1rem 0 0;
+}

@@ -408,4 +408,25 @@ describe('TradeFinderPage', () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it('renders the team needs matrix in league mode', () => {
+    const teams = [
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR1', 'WR2', 'WR3', 'TE1']),
+      team('b', 'Team B', ['QB2', 'RB4', 'RB5', 'RB6', 'WR4', 'WR5', 'WR6', 'TE2']),
+      team('c', 'Team C', ['QB3', 'RB7', 'RB8', 'RB9', 'WR7', 'WR8', 'WR9', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RB10', 'RB11', 'RB12', 'WR10', 'WR11', 'WR12', 'TE4']),
+    ];
+    teams[0].isMyTeam = true;
+    renderPage(league(teams));
+
+    const matrix = screen.getByRole('region', { name: 'Team needs matrix' });
+    const table = within(matrix).getByRole('table', {
+      name: 'Team needs by position',
+    });
+    expect(within(table).getByRole('rowheader', { name: 'Team A' })).toBeInTheDocument();
+    expect(within(table).getByRole('rowheader', { name: 'Team D' })).toBeInTheDocument();
+    // Best player at a position renders with a verdict chip.
+    expect(within(table).getByText('QB1')).toBeInTheDocument();
+    expect(within(table).getAllByText(/Need|Surplus|Balanced/).length).toBeGreaterThan(0);
+  });
 });

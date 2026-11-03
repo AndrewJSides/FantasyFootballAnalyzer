@@ -6,6 +6,7 @@ import { POOL } from '@/data/draftPool';
 import { POOL_SEASON } from '@/data/draftPoolMeta';
 import { DataAsOf } from '@/components/DataAsOf';
 import { BuyLowSellHigh } from '@/components/BuyLowSellHigh';
+import { TeamNeedsMatrix } from '@/components/TeamNeedsMatrix';
 import { PosBadge } from '@/components';
 import {
   findTradeCandidates,
@@ -711,6 +712,8 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           includeTeamIds
           emptyText="No win-win swaps right now — no team pair lines up with complementary needs and depth."
         />
+
+        <TeamNeedsMatrix profiles={profiles} />
 
         <section className={styles.shop} aria-label="Shop a player">
           <h2 className={styles.shopTitle}>Shop a player</h2>
