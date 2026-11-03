@@ -45,6 +45,20 @@ describe('backtestPlayer', () => {
     expect(week3.predicted).toBe(12.5);
   });
 
+  it('applies the usage term when the series carries usage', () => {
+    // History weeks 1–2 flat 10 pts, usage jumps in week 2: form usage
+    // (20*4 + 10*3) / 7 ≈ 15.7 vs season 15, gap 0.7 × 0.67 pts/opp ≈ 0.5,
+    // strength 0.5 -> +0.2.
+    const wu = (week: number, pts: number, usage: number) => ({ week, pts, usage });
+    const weeks = [wu(1, 10, 10), wu(2, 10, 20), wu(3, 10)];
+    const free = backtestPlayer('p1', weeks);
+    const withUsage = backtestPlayer('p1', weeks, undefined, null, { strength: 0.5, cap: 5 });
+    const week3free = free.predictions.find(p => p.week === 3)!;
+    const week3usage = withUsage.predictions.find(p => p.week === 3)!;
+    expect(week3free.predicted).toBe(10);
+    expect(week3usage.predicted).toBe(10.2);
+  });
+
   it('resolver returning null matches the matchup-free run', () => {
     const weeks = [w(1, 10), w(2, 10), w(3, 12)];
     const a = backtestPlayer('p1', weeks);

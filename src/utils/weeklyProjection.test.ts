@@ -113,6 +113,73 @@ describe('projectWeeklyPoints TD regression', () => {
   });
 });
 
+describe('projectWeeklyPoints usage trend', () => {
+  const wu = (week: number, pts: number, usage: number) => ({ week, pts, usage });
+
+  it('prices a rising usage trend up at the player’s points-per-opportunity', () => {
+    // Flat 10-pt weeks; usage jumps to 20 in week 4: form usage 14 vs
+    // season 12.5, gap 1.5 × 0.8 pts/opp = 1.2, strength 0.5 -> +0.6.
+    const p = projectWeeklyPoints(
+      [wu(1, 10, 10), wu(2, 10, 10), wu(3, 10, 10), wu(4, 10, 20)],
+      null,
+      null,
+      null,
+      { strength: 0.5, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 10.6, usageAdjustment: 0.6 });
+    expect(projectionReason(p!)).toContain('Usage trend adjusts it +0.6 pts');
+  });
+
+  it('prices a falling usage trend down', () => {
+    // Usage falls from 20 to 10: form usage 11 vs season 12.5,
+    // gap -1.5 × 0.8 = -1.2, strength 0.5 -> -0.6.
+    const p = projectWeeklyPoints(
+      [wu(1, 10, 20), wu(2, 10, 10), wu(3, 10, 10), wu(4, 10, 10)],
+      null,
+      null,
+      null,
+      { strength: 0.5, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 9.4, usageAdjustment: -0.6 });
+  });
+
+  it('caps the usage swing', () => {
+    // Usage explodes to 100 in week 4: gap 13.5 × 40/130 pts/opp ≈ 4.2
+    // at strength 1, capped at 3.
+    const p = projectWeeklyPoints(
+      [wu(1, 10, 10), wu(2, 10, 10), wu(3, 10, 10), wu(4, 10, 100)],
+      null,
+      null,
+      null,
+      { strength: 1, cap: 3 },
+    );
+    expect(p).toMatchObject({ projection: 13, usageAdjustment: 3 });
+  });
+
+  it('skips the term when any week lacks usage', () => {
+    const p = projectWeeklyPoints(
+      [wu(1, 10, 10), wu(2, 10, 10), { week: 3, pts: 10 }, wu(4, 10, 20)],
+      null,
+      null,
+      null,
+      { strength: 0.5, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 10, usageAdjustment: 0 });
+  });
+
+  it('strength 0 leaves the projection untouched', () => {
+    const p = projectWeeklyPoints(
+      [wu(1, 10, 10), wu(2, 10, 10), wu(3, 10, 10), wu(4, 10, 20)],
+      null,
+      null,
+      null,
+      { strength: 0, cap: 5 },
+    );
+    expect(p).toMatchObject({ projection: 10, usageAdjustment: 0 });
+    expect(projectionReason(p!)).not.toContain('Usage trend');
+  });
+});
+
 describe('projectionReason', () => {
   it('names the trend and both numbers', () => {
     const p = projectWeeklyPoints([w(1, 5), w(2, 5), w(3, 5), w(4, 20)])!;

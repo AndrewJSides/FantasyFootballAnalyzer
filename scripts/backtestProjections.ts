@@ -24,7 +24,10 @@
 // `tdVariants` does the same for the TD regression term (backlog pipeline
 // follow-up, Nov 3, 2026): candidate strengths/caps plus a per-position
 // variant, scored matchup-free against the same baseline, deciding
-// DEFAULT_TD_REGRESSION.
+// DEFAULT_TD_REGRESSION. `usageVariants` does the same for the usage-trend
+// term (the other half of the factors.json application rule, Nov 3, 2026):
+// candidate strengths/caps plus a per-position variant priced at the
+// graded usage-driven miss shares, deciding DEFAULT_USAGE_TREND.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -42,6 +45,7 @@ import {
 import type {
   MatchupPricing,
   TdRegression,
+  UsageTrend,
   WeekPoints,
 } from '../src/utils/weeklyProjection';
 
@@ -79,6 +83,9 @@ interface SleeperStats {
   pass_td?: number;
   rush_td?: number;
   rec_td?: number;
+  rec_tgt?: number;
+  rush_att?: number;
+  pass_att?: number;
 }
 
 /**
@@ -172,7 +179,10 @@ async function main(): Promise<void> {
           (4 * (s.pass_td ?? 0) + 6 * (s.rush_td ?? 0) + 6 * (s.rec_td ?? 0)) *
             10,
         ) / 10;
-      list.push({ week, pts: Math.round(s.pts_ppr * 10) / 10, tdPts });
+      // Usage = opportunities (targets + carries + pass attempts), the
+      // grading attribution's definition in predictionGrading.ts.
+      const usage = (s.rec_tgt ?? 0) + (s.rush_att ?? 0) + (s.pass_att ?? 0);
+      list.push({ week, pts: Math.round(s.pts_ppr * 10) / 10, tdPts, usage });
       series.set(id, list);
     }
   }
@@ -267,6 +277,47 @@ async function main(): Promise<void> {
     };
   });
 
+  // Usage-term experiment: same weeks, matchup-free, one config per
+  // player (the per-position variant reads the graded usage-driven miss
+  // shares from factors.json: QB 0.333, RB 0.233, WR 0.281, TE 0.067).
+  interface UsageVariant {
+    name: string;
+    forPosition: (position: string | undefined) => UsageTrend | null;
+  }
+  const usageConfig = (strength: number, cap: number): UsageTrend => ({ strength, cap });
+  const USAGE_VARIANTS: UsageVariant[] = [
+    { name: 'no term (strength 0)', forPosition: () => usageConfig(0, 5) },
+    { name: 'strength 0.25, cap 3', forPosition: () => usageConfig(0.25, 3) },
+    { name: 'strength 0.5, cap 3', forPosition: () => usageConfig(0.5, 3) },
+    { name: 'strength 0.5, cap 5', forPosition: () => usageConfig(0.5, 5) },
+    { name: 'strength 1.0, cap 5', forPosition: () => usageConfig(1.0, 5) },
+    {
+      name: 'per-position (graded usage shares), cap 3',
+      forPosition: pos =>
+        usageConfig(
+          pos === 'QB' ? 0.33 : pos === 'RB' ? 0.23 : pos === 'WR' ? 0.28 : pos === 'TE' ? 0.07 : 0.2,
+          3,
+        ),
+    },
+  ];
+  const usageVariants = USAGE_VARIANTS.map(v => {
+    const vResults = ids.map(([id, weeks]) =>
+      backtestPlayer(id, weeks, undefined, null, v.forPosition(players[id]?.position)),
+    );
+    const vByPosition: Record<string, BacktestSummary> = {};
+    for (const pos of POSITIONS) {
+      vByPosition[pos] = aggregateBacktests(
+        vResults.filter(r => players[r.playerId]?.position === pos),
+      );
+    }
+    return {
+      name: v.name,
+      players: vResults.length,
+      overall: aggregateBacktests(vResults),
+      byPosition: vByPosition,
+    };
+  });
+
   mkdirSync(OUT_DIR, { recursive: true });
   const out = {
     season,
@@ -281,6 +332,7 @@ async function main(): Promise<void> {
     },
     pricingVariants,
     tdVariants,
+    usageVariants,
     generatedAt: new Date().toISOString(),
   };
   writeFileSync(join(OUT_DIR, `${season}.json`), JSON.stringify(out, null, 2) + '\n');
@@ -297,6 +349,10 @@ async function main(): Promise<void> {
   }
   console.log('TD-term variants (matchup-free):');
   for (const v of tdVariants) {
+    printSummary(`  ${v.name}`, v.overall);
+  }
+  console.log('Usage-term variants (matchup-free):');
+  for (const v of usageVariants) {
     printSummary(`  ${v.name}`, v.overall);
   }
 }

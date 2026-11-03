@@ -14,6 +14,7 @@ import {
   projectWeeklyPoints,
   type MatchupContext,
   type TdRegression,
+  type UsageTrend,
   type WeekPoints,
 } from './weeklyProjection';
 
@@ -86,12 +87,15 @@ export function summarize(predictions: BacktestPrediction[]): BacktestSummary {
  *  the TD term's pricing for this player (per-position variants pass a
  *  different config per player); omit it for the TD-free model. Weeks
  *  without tdPts score the TD term as 0, so a TD variant only moves
- *  players whose series carries TD lines. */
+ *  players whose series carries TD lines. `usageTrend` is the same
+ *  passthrough for the usage-trend term; weeks without usage score it
+ *  as 0. */
 export function backtestPlayer(
   playerId: string,
   weeks: WeekPoints[],
   matchupForWeek?: (week: number) => MatchupContext | null,
   tdRegression?: TdRegression | null,
+  usageTrend?: UsageTrend | null,
 ): PlayerBacktest {
   const sorted = [...weeks]
     .filter(w => Number.isFinite(w.week) && Number.isFinite(w.pts))
@@ -105,6 +109,7 @@ export function backtestPlayer(
       null,
       matchupForWeek ? matchupForWeek(targetWeek) : undefined,
       tdRegression,
+      usageTrend,
     );
     if (!projected) continue;
     const naive =

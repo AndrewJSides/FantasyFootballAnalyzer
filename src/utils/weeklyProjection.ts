@@ -9,7 +9,11 @@
 // for the harness), plus an optional TD regression term (DEFAULT_TD_REGRESSION,
 // measured by the harness's tdVariants; OFF until a nonzero strength wins)
 // that shrinks the gap between recency-weighted TD points and the season
-// TD average. Injuries and news are
+// TD average, plus an optional usage-trend term (DEFAULT_USAGE_TREND,
+// measured by the harness's usageVariants; OFF until a nonzero strength
+// wins) that prices a rising or falling opportunity share: the gap
+// between recency-weighted usage and the season usage average, converted
+// to points at the player's own points-per-opportunity rate. Injuries and news are
 // out of scope — the page says so.
 //
 // Inputs are completed weeks only; the caller filters out the current and
@@ -27,6 +31,12 @@ export interface WeekPoints {
    * regression term is skipped for any series that doesn't carry it.
    */
   tdPts?: number;
+  /**
+   * Opportunities that week (targets + carries + pass attempts, the
+   * grading attribution's usage definition). Optional — the usage-trend
+   * term is skipped for any series that doesn't carry it.
+   */
+  usage?: number;
 }
 
 /** Opponent context for the numeric matchup blend. */
@@ -88,6 +98,39 @@ export interface TdRegression {
  */
 export const DEFAULT_TD_REGRESSION: TdRegression = { strength: 0, cap: 5 };
 
+/**
+ * Usage trend for the weekly projection model: the graded-weeks
+ * application rule (see LearnedFactors in predictionGrading.ts) is to
+ * weight recent usage trends in proportion to the usage-driven share of
+ * misses. The model's form window already over-weights recent points, but
+ * a role change shows up in opportunities before it shows up in points,
+ * so the term prices the usage gap directly: recency-weighted usage minus
+ * the season usage average, converted to points at the player's own
+ * season points-per-opportunity, so a back whose touches jumped from 12
+ * to 18 a game gets a real (but capped) bump before the points catch up.
+ */
+export interface UsageTrend {
+  /**
+   * Fraction of the usage-gap-in-points that flows through the term.
+   * 0 removes the term entirely; 1 prices the full gap.
+   */
+  strength: number;
+  /** Absolute cap on the term's swing, in points. */
+  cap: number;
+}
+
+/**
+ * The production pricing for the usage term. Measured Nov 3, 2026 on
+ * weeks 1–8 (2,257 predictions, backtest usageVariants): no term MAE
+ * 6.74 vs 6.76 at strength 0.25, 6.79 at 0.5, 6.86 at 1.0, and 6.76 for
+ * the per-position graded-shares variant — degradation monotonic in
+ * strength, no position wins at any nonzero strength (QB flat, WR/TE
+ * worse). Like the matchup and TD terms, a term that doesn't clearly
+ * win stays OFF; re-measure after more graded weeks accumulate before
+ * reconsidering.
+ */
+export const DEFAULT_USAGE_TREND: UsageTrend = { strength: 0, cap: 5 };
+
 export interface MatchupContext {
   /** Opponent's fantasy points per game allowed to the player's position. */
   avgAllowed: number;
@@ -118,6 +161,12 @@ export interface WeeklyProjection {
    * under the default pricing (strength 0).
    */
   tdAdjustment: number;
+  /**
+   * Points added by the usage-trend term (positive when recent usage is
+   * above the season average), rounded to 1dp. 0 when no usage data is
+   * passed or under the default pricing (strength 0).
+   */
+  usageAdjustment: number;
   /** Completed weeks with a score that fed the model. */
   weeksUsed: number;
   /** Games the baseline divides by (games played when known). */
@@ -183,11 +232,42 @@ function tdAdjustmentFor(
   return round1(Math.max(-cap, Math.min(cap, raw)));
 }
 
+function usageAdjustmentFor(
+  sorted: WeekPoints[],
+  games: number,
+  usageTrend?: UsageTrend | null,
+): number {
+  const { strength, cap } = usageTrend ?? DEFAULT_USAGE_TREND;
+  if (strength === 0) return 0;
+  // Like the TD term, the series needs a usage line for every week: a
+  // partial series would mix a full-points baseline with a partial
+  // usage average.
+  if (!sorted.every(w => Number.isFinite(w.usage))) return 0;
+  const totalUsage = sorted.reduce((s, w) => s + (w.usage ?? 0), 0);
+  if (totalUsage <= 0) return 0;
+  const last4 = sorted.slice(-4);
+  const weighted = last4
+    .slice()
+    .reverse()
+    .reduce((s, w, i) => s + (w.usage ?? 0) * FORM_WEIGHTS[i], 0);
+  const weightSum = last4
+    .slice()
+    .reverse()
+    .reduce((s, _w, i) => s + FORM_WEIGHTS[i], 0);
+  const formUsage = weighted / weightSum;
+  const baselineUsage = totalUsage / games;
+  const totalPts = sorted.reduce((s, w) => s + w.pts, 0);
+  const ptsPerOpp = totalPts / totalUsage;
+  const raw = strength * (formUsage - baselineUsage) * ptsPerOpp;
+  return round1(Math.max(-cap, Math.min(cap, raw)));
+}
+
 export function projectWeeklyPoints(
   weeks: WeekPoints[],
   gamesPlayed?: number | null,
   matchup?: MatchupContext | null,
   tdRegression?: TdRegression | null,
+  usageTrend?: UsageTrend | null,
 ): WeeklyProjection | null {
   const sorted = [...weeks]
     .filter(w => Number.isFinite(w.week) && Number.isFinite(w.pts))
@@ -213,7 +293,10 @@ export function projectWeeklyPoints(
   const baseProjection = w * form + (1 - w) * baseline;
   const matchupAdjustment = matchupAdjustmentFor(matchup);
   const tdAdjustment = tdAdjustmentFor(sorted, games, tdRegression);
-  const projection = round1(baseProjection + matchupAdjustment + tdAdjustment);
+  const usageAdjustment = usageAdjustmentFor(sorted, games, usageTrend);
+  const projection = round1(
+    baseProjection + matchupAdjustment + tdAdjustment + usageAdjustment,
+  );
   const trend =
     form >= baseline + 2 ? 'hot' : form <= baseline - 2 ? 'cooling' : 'steady';
   return {
@@ -222,6 +305,7 @@ export function projectWeeklyPoints(
     form,
     matchupAdjustment,
     tdAdjustment,
+    usageAdjustment,
     weeksUsed: sorted.length,
     games,
     trend,
@@ -253,6 +337,10 @@ export function projectionReason(
   if (p.tdAdjustment !== 0) {
     const sign = p.tdAdjustment > 0 ? '+' : '';
     out += ` TD regression adjusts it ${sign}${p.tdAdjustment} pts.`;
+  }
+  if (p.usageAdjustment !== 0) {
+    const sign = p.usageAdjustment > 0 ? '+' : '';
+    out += ` Usage trend adjusts it ${sign}${p.usageAdjustment} pts.`;
   }
   return out;
 }
