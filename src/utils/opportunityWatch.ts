@@ -144,6 +144,35 @@ function candidateFor(
 }
 
 /**
+ * Per-NFL-team total targets per week, summed from the same usage response
+ * (rec_tgt is per player; the pool gives each player's current team).
+ * Exported for reuse by the Snap Leaders board (backlog item 104) — the
+ * same denominator prices target shares there too.
+ */
+export function teamTargetsByWeek(
+  poolPlayers: PoolPlayer[],
+  usageBySleeperId: Record<string, Record<number, WeeklyUsageLine>>,
+): Map<string, Map<number, number>> {
+  const sleeperTeam = new Map<string, string>();
+  for (const p of poolPlayers) {
+    if (p.sleeperId && p.team) sleeperTeam.set(p.sleeperId, p.team.toUpperCase());
+  }
+  const out = new Map<string, Map<number, number>>();
+  for (const [id, byWeek] of Object.entries(usageBySleeperId)) {
+    const team = sleeperTeam.get(id);
+    if (!team) continue;
+    let weeks = out.get(team);
+    if (!weeks) out.set(team, (weeks = new Map()));
+    for (const [w, line] of Object.entries(byWeek)) {
+      const week = Number(w);
+      if (!Number.isFinite(week)) continue;
+      weeks.set(week, (weeks.get(week) ?? 0) + line.targets);
+    }
+  }
+  return out;
+}
+
+/**
  * Ranked opportunity candidates: available players earning 55%+ snap share
  * and/or 20%+ target share over their last 3 completed weeks. In league
  * mode, rostered players are excluded (opportunity is a waiver question);
@@ -152,28 +181,14 @@ function candidateFor(
 export function opportunityTargets(
   input: OpportunityWatchInput,
 ): OpportunityCandidate[] {
-  // Team targets per NFL team per week, summed from the same usage response
-  // (rec_tgt is per player; the pool gives each player's current team).
-  const sleeperTeam = new Map<string, string>();
-  for (const p of input.poolPlayers) {
-    if (p.sleeperId && p.team) sleeperTeam.set(p.sleeperId, p.team.toUpperCase());
-  }
-  const teamTargetsByWeek = new Map<string, Map<number, number>>();
-  for (const [id, byWeek] of Object.entries(input.usageBySleeperId)) {
-    const team = sleeperTeam.get(id);
-    if (!team) continue;
-    let weeks = teamTargetsByWeek.get(team);
-    if (!weeks) teamTargetsByWeek.set(team, (weeks = new Map()));
-    for (const [w, line] of Object.entries(byWeek)) {
-      const week = Number(w);
-      if (!Number.isFinite(week)) continue;
-      weeks.set(week, (weeks.get(week) ?? 0) + line.targets);
-    }
-  }
+  const targetsByWeek = teamTargetsByWeek(
+    input.poolPlayers,
+    input.usageBySleeperId,
+  );
 
   const out: OpportunityCandidate[] = [];
   for (const p of input.poolPlayers) {
-    const c = candidateFor(p, input, teamTargetsByWeek);
+    const c = candidateFor(p, input, targetsByWeek);
     if (!c) continue;
     if (input.teamByPoolId?.has(p.id)) continue;
     out.push(c);

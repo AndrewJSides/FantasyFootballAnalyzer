@@ -55,6 +55,7 @@ const PlayerJourneyPage = lazyPage(() => import('@/pages/PlayerJourneyPage'), 'P
 const NewsPage = lazyPage(() => import('@/pages/NewsPage'), 'NewsPage');
 const ScoreboardPage = lazyPage(() => import('@/pages/ScoreboardPage'), 'ScoreboardPage');
 const PointsAllowedPage = lazyPage(() => import('@/pages/PointsAllowedPage'), 'PointsAllowedPage');
+const SnapLeadersPage = lazyPage(() => import('@/pages/SnapLeadersPage'), 'SnapLeadersPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
 import {
@@ -146,6 +147,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/news': 'NFL News',
   '/scores': 'NFL Scores',
   '/points-allowed': 'Points Allowed',
+  '/snaps': 'Snap Leaders',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
   '/draft-grades': 'Draft Grades',
@@ -1034,6 +1036,7 @@ function App() {
               allowed-vs-position data, no auth — the same board for league
               and guest visitors (backlog item 102). */}
           <Route path="/points-allowed" element={<PointsAllowedPage />} />
+          <Route path="/snaps" element={<SnapLeadersPage />} />
           {/* Watchlist works in guest mode on the manager's own picks
               (localStorage), like Compare and Start/Sit. */}
           <Route

@@ -374,6 +374,14 @@ export function Header({
                   Pts Allowed
                 </Link>
                 <Link
+                  to="/snaps"
+                  className={`${styles.navLink} ${location.pathname === '/snaps' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/snaps' ? 'page' : undefined}
+                >
+                  Snap Leaders
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -570,6 +578,14 @@ export function Header({
               aria-current={location.pathname === '/points-allowed' ? 'page' : undefined}
             >
               Pts Allowed
+            </Link>
+            <Link
+              to="/snaps"
+              className={`${styles.navLink} ${location.pathname === '/snaps' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/snaps' ? 'page' : undefined}
+            >
+              Snap Leaders
             </Link>
             <Link
               to="/watchlist"
