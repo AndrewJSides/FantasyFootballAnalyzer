@@ -23,6 +23,7 @@ export { TopFreeAgents } from './TopFreeAgents';
 export { NextWeekTargets } from './NextWeekTargets';
 export { BreakoutWatch } from './BreakoutWatch';
 export { OpportunityWatch } from './OpportunityWatch';
+export { UsageRisers } from './UsageRisers';
 export { AddDropMoves } from './AddDropMoves';
 export { DropCandidates } from './DropCandidates';
 export { DstStreamers } from './DstStreamers';

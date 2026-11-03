@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, NextWeekTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TopFreeAgents, TrendingAdds, TrendingDrops, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
+import { AddDropMoves, BreakoutWatch, DropCandidates, DstStreamers, FaabBudgets, FaabGuidance, HandcuffReport, InjuryReport, KickerStreamers, NewsWaiverTargets, NextWeekTargets, OpportunityWatch, SkillStreamers, StashReport, StreamerPlanner, TopFreeAgents, TrendingAdds, TrendingDrops, UsageRisers, WaiverPriority, WaiverReportCard, WaiverTable } from '@/components';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import type { League } from '@/types';
@@ -86,6 +86,11 @@ export function WaiversPage({ league }: WaiversPageProps) {
             20%+ target share over the last 3 weeks) — the opportunity is
             here before the box score catches up. */}
         <OpportunityWatch league={league} />
+
+        {/* Available players whose snap share jumped vs their own
+            earlier-season baseline — the role change lands before the
+            box score and the waiver rush catch up. */}
+        <UsageRisers league={league} />
 
         {/* Best available team defenses to stream this week, ranked by how
             generous each opponent's offense has been to opposing defenses. */}
