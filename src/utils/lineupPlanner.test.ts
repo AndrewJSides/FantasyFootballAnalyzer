@@ -167,6 +167,72 @@ describe('planLineupWeeks', () => {
   });
 });
 
+describe('component wiring (pipeline follow-up)', () => {
+  // One fake-team QB (no matchup blend, no bye) on flat 20-pt weeks, so
+  // any projectedTotal movement comes from the component terms alone.
+  const compRoster: Player[] = [
+    { id: 'comp-qb', platformId: 'comp-qb', name: 'Comp QB', position: 'QB', team: 'XXX' },
+  ];
+  const compSlots = {
+    QB: 1,
+    RB: 0,
+    WR: 0,
+    TE: 0,
+    FLEX: 0,
+    SUPERFLEX: 0,
+    K: 0,
+    DST: 0,
+    BENCH: 0,
+    IR: 0,
+  };
+  const compBase = {
+    roster: compRoster,
+    weeklyPoints: { 'comp-qb': { 1: 20, 2: 20, 3: 20, 4: 20 } },
+    gamesSeason: 2026,
+    season: 2026,
+    currentWeek: 5,
+    slots: compSlots,
+  };
+  // TD spike / usage surge in the most recent week only.
+  const tdSpike = { 'comp-qb': { 1: 6, 2: 6, 3: 6, 4: 24 } };
+  const usageSurge = { 'comp-qb': { 1: 15, 2: 15, 3: 15, 4: 30 } };
+
+  it('a TD-inflated recent week regresses the planned total under a nonzero TD term', () => {
+    const [without] = planLineupWeeks({ ...compBase, fromWeek: 5, toWeek: 5 });
+    const [withTd] = planLineupWeeks({
+      ...compBase,
+      weeklyTdPoints: tdSpike,
+      tdRegression: { strength: 1, cap: 5 },
+      fromWeek: 5,
+      toWeek: 5,
+    });
+    expect(withTd.projectedTotal).toBeLessThan(without.projectedTotal);
+  });
+
+  it('a usage surge lifts the planned total under a nonzero usage term', () => {
+    const [without] = planLineupWeeks({ ...compBase, fromWeek: 5, toWeek: 5 });
+    const [withUsage] = planLineupWeeks({
+      ...compBase,
+      weeklyUsage: usageSurge,
+      usageTrend: { strength: 1, cap: 5 },
+      fromWeek: 5,
+      toWeek: 5,
+    });
+    expect(withUsage.projectedTotal).toBeGreaterThan(without.projectedTotal);
+  });
+
+  it('both terms stay 0 under the production defaults', () => {
+    const [plan] = planLineupWeeks({
+      ...compBase,
+      weeklyTdPoints: tdSpike,
+      weeklyUsage: usageSurge,
+      fromWeek: 5,
+      toWeek: 5,
+    });
+    expect(plan.projectedTotal).toBe(20);
+  });
+});
+
 describe('injury handling (backlog item 67 remainder)', () => {
   const INJURY_SLOTS = {
     QB: 1,

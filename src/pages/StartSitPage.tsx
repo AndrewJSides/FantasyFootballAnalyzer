@@ -509,6 +509,17 @@ export function StartSitPage({ league }: StartSitPageProps) {
         : planLineupWeeks({
             roster,
             weeklyPoints,
+            // Same TD/usage component lines as the single-week optimizer
+            // above (guest: straight off the Sleeper fetch; league: the
+            // runtime join) — without them every planned week priced both
+            // model terms as 0. At the production defaults both terms are
+            // strength 0, so wiring them changes no number today.
+            weeklyTdPoints: isGuest
+              ? guestWeekly?.tdPtsBySleeperId
+              : leagueComponentMaps?.weeklyTdPoints,
+            weeklyUsage: isGuest
+              ? guestWeekly?.usageBySleeperId
+              : leagueComponentMaps?.weeklyUsage,
             gamesBySleeperId: isGuest
               ? guestWeekly?.gamesBySleeperId
               : league.gamesPlayed?.bySleeperId,
@@ -523,6 +534,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
       weeklyPoints,
       isGuest,
       guestWeekly,
+      leagueComponentMaps,
       league.gamesPlayed,
       league.season,
       currentWeek,
