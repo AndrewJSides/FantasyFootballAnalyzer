@@ -137,3 +137,50 @@ describe('buildPositionBattles', () => {
     expect(buildPositionBattles(noData.teams[0], noData.teams[1], noData)).toBeNull();
   });
 });
+
+describe('componentMaps wiring (league-mode TD/usage terms)', () => {
+  // rb1 (team A) scores a steady 12 pts/week over 7 weeks; his TD line
+  // spikes only in week 7. Same series as the Matchup preview's wiring
+  // tests, so the same ~3.1-pt drop is expected when the term is priced.
+  const tdSpike: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 12 };
+
+  function week8League(): League {
+    const flat7 = (v: number) => [v, v, v, v, v, v, v];
+    const league = mkLeague(
+      [mkPlayer('rb1', 'RB')],
+      [mkPlayer('brb1', 'RB')],
+      weekly({ rb1: flat7(12), brb1: flat7(10) }),
+    );
+    league.currentWeek = 8;
+    return league;
+  }
+
+  function rbMargin(battles: ReturnType<typeof buildPositionBattles>): number {
+    return battles!.find(b => b.group === 'RB')!.margin;
+  }
+
+  it('changes nothing at the production defaults', () => {
+    const league = week8League();
+    const base = rbMargin(buildPositionBattles(league.teams[0], league.teams[1], league));
+    const wired = rbMargin(
+      buildPositionBattles(league.teams[0], league.teams[1], league, {
+        componentMaps: { weeklyTdPoints: { rb1: tdSpike }, weeklyUsage: {} },
+      }),
+    );
+    expect(wired).toBe(base);
+  });
+
+  it('regresses a TD spike when the term is priced', () => {
+    const league = week8League();
+    const base = rbMargin(buildPositionBattles(league.teams[0], league.teams[1], league));
+    const wired = rbMargin(
+      buildPositionBattles(league.teams[0], league.teams[1], league, {
+        componentMaps: { weeklyTdPoints: { rb1: tdSpike }, weeklyUsage: {} },
+        tdRegression: { strength: 1, cap: 5 },
+      }),
+    );
+    const drop = base - wired;
+    expect(drop).toBeGreaterThan(2.5);
+    expect(drop).toBeLessThan(3.5);
+  });
+});

@@ -250,8 +250,8 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
 
   const focusTeam = teamById.get(focusId);
   const plan = useMemo(
-    () => (focusTeam ? buildGamePlan(focusTeam, league) : null),
-    [focusTeam, league],
+    () => (focusTeam ? buildGamePlan(focusTeam, league, { componentMaps }) : null),
+    [focusTeam, league, componentMaps],
   );
   const focusName = teamById.get(focusId)?.name ?? '?';
 
@@ -288,8 +288,8 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
   const battles = useMemo(() => {
     const a = teamById.get(preview.teamAId);
     const b = teamById.get(preview.teamBId);
-    return a && b ? buildPositionBattles(a, b, league) : null;
-  }, [league, preview, teamById]);
+    return a && b ? buildPositionBattles(a, b, league, { componentMaps }) : null;
+  }, [league, preview, teamById, componentMaps]);
   // Win-now trades: the Trade Finder's 1-for-1 candidates between these
   // two teams, re-priced on this week's Monte Carlo win probability for
   // the focus team. The baseline reuses the same seeded sims, so the

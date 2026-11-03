@@ -8,7 +8,7 @@
 // only — the comparison values are TraderApe's own projections).
 
 import type { League, Team } from '@/types';
-import { scoreTeamLineup } from '@/utils/matchupPreview';
+import { scoreTeamLineup, type ScoreTeamLineupOptions } from '@/utils/matchupPreview';
 import { round1 } from '@/utils/rosterScoring';
 
 export const POSITION_GROUP_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DST'] as const;
@@ -47,9 +47,13 @@ export function buildPositionBattles(
   teamA: Team,
   teamB: Team,
   league: League,
+  // TD/usage wiring (pipeline follow-up): the same componentMaps the
+  // Matchup preview already takes, so the battles price the same model
+  // as the preview above them instead of the terms-as-0 fallback.
+  opts: ScoreTeamLineupOptions = {},
 ): PositionBattle[] | null {
-  const a = scoreTeamLineup(teamA, league);
-  const b = scoreTeamLineup(teamB, league);
+  const a = scoreTeamLineup(teamA, league, opts);
+  const b = scoreTeamLineup(teamB, league, opts);
   // A zero projection means no weekly or season data for anyone on the
   // roster — a battle against it would be noise, so bail like the preview
   // does (previewWeeklyMatchups skips zero-projection teams the same way).

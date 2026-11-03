@@ -15,6 +15,8 @@
 
 import type { League, Team } from '@/types';
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
+import type { RosterComponentMaps } from '@/utils/leagueComponents';
+import type { TdRegression, UsageTrend } from '@/utils/weeklyProjection';
 import { optimalLineup, slotEligiblePositions, normalizeLineupPos } from '@/utils/optimalLineup';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 
@@ -57,6 +59,18 @@ function swapNote(starter: ScoredPlayer, challenger: ScoredPlayer, gain: number)
   return `${challenger.name} is within ${Math.abs(gain).toFixed(1)} of ${starter.name} — a coin flip; check matchup and news before sitting the starter.`;
 }
 
+/** Optional TD/usage wiring for the game plan (pipeline follow-up:
+ *  league-mode component maps, same runtime Sleeper join as Start/Sit
+ *  and the Matchup preview). At the production defaults both terms are
+ *  strength 0, so passing maps changes no number today — a future nonzero
+ *  default moves the close calls together with the preview. The overrides
+ *  exist so tests can prove the maps actually reach the model. */
+export interface GamePlanOptions {
+  componentMaps?: RosterComponentMaps;
+  tdRegression?: TdRegression;
+  usageTrend?: UsageTrend;
+}
+
 /** The start/sit close calls for one team this week: every starting slot
  *  whose best bench challenger is within TOSS_UP_THRESHOLD (or better) of
  *  the starter. Players on bye or out with injury never start, same as the
@@ -67,11 +81,16 @@ export function buildGamePlan(
     League,
     'rosterSlots' | 'currentWeek' | 'season' | 'playerWeeklyPoints' | 'gamesPlayed'
   >,
+  opts: GamePlanOptions = {},
 ): GamePlan {
   const roster = team.roster ?? [];
   const scored = scoreRosterPlayers({
     roster,
     weeklyPoints: league.playerWeeklyPoints,
+    weeklyTdPoints: opts.componentMaps?.weeklyTdPoints,
+    weeklyUsage: opts.componentMaps?.weeklyUsage,
+    tdRegression: opts.tdRegression,
+    usageTrend: opts.usageTrend,
     gamesBySleeperId: league.gamesPlayed?.bySleeperId,
     gamesSeason: league.gamesPlayed?.season,
     season: league.season,

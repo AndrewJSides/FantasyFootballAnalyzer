@@ -147,3 +147,79 @@ describe('buildGamePlan', () => {
     expect(plan.swapFlags).toHaveLength(0);
   });
 });
+
+describe('componentMaps wiring (league-mode TD/usage terms)', () => {
+  // rb1 scores a steady 12 pts/week over 7 weeks; his TD line spikes only
+  // in week 7 (12 TD pts after six scoreless weeks) and his usage line
+  // surges in week 7 (20 opps after six 10-opp weeks). Same series as the
+  // Matchup preview's wiring tests, so the same ~3.1-pt TD drop and
+  // ~2.7-pt usage gain are expected when the terms are priced.
+  const tdSpike: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 12 };
+  const usageSurge: Record<number, number> = { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 20 };
+
+  function week8League(): League {
+    const roster = [
+      mkPlayer('rb1', 'RB'),
+      mkPlayer('rb2', 'RB'),
+      mkPlayer('wr1', 'WR'),
+      mkPlayer('wr2', 'WR'),
+      mkPlayer('te1', 'TE'),
+      mkPlayer('qb1', 'QB'),
+    ];
+    const flat7 = (v: number) => [v, v, v, v, v, v, v];
+    const pw = weekly({
+      rb1: flat7(12),
+      rb2: flat7(11),
+      wr1: flat7(12),
+      wr2: flat7(10),
+      te1: flat7(8),
+      qb1: flat7(20),
+    });
+    const league = mkLeague(roster, pw);
+    league.currentWeek = 8;
+    return league;
+  }
+
+  function rb1Score(plan: ReturnType<typeof buildGamePlan>): number {
+    return plan.starters.find(s => s.id === 'rb1')!.score;
+  }
+
+  it('changes nothing at the production defaults', () => {
+    const league = week8League();
+    const base = rb1Score(buildGamePlan(league.teams[0], league));
+    const wired = rb1Score(
+      buildGamePlan(league.teams[0], league, {
+        componentMaps: { weeklyTdPoints: { rb1: tdSpike }, weeklyUsage: { rb1: usageSurge } },
+      }),
+    );
+    expect(wired).toBe(base);
+  });
+
+  it('regresses a TD spike when the term is priced', () => {
+    const league = week8League();
+    const base = rb1Score(buildGamePlan(league.teams[0], league));
+    const wired = rb1Score(
+      buildGamePlan(league.teams[0], league, {
+        componentMaps: { weeklyTdPoints: { rb1: tdSpike }, weeklyUsage: {} },
+        tdRegression: { strength: 1, cap: 5 },
+      }),
+    );
+    const drop = base - wired;
+    expect(drop).toBeGreaterThan(2.5);
+    expect(drop).toBeLessThan(3.5);
+  });
+
+  it('prices a usage surge when the term is priced', () => {
+    const league = week8League();
+    const base = rb1Score(buildGamePlan(league.teams[0], league));
+    const wired = rb1Score(
+      buildGamePlan(league.teams[0], league, {
+        componentMaps: { weeklyTdPoints: {}, weeklyUsage: { rb1: usageSurge } },
+        usageTrend: { strength: 1, cap: 5 },
+      }),
+    );
+    const gain = wired - base;
+    expect(gain).toBeGreaterThan(2.0);
+    expect(gain).toBeLessThan(3.5);
+  });
+});
