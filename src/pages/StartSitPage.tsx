@@ -401,9 +401,44 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // start no matter their average — they stay in the bench list with the
   // reason attached. Questionable/Doubtful stay eligible as game-time
   // decisions; Late-swap watch covers those.
+  //
+  // Backlog item 120 — manager overrides: "Lock as starter" forces a
+  // player into this week's lineup, "Sit anyway" benches one. Locks never
+  // resurrect a bye/injury benching (those players are filtered out below
+  // before the engine sees them), and an exclusion wins over a lock on the
+  // same player. Overrides are for this roster and week only: switching
+  // team or week drops them rather than locking a stranger's lookalike.
+  const [lockedIds, setLockedIds] = useState<ReadonlySet<string>>(new Set());
+  const [excludedIds, setExcludedIds] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    setLockedIds(new Set());
+    setExcludedIds(new Set());
+  }, [team?.id, currentWeek, guestRosterIds]);
+  const toggleLock = (id: string) => {
+    setLockedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setExcludedIds(prev => (prev.has(id) ? new Set([...prev].filter(x => x !== id)) : prev));
+  };
+  const toggleExclude = (id: string) => {
+    setExcludedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setLockedIds(prev => (prev.has(id) ? new Set([...prev].filter(x => x !== id)) : prev));
+  };
   const lineup = useMemo(
-    () => optimalLineup(modeScored.filter(s => !s.onBye && !s.injuredOut), slots),
-    [modeScored, slots],
+    () =>
+      optimalLineup(modeScored.filter(s => !s.onBye && !s.injuredOut), slots, {
+        lockedIds,
+        excludedIds,
+      }),
+    [modeScored, slots, lockedIds, excludedIds],
   );
   const benched: ScoredPlayer[] = useMemo(() => {
     const bench = lineup.bench as ScoredPlayer[];
@@ -964,6 +999,39 @@ export function StartSitPage({ league }: StartSitPageProps) {
                 </div>
               </section>
             )}
+            {(lockedIds.size > 0 || excludedIds.size > 0) && (
+              <div role="status" aria-live="polite" className={styles.overrideBar}>
+                <span>
+                  Overrides active:{' '}
+                  {[
+                    ...lineup.starters
+                      .map(a => a.player as ScoredPlayer | null)
+                      .filter(
+                        (s): s is ScoredPlayer => s !== null && lockedIds.has(s.id),
+                      )
+                      .map(s => `${s.name} locked as a starter`),
+                    ...modeScored
+                      .filter(s => excludedIds.has(s.id))
+                      .map(s => `${s.name} sat anyway`),
+                    ...benched
+                      .filter(s => lockedIds.has(s.id) && !s.onBye && !s.injuredOut)
+                      .map(s => `${s.name} locked but no open slot at ${s.position}`),
+                  ].join(' · ')}
+                  . Overrides change only this week&apos;s lineup — Plan Ahead
+                  below still runs the model&apos;s lineup.
+                </span>
+                <button
+                  type="button"
+                  className={styles.overrideButton}
+                  onClick={() => {
+                    setLockedIds(new Set());
+                    setExcludedIds(new Set());
+                  }}
+                >
+                  Clear overrides
+                </button>
+              </div>
+            )}
             <h2 className={styles.sectionTitle}>
               Optimal starters · {lineup.totalScore} {modeTotalUnit(mode)} combined
             </h2>
@@ -981,6 +1049,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Upcoming</th>
                   <th scope="col">Kickoff</th>
                   <th scope="col">Why they start</th>
+                  <th scope="col">Override</th>
                 </tr>
               </thead>
               <tbody>
@@ -1032,7 +1101,34 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <td>{s ? upcomingChips(s) : '—'}</td>
                       <td>{s ? kickoffChip(s) : '—'}</td>
                       <td>
-                        {s ? starterReason(s, a.slot) : '—'}
+                        {s
+                          ? `${starterReason(s, a.slot)}${lockedIds.has(s.id) ? ' Locked as a starter by you.' : ''}`
+                          : '—'}
+                      </td>
+                      <td>
+                        {s ? (
+                          lockedIds.has(s.id) ? (
+                            <button
+                              type="button"
+                              className={styles.overrideButton}
+                              aria-pressed="true"
+                              onClick={() => toggleLock(s.id)}
+                            >
+                              Unlock {s.name}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={styles.overrideButton}
+                              aria-pressed="false"
+                              onClick={() => toggleExclude(s.id)}
+                            >
+                              Sit {s.name} anyway
+                            </button>
+                          )
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
                   );
@@ -1053,6 +1149,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <th scope="col">Matchup</th>
                       <th scope="col">Kickoff</th>
                       <th scope="col">Why they sit</th>
+                      <th scope="col">Override</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1075,7 +1172,43 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           )}
                         </td>
                         <td>{kickoffChip(s)}</td>
-                        <td>{benchReason(s)}</td>
+                        <td>
+                          {excludedIds.has(s.id)
+                            ? 'Sat anyway by you — sits regardless of projection.'
+                            : benchReason(s)}
+                        </td>
+                        <td>
+                          {s.onBye || s.injuredOut ? (
+                            '—'
+                          ) : excludedIds.has(s.id) ? (
+                            <button
+                              type="button"
+                              className={styles.overrideButton}
+                              aria-pressed="true"
+                              onClick={() => toggleExclude(s.id)}
+                            >
+                              Start {s.name} again
+                            </button>
+                          ) : lockedIds.has(s.id) ? (
+                            <button
+                              type="button"
+                              className={styles.overrideButton}
+                              aria-pressed="true"
+                              onClick={() => toggleLock(s.id)}
+                            >
+                              Unlock {s.name}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={styles.overrideButton}
+                              aria-pressed="false"
+                              onClick={() => toggleLock(s.id)}
+                            >
+                              Lock {s.name} as starter
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

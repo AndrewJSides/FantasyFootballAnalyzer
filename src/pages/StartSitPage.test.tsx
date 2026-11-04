@@ -267,3 +267,82 @@ describe('StartSitPage boom probability (item 100)', () => {
     );
   });
 });
+
+describe('StartSitPage lineup overrides (item 120)', () => {
+  // One RB slot, three RBs at flat 20 / 10 / 2: the model starts rb1 and
+  // benches rb2, rb3, so lock and exclude each have a visible effect.
+  function overridesLeague(): League {
+    const mkTeam = (id: string, name: string, isMyTeam: boolean): Team =>
+      ({
+        id,
+        name,
+        isMyTeam,
+        roster: ['rb1', 'rb2', 'rb3'].map(k => ({
+          id: `${id}-${k}`,
+          platformId: `${id}-${k}`,
+          name: `${id}-${k}`,
+          position: 'RB',
+          team: 'XXX',
+        })),
+      }) as Team;
+    const pw: Record<string, Record<number, number>> = {
+      'W-rb1': weekly([20, 20, 20]),
+      'W-rb2': weekly([10, 10, 10]),
+      'W-rb3': weekly([2, 2, 2]),
+    };
+    return {
+      id: 'L',
+      name: 'Test League',
+      platform: 'yahoo',
+      season: 2026,
+      currentWeek: 9,
+      rosterSlots: {
+        QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, SUPERFLEX: 0,
+        K: 0, DST: 0, BENCH: 5, IR: 0,
+      },
+      teams: [mkTeam('W', 'Weaklings', true), mkTeam('S', 'Strongmen', false)],
+      playerWeeklyPoints: pw,
+      futureSchedule: [],
+    } as League;
+  }
+
+  const starters = () =>
+    screen.getByRole('table', { name: 'Optimal starters for Weaklings' });
+  const bench = () =>
+    screen.getByRole('table', { name: 'Bench for Weaklings' });
+
+  it('locks a benched player into the lineup and names the override', () => {
+    renderPage(overridesLeague());
+    expect(within(starters()).getByText('W-rb1')).toBeInTheDocument();
+    expect(within(bench()).getByText('W-rb3')).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Lock W-rb3 as starter' }),
+    );
+    expect(within(starters()).getByText('W-rb3')).toBeInTheDocument();
+    expect(within(bench()).getByText('W-rb1')).toBeInTheDocument();
+    expect(
+      screen.getByText(/W-rb3 locked as a starter/),
+    ).toBeInTheDocument();
+  });
+
+  it('sits a starter anyway and starts the next best', () => {
+    renderPage(overridesLeague());
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sit W-rb1 anyway' }),
+    );
+    expect(within(bench()).getByText('W-rb1')).toBeInTheDocument();
+    expect(within(starters()).getByText('W-rb2')).toBeInTheDocument();
+    expect(screen.getByText(/W-rb1 sat anyway/)).toBeInTheDocument();
+  });
+
+  it('clearing overrides restores the model lineup', () => {
+    renderPage(overridesLeague());
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Lock W-rb3 as starter' }),
+    );
+    expect(within(starters()).getByText('W-rb3')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear overrides' }));
+    expect(within(starters()).getByText('W-rb1')).toBeInTheDocument();
+    expect(within(bench()).getByText('W-rb3')).toBeInTheDocument();
+  });
+});

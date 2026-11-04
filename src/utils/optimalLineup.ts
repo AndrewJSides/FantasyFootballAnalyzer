@@ -11,6 +11,11 @@
 // Positions are normalized the same way as the rest of the app: DEF/D/ST all
 // mean DST, and a player whose position matches no slot is bench-only, never
 // forced into a slot it can't play.
+//
+// Backlog item 120 adds manager overrides (locked / excluded player ids):
+// locks claim slots before the greedy pass, exclusions never enter it.
+// Bye/injury benching stays the caller's job — the Start/Sit page filters
+// those players out before calling, so a lock can never resurrect them.
 
 import type { RosterSlots } from '@/types';
 
@@ -21,6 +26,16 @@ export interface OptimalLineupPlayer {
   /** Caller-supplied score the lineup is optimized on (ppg on the page). */
   score: number;
 }
+
+/** Backlog item 120 — manager overrides on the Start/Sit page. */
+export interface LineupOverrides {
+  /** Players forced into the lineup when an eligible slot is open. */
+  lockedIds?: ReadonlySet<string>;
+  /** Players kept out of the lineup entirely (wins over a lock). */
+  excludedIds?: ReadonlySet<string>;
+}
+
+const EMPTY_SET: ReadonlySet<string> = new Set<string>();
 
 export interface AssignedSlot {
   slot: string;
@@ -68,7 +83,9 @@ export function expandSlots(slots: RosterSlots): string[] {
 export function optimalLineup(
   players: OptimalLineupPlayer[],
   slots: RosterSlots,
+  overrides: LineupOverrides = {},
 ): OptimalLineup {
+  const { lockedIds = EMPTY_SET, excludedIds = EMPTY_SET } = overrides;
   const slotList = expandSlots(slots);
   // Highest score first; ties break by name so the result is deterministic.
   const pool = [...players].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
@@ -85,10 +102,39 @@ export function optimalLineup(
         slotEligiblePositions(a.slot).length - slotEligiblePositions(b.slot).length ||
         a.i - b.i,
     );
+  // Backlog item 120 — manager overrides. Exclusion wins over a lock on
+  // the same player (a veto beats a force). Locked players claim slots
+  // first, narrowest eligible open slot first, in score order, so a locked
+  // QB takes the QB slot rather than squatting in SUPERFLEX; a locked
+  // player with no open eligible slot stays on the bench (the page names
+  // him as unhonored). Excluded players never enter the greedy pass.
+  const open = new Set(order.map(o => o.i));
+  const locked = pool
+    .map((p, pi) => ({ p, pi }))
+    .filter(({ p }) => lockedIds.has(p.id) && !excludedIds.has(p.id))
+    .sort((a, b) => b.p.score - a.p.score || a.p.name.localeCompare(b.p.name));
+  for (const { p, pi } of locked) {
+    const pos = normalizeLineupPos(p.position);
+    const target = order
+      .filter(o => open.has(o.i) && slotEligiblePositions(o.slot).includes(pos))
+      .sort(
+        (a, b) =>
+          slotEligiblePositions(a.slot).length - slotEligiblePositions(b.slot).length ||
+          a.i - b.i,
+      )[0];
+    if (!target) continue;
+    open.delete(target.i);
+    used.add(pi);
+    assigned.set(String(target.i), p);
+  }
   for (const { slot, i } of order) {
+    if (!open.has(i)) continue;
     const eligible = slotEligiblePositions(slot);
     const idx = pool.findIndex(
-      (p, pi) => !used.has(pi) && eligible.includes(normalizeLineupPos(p.position)),
+      (p, pi) =>
+        !used.has(pi) &&
+        !excludedIds.has(p.id) &&
+        eligible.includes(normalizeLineupPos(p.position)),
     );
     if (idx === -1) {
       assigned.set(String(i), null);
@@ -97,6 +143,8 @@ export function optimalLineup(
     used.add(idx);
     assigned.set(String(i), pool[idx]);
   }
+  // Any slot the lock pass filled already has its assignment; every open
+  // slot got an assignment (or an explicit null) from the greedy pass.
   const starters: AssignedSlot[] = slotList.map((slot, i) => ({
     slot,
     player: assigned.get(String(i)) ?? null,

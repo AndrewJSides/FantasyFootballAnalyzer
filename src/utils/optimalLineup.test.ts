@@ -86,3 +86,71 @@ describe('optimalLineup', () => {
     expect(result.bench.map(b => b.name)).toEqual(['RB B', 'RB C']);
   });
 });
+
+describe('optimalLineup overrides (item 120)', () => {
+  const rbOnly: RosterSlots = {
+    ...SLOTS, QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, K: 0, DST: 0,
+  };
+
+  it('starts a locked low scorer over a higher scorer', () => {
+    const result = optimalLineup(
+      [p('1', 'RB A', 'RB', 15), p('2', 'RB B', 'RB', 12), p('3', 'RB C', 'RB', 9)],
+      rbOnly,
+      { lockedIds: new Set(['3']) },
+    );
+    expect(result.starters[0].player?.name).toBe('RB C');
+    expect(result.bench.map(b => b.name)).toEqual(['RB A', 'RB B']);
+    expect(result.totalScore).toBe(9);
+  });
+
+  it('benches an excluded star and starts the next best', () => {
+    const result = optimalLineup(
+      [p('1', 'RB A', 'RB', 15), p('2', 'RB B', 'RB', 12)],
+      rbOnly,
+      { excludedIds: new Set(['1']) },
+    );
+    expect(result.starters[0].player?.name).toBe('RB B');
+    expect(result.bench.map(b => b.name)).toEqual(['RB A']);
+  });
+
+  it('exclusion wins when a player is both locked and excluded', () => {
+    const result = optimalLineup(
+      [p('1', 'RB A', 'RB', 15), p('2', 'RB B', 'RB', 12)],
+      rbOnly,
+      { lockedIds: new Set(['1']), excludedIds: new Set(['1']) },
+    );
+    expect(result.starters[0].player?.name).toBe('RB B');
+  });
+
+  it('leaves a locked player benched when no eligible slot is open', () => {
+    const result = optimalLineup(
+      [p('1', 'RB A', 'RB', 15), p('2', 'WR A', 'WR', 14)],
+      rbOnly,
+      { lockedIds: new Set(['2']) },
+    );
+    expect(result.starters[0].player?.name).toBe('RB A');
+    expect(result.bench.map(b => b.name)).toEqual(['WR A']);
+  });
+
+  it('a locked QB takes the QB slot, not SUPERFLEX', () => {
+    const sf: RosterSlots = { ...SLOTS, SUPERFLEX: 1 };
+    const result = optimalLineup(
+      [
+        p('1', 'QB A', 'QB', 22),
+        p('2', 'QB B', 'QB', 18),
+        p('3', 'RB A', 'RB', 16),
+        p('4', 'RB B', 'RB', 13),
+        p('5', 'WR A', 'WR', 15),
+        p('6', 'WR B', 'WR', 12),
+        p('7', 'TE A', 'TE', 8),
+        p('8', 'RB C', 'RB', 11),
+        p('9', 'K A', 'K', 8),
+        p('10', 'DST A', 'DST', 7),
+      ],
+      sf,
+      { lockedIds: new Set(['2']) },
+    );
+    expect(result.starters.find(s => s.slot === 'QB')?.player?.name).toBe('QB B');
+    expect(result.starters.find(s => s.slot === 'SUPERFLEX')?.player?.name).toBe('QB A');
+  });
+});

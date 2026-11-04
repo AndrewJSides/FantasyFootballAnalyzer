@@ -241,6 +241,37 @@
   color: var(--bone);
 }
 
+/* Item 120 — override summary bar + per-row lock/exclude buttons. */
+.overrideBar {
+  padding: 0.9rem 1rem;
+  background: var(--ink);
+  border-left: 3px solid var(--lime);
+  color: var(--bone);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overrideButton {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: none;
+  border: 1px solid var(--bone-dim);
+  color: var(--bone-dim);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.overrideButton:hover,
+.overrideButton:focus-visible {
+  border-color: var(--bone);
+  color: var(--bone);
+}
+
 .retryButton {
   margin-top: 1rem;
   font-family: var(--font-mono);
