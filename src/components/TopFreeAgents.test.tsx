@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import { TopFreeAgents } from './TopFreeAgents';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import type { League, Team, Player, Transaction } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
@@ -11,6 +12,11 @@ vi.mock('@/api/sleeperWeeklyPoints', () => ({
   fetchWeeklyPprPoints: vi.fn(),
 }));
 const mockFetch = vi.mocked(fetchWeeklyPprPoints);
+
+vi.mock('@/api/sleeperWeeklyProjections', () => ({
+  fetchSleeperWeekProjections: vi.fn(),
+}));
+const mockSleeper = vi.mocked(fetchSleeperWeekProjections);
 
 function skill(id: string, name: string, pos: string, team: string): PoolPlayer {
   return {
@@ -71,6 +77,7 @@ describe('TopFreeAgents', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockFetch.mockResolvedValue(weeklyFor(['rb1', 'rb2', 'qb1'], 12));
+    mockSleeper.mockResolvedValue({});
   });
 
   it('shows unrostered players and hides rostered ones on the default RB tab', async () => {
@@ -165,6 +172,7 @@ describe('TopFreeAgents FAAB bid column', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockFetch.mockResolvedValue(weeklyFor(['rb1', 'rb2', 'qb1'], 12));
+    mockSleeper.mockResolvedValue({});
   });
 
   it('renders a Bid column with suggested ranges when the league recorded FAAB bids', async () => {
@@ -211,5 +219,51 @@ describe('TopFreeAgents FAAB bid column', () => {
     expect(
       within(section).queryByLabelText(/Pricing bids for/i),
     ).not.toBeInTheDocument();
+  });
+});
+
+// Sleeper projection column (backlog item 128): Sleeper's own week-N number
+// next to TraderApe's, with a dash where Sleeper published no line and a
+// table-unaffecting dash state when the fetch fails.
+describe('TopFreeAgents Sleeper projection column', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockFetch.mockResolvedValue(weeklyFor(['rb1', 'rb2', 'qb1'], 12));
+    mockSleeper.mockResolvedValue({ 'sid-rb1': 14.2 });
+  });
+
+  it('renders a Sleeper column with values where Sleeper published a line', async () => {
+    render(<TopFreeAgents league={makeLeague()} pool={pool} />);
+    const section = await screen.findByRole('region', { name: 'Top free agents' });
+    expect(within(section).getByRole('columnheader', { name: /Sleeper/ })).toBeInTheDocument();
+    const cell = within(section).getByRole('cell', {
+      name: 'Sleeper projection 14.2 for week 9',
+    });
+    expect(cell).toHaveTextContent('14.2');
+  });
+
+  it('shows a dash where Sleeper published no line for a player', async () => {
+    render(<TopFreeAgents league={makeLeague()} pool={pool} />);
+    const section = await screen.findByRole('region', { name: 'Top free agents' });
+    await within(section).findByText('Alpha Back');
+    expect(
+      within(section).getByRole('cell', {
+        name: 'No Sleeper projection for this player',
+      }),
+    ).toHaveTextContent('—');
+  });
+
+  it('leaves the table intact when the Sleeper fetch fails', async () => {
+    mockSleeper.mockRejectedValueOnce(new Error('boom'));
+    render(<TopFreeAgents league={makeLeague()} pool={pool} />);
+    const section = await screen.findByRole('region', { name: 'Top free agents' });
+    expect(await within(section).findByText('Alpha Back')).toBeInTheDocument();
+    expect(within(section).getByRole('columnheader', { name: /Sleeper/ })).toBeInTheDocument();
+    // Both free-agent rows dash — the failure never takes the table down.
+    const cells = within(section).getAllByRole('cell', {
+      name: 'Sleeper projection not loaded',
+    });
+    expect(cells).toHaveLength(2);
+    for (const cell of cells) expect(cell).toHaveTextContent('—');
   });
 });

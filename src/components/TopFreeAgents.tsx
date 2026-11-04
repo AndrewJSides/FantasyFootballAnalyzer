@@ -13,6 +13,7 @@ import {
   fetchWeeklyPprPoints,
   type WeeklyPprPoints,
 } from '@/api/sleeperWeeklyPoints';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { buildWeeklyRankings, type WeeklyRankRow } from '@/utils/weeklyRankings';
 import { topFreeAgents, TOP_FREE_AGENT_POSITIONS, type TopFreeAgentPosition } from '@/utils/topFreeAgents';
 import { faabNorms, suggestBid } from '@/utils/faabGuidance';
@@ -103,6 +104,44 @@ function ConsistencyCell({ row }: { row: WeeklyRankRow }) {
   );
 }
 
+// Item-128 Sleeper projection cell: Sleeper's own week-N projection next to
+// TraderApe's, so the waiver call can be checked against the market number.
+// A pending or failed fetch just leaves dashes — the board never waits on it.
+function SleeperCell({
+  player,
+  projections,
+  ready,
+  week,
+}: {
+  player: PoolPlayer;
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const sid = player.sleeperId;
+  const value = ready && sid ? projections?.[sid] : undefined;
+  if (value === undefined) {
+    return (
+      <td
+        className={`${styles.num} ${styles.dim}`}
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </td>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <td className={styles.num} title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </td>
+  );
+}
+
 export function TopFreeAgents({ league, pool = POOL }: TopFreeAgentsProps) {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [position, setPosition] = useState<TopFreeAgentPosition>('RB');
@@ -138,6 +177,29 @@ export function TopFreeAgents({ league, pool = POOL }: TopFreeAgentsProps) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Sleeper projection column (backlog item 128): one no-auth request
+  // shared across the position tabs; silent degrade to dashes on failure.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(league.season, week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the board still ranks on its own number.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, week]);
 
   const groups = useMemo(() => {
     if (state.kind !== 'ready') return null;
@@ -229,6 +291,9 @@ export function TopFreeAgents({ league, pool = POOL }: TopFreeAgentsProps) {
                       <abbr title={`TraderApe's projection for week ${week}`}>Wk {week} Proj</abbr>
                     </th>
                     <th scope="col" className={styles.num}>
+                      <abbr title={`Sleeper's projected fantasy points for week ${week}`}>Sleeper</abbr>
+                    </th>
+                    <th scope="col" className={styles.num}>
                       <abbr title="Points per game over completed weeks">PPG</abbr>
                     </th>
                     <th scope="col" className={styles.num}>
@@ -267,6 +332,12 @@ export function TopFreeAgents({ league, pool = POOL }: TopFreeAgentsProps) {
                           <NflTeamLabel team={r.player.team} />
                         </td>
                         <td className={styles.num}>{fmt(r.projection)}</td>
+                        <SleeperCell
+                          player={r.player}
+                          projections={sleeperProjections}
+                          ready={sleeperReady}
+                          week={week}
+                        />
                         <td className={styles.num}>{fmt(r.ppg)}</td>
                         <td className={styles.num}>{fmt(r.last3)}</td>
                         <MatchupCell row={r} week={week} />
@@ -295,7 +366,9 @@ export function TopFreeAgents({ league, pool = POOL }: TopFreeAgentsProps) {
           <p className={styles.footnote}>
             Ranked by TraderApe&apos;s own weekly projection (recency-weighted
             form + season baseline), priced on full-PPR
-            scoring.
+            scoring. The Sleeper column shows Sleeper&apos;s own week {week}{' '}
+            projection where published; a dash means no Sleeper line for
+            that player, and the ranking counts TraderApe rows only.
             {showBids && (
               <>
                 {' '}Suggested bids are priced on this league&apos;s FAAB
