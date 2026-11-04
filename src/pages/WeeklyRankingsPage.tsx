@@ -24,6 +24,7 @@ import {
 import { leagueOwnerMap } from '@/utils/rosRankings';
 import { injuryOf } from '@/utils/seasonOutlook';
 import { buildWeeklyRankings, type WeeklyRankRow } from '@/utils/weeklyRankings';
+import { ProjectionDisagreements } from '@/components/ProjectionDisagreements';
 import styles from './WeeklyRankingsPage.module.css';
 
 type PosFilter = 'ALL' | 'QB' | 'RB' | 'WR' | 'TE';
@@ -293,6 +294,10 @@ export function WeeklyRankingsPage({
               moves a roster.
             </p>
           </section>
+        )}
+
+        {weeklyState === 'ready' && (
+          <ProjectionDisagreements rows={rows} season={league.season} week={week} />
         )}
 
         {weeklyState === 'ready' && (
