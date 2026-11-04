@@ -10,6 +10,14 @@ import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
 import { gameKickoff } from '@/utils/gameTimes';
 import { lateSwapAlerts } from '@/utils/lateSwap';
 import { WeatherWatch } from '@/components/WeatherWatch';
+import { buildGameVenues, fetchKickoffWeather } from '@/utils/weatherWatch';
+import {
+  weatherRiskByTeam,
+  weatherRiskLabel,
+  WEATHER_RISK_POSITIONS,
+  type WeatherRisk,
+} from '@/utils/weatherRisk';
+import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
 import { round1, scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import {
@@ -247,6 +255,30 @@ export function StartSitPage({ league }: StartSitPageProps) {
       cancelled = true;
     };
   }, [isGuest, league.season, currentWeek]);
+
+  // --- Weather-risk tags (backlog items 137/138 remainders) ----------------
+  // The Weekly Rankings board's sole-back and weather-risk tags come to
+  // the lineup tables, where the start/sit call is actually made. Same
+  // non-blocking discipline as the board: a failed forecast fetch just
+  // leaves the tags off. The ranked projection is deliberately NOT
+  // changed — both terms stay display-only until a graded week measures
+  // them (the model's priced-term discipline).
+  const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
+  useEffect(() => {
+    if (currentWeek == null) return;
+    let cancelled = false;
+    const venues = buildGameVenues(currentWeek);
+    fetchKickoffWeather(venues)
+      .then(w => {
+        if (!cancelled) setWeatherRisk(weatherRiskByTeam(venues, w));
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherRisk(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentWeek]);
 
   // --- Score the active roster ----------------------------------------------
   const roster: Player[] = useMemo(
@@ -766,6 +798,62 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // designations resolve from the bundled pool (refreshed twice daily),
   // same as the Rankings injury tags.
   const poolIndex = useMemo(() => indexPool(POOL), []);
+  // Sole-back map for the roster: the same Sleeper weekly series the
+  // component maps already fetch (guest: the guest fetch; league: the
+  // component fetch), joined onto scored players through the pool index
+  // so Yahoo/ESPN platform ids resolve like everywhere else on the page.
+  const soleBack = useMemo(() => {
+    if (currentWeek == null) return new Map<string, SoleBackInfo>();
+    const weekly = isGuest ? guestWeekly : leagueComponents;
+    return soleBackMap(POOL, weekly ?? undefined, currentWeek);
+  }, [isGuest, guestWeekly, leagueComponents, currentWeek]);
+  const soleByScoredId = useMemo(() => {
+    const m = new Map<string, SoleBackInfo>();
+    for (const s of scored) {
+      const poolPlayer = resolvePoolPlayer(s.player, poolIndex);
+      const info = poolPlayer ? soleBack.get(poolPlayer.id) : undefined;
+      if (info) m.set(s.id, info);
+    }
+    return m;
+  }, [scored, soleBack, poolIndex]);
+  // Display-only tags under the player name in both optimizer tables:
+  // a lime "Sole back" upside flag for RBs whose backfield mate is ruled
+  // out, an amber "Weather risk" flag for passing-game players in a
+  // windy or wet outdoor game. Neither changes the projection.
+  const rowTags = (s: ScoredPlayer): ReactNode => {
+    const sole = soleByScoredId.get(s.id);
+    const soleLabel = sole
+      ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10`
+      : null;
+    const risk =
+      WEATHER_RISK_POSITIONS.has(s.position) && weatherRisk
+        ? weatherRisk.get(s.nflTeam) ?? null
+        : null;
+    const riskLabel = risk ? weatherRiskLabel(risk) : null;
+    if (!sole && !risk) return null;
+    return (
+      <>
+        {sole && soleLabel && (
+          <span
+            className={styles.soleBackTag}
+            title={soleLabel}
+            aria-label={soleLabel}
+          >
+            Sole back +{sole.upside.toFixed(1)}
+          </span>
+        )}
+        {risk && riskLabel && (
+          <span
+            className={styles.weatherTag}
+            title={riskLabel}
+            aria-label={riskLabel}
+          >
+            Weather risk
+          </span>
+        )}
+      </>
+    );
+  };
   const kickoffChip = (s: ScoredPlayer): ReactNode => {
     const k = gameKickoff(s.nflTeam, currentWeek);
     return k ? (
@@ -1137,6 +1225,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           <>
                             {s.name} <PosBadge pos={s.position} />{' '}
                             <NflTeamLabel team={s.nflTeam} />
+                            {rowTags(s)}
                           </>
                         ) : (
                           <span className={styles.emptySlot}>Empty — no eligible player</span>
@@ -1232,6 +1321,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                         <td>
                           {s.name} <PosBadge pos={s.position} />{' '}
                           <NflTeamLabel team={s.nflTeam} />
+                          {rowTags(s)}
                         </td>
                         <td>{s.projection?.projection ?? '—'}</td>
                         <td>{sleeperCell(s)}</td>
@@ -1320,6 +1410,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
               Safe &amp; risky ranks the optimal starters on the same data:
               steady history plus a kind matchup is safe, volatile history
               plus a tough matchup is risky.
+              Sole back tags flag an RB whose backfield mate is ruled out
+              (estimated upside from vacated usage, not folded into the
+              projection); Weather risk tags flag passing-game players in
+              a windy or wet outdoor game — both mirror the Weekly
+              Rankings board.
               {mode !== 'balanced'
                 ? ` ${mode === 'ceiling' ? 'Chase ceiling' : 'Protect floor'} re-ranks the lineup on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} — each player\u2019s projection ${mode === 'ceiling' ? 'plus' : 'minus'} 0.6745 \u00d7 their own week-to-week volatility.`
                 : ''}

@@ -4,10 +4,11 @@
 // the weak team lands at 0.0% win probability and the strong team at
 // 100.0%, both deterministic under the 10,000-sim Monte Carlo.
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Player, Team, WeeklyLineup, WeeklyMatchup } from '@/types';
+import { venueKey, type GameVenue, type WeatherAtKickoff } from '@/utils/weatherWatch';
 import { StartSitPage } from './StartSitPage';
 
 // Item 67: the weak team's QB is listed Out, so the optimizer must bench him
@@ -27,9 +28,60 @@ vi.mock('@/data/draftPool', () => ({
         injuryStatus: 'Out',
         injuryBodyPart: 'Ankle',
       },
+      // Sole-back pair for the items 137/138 tag tests below: the lead
+      // and his ruled-out mate share team TEN; ids/names are disjoint
+      // from every other fixture so the shared mock changes nothing else.
+      {
+        id: 'sole-lead',
+        name: 'Sole Lead',
+        pos: 'RB',
+        team: 'TEN',
+        sleeperId: '9101',
+      },
+      {
+        id: 'sole-mate',
+        name: 'Sole Mate',
+        pos: 'RB',
+        team: 'TEN',
+        sleeperId: '9102',
+        injuryStatus: 'Out',
+        injuryBodyPart: 'Knee',
+      },
     ],
   },
 }));
+
+// Items 137/138 tag tests control the two async feeds the tags join on:
+// the Sleeper weekly series (sole-back usage) and the kickoff forecast
+// (weather risk). Defaults preserve today's behavior for the other
+// suites — a null weekly series (no component maps) and a throwing
+// forecast fetch (tags off, Weather Watch hidden).
+const h = vi.hoisted(() => ({
+  weekly: vi.fn(async () => null),
+  weather: vi.fn(async () => {
+    throw new Error('no forecast in tests');
+  }),
+}));
+vi.mock('@/api/sleeperWeeklyPoints', async importOriginal => {
+  const mod = await importOriginal<typeof import('@/api/sleeperWeeklyPoints')>();
+  return { ...mod, fetchWeeklyPprPoints: h.weekly };
+});
+vi.mock('@/utils/weatherWatch', async importOriginal => {
+  const mod = await importOriginal<typeof import('@/utils/weatherWatch')>();
+  return {
+    ...mod,
+    buildGameVenues: () => [
+      {
+        home: 'TB',
+        away: 'DAL',
+        kickoffIso: '2026-11-08T18:00:00Z',
+        venue: { name: 'Test Field', city: 'Testville', lat: 27, lon: -82, roof: 'open' },
+        neutralSite: false,
+      },
+    ],
+    fetchKickoffWeather: h.weather,
+  };
+});
 
 // 'XXX' is not a real NFL team, so no matchup blend fires and projections
 // equal the flat weekly averages — deterministic for the assertions.
@@ -344,5 +396,93 @@ describe('StartSitPage lineup overrides (item 120)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear overrides' }));
     expect(within(starters()).getByText('W-rb1')).toBeInTheDocument();
     expect(within(bench()).getByText('W-rb3')).toBeInTheDocument();
+  });
+});
+
+describe('StartSitPage sole-back + weather-risk tags (items 137/138 remainders)', () => {
+  beforeEach(() => {
+    h.weekly.mockImplementation(async () => null);
+    h.weather.mockImplementation(async () => {
+      throw new Error('no forecast in tests');
+    });
+  });
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function tagLeague(): League {
+    const roster: Player[] = [
+      { id: 't-lead', platformId: '9101', name: 'Sole Lead', position: 'RB', team: 'TEN' },
+      { id: 't-rb2', platformId: 't-rb2', name: 't-rb2', position: 'RB', team: 'TB' },
+      { id: 't-qb', platformId: 't-qb', name: 'T Qb', position: 'QB', team: 'TB' },
+      { id: 't-wr', platformId: 't-wr', name: 't-wr', position: 'WR', team: 'XXX' },
+      { id: 't-te', platformId: 't-te', name: 't-te', position: 'TE', team: 'XXX' },
+    ] as Player[];
+    return {
+      id: 'L',
+      name: 'Test League',
+      platform: 'yahoo',
+      season: 2026,
+      currentWeek: 9,
+      rosterSlots: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, K: 1, DST: 1, BENCH: 6 },
+      teams: [{ id: 'T', name: 'Testers', isMyTeam: true, roster } as Team],
+      playerWeeklyPoints: {
+        '9101': { 1: 15, 2: 15, 3: 15 },
+        't-rb2': { 1: 5, 2: 5, 3: 5 },
+        't-qb': { 1: 20, 2: 20, 3: 20 },
+        't-wr': { 1: 8, 2: 8, 3: 8 },
+        't-te': { 1: 6, 2: 6, 3: 6 },
+      },
+      futureSchedule: [],
+    } as League;
+  }
+
+  it('tags the sole back with the vacated-usage upside', async () => {
+    // Lead: 45 pts on 60 opps = 0.75 pts/opp; mate's recent 12 opps/game
+    // vacated → +9.0, under the +10 cap.
+    h.weekly.mockResolvedValue({
+      season: 2026,
+      weeks: [1, 2, 3],
+      pointsBySleeperId: {
+        '9101': { 1: 15, 2: 15, 3: 15 },
+        '9102': { 1: 8, 2: 8, 3: 8 },
+      },
+      gamesBySleeperId: { '9101': [1, 2, 3], '9102': [1, 2, 3] },
+      tdPtsBySleeperId: {},
+      usageBySleeperId: {
+        '9101': { 1: 20, 2: 20, 3: 20 },
+        '9102': { 1: 12, 2: 12, 3: 12 },
+      },
+    });
+    renderPage(tagLeague());
+    expect(await screen.findByText('Sole back +9.0')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Sole back: Sole Mate ruled out/),
+    ).toBeInTheDocument();
+  });
+
+  it('tags the passing-game player in a windy, wet game but not the RB', async () => {
+    h.weather.mockImplementation(async (venues: GameVenue[]) =>
+      new Map<string, WeatherAtKickoff>(
+        venues.map(v => [
+          venueKey(v),
+          {
+            tempF: 60,
+            precipProb: 90,
+            windMph: 20,
+            gustsMph: 30,
+            observedAt: '2026-11-08T18:00:00Z',
+          },
+        ]),
+      ),
+    );
+    renderPage(tagLeague());
+    expect(
+      await screen.findByLabelText(/Weather risk: wind 20 mph/),
+    ).toBeInTheDocument();
+    // Exactly one tag on the page: the TB quarterback's. The TB running
+    // back plays the same game and carries no tag — wet weather favors
+    // the run.
+    expect(screen.queryAllByLabelText(/Weather risk:/)).toHaveLength(1);
   });
 });
