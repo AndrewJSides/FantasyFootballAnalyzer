@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
+import { POOL_SEASON } from '@/data/draftPoolMeta';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { PosBadge } from '@/components/PosBadge';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
@@ -484,6 +486,33 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // loaded, else the estimate from the completed-weeks range in the bundled
   // matchup data (manual mode / shared links).
   const week = league?.currentWeek ?? currentWeekEstimate();
+  // The season the Sleeper projection fetch prices against: the league's
+  // season when loaded, else the bundled pool's season (manual mode).
+  const season = league?.season ?? POOL_SEASON;
+
+  // Sleeper projection values (backlog item 129): one no-auth request
+  // shared across both verdict breakdowns; silent degrade to dashes on
+  // failure, exactly like the Top Free Agents board's item-128 column.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(season, week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the verdict still grades on VOR.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [season, week]);
 
   const [teamAId, setTeamAId] = useState('');
   const [teamBId, setTeamBId] = useState('');
@@ -1122,6 +1151,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               week={week}
               fixes={fixes}
               onApplyFix={applyFix}
+              sleeperProjections={sleeperProjections}
+              sleeperReady={sleeperReady}
             />
           )}
         </div>
@@ -1160,12 +1191,16 @@ function Results({
   week,
   fixes,
   onApplyFix,
+  sleeperProjections,
+  sleeperReady,
 }: {
   result: FullTradeAnalysis;
   leagueLoaded: boolean;
   week: number;
   fixes: FairnessFix[];
   onApplyFix: (fix: FairnessFix) => void;
+  sleeperProjections: Record<string, number> | undefined;
+  sleeperReady: boolean;
 }) {
   const teamAName = result.teamAImpact?.teamName ?? '';
   const teamBName = result.teamBImpact?.teamName ?? '';
@@ -1239,8 +1274,8 @@ function Results({
       )}
 
       <div className={styles.breakdowns}>
-        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} week={week} />
-        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} week={week} />
+        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
+        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
       </div>
 
       {(result.teamAImpact || result.teamBImpact) && (
@@ -1271,9 +1306,51 @@ function Results({
         {' '}The matchup chip on each player is the week-{week} opponent's
         points allowed vs his position, from completed weeks{' '}
         {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]} — the same rating the
-        Start/Sit page shows.
+        Start/Sit page shows. The Sleeper value beside each VOR is
+        Sleeper's own week-{week} projection where published; a dash means
+        no Sleeper line for that player, and the verdict counts VOR rows
+        only.
       </p>
     </section>
+  );
+}
+
+// Item-129 Sleeper projection value: Sleeper's own week-N projection next
+// to TraderApe's VOR, so the verdict can be checked against the market
+// number. A pending or failed fetch just leaves dashes — the breakdown
+// never waits on it, and the verdict counts VOR rows only.
+function SleeperValue({
+  player,
+  projections,
+  ready,
+  week,
+}: {
+  player: FullTradeAnalysis['sideA'][number]['player'];
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const sid = player.sleeperId;
+  const value = ready && sid ? projections?.[String(sid)] : undefined;
+  if (value === undefined) {
+    return (
+      <span
+        className={styles.sleeper}
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </span>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <span className={styles.sleeper} title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </span>
   );
 }
 
@@ -1281,10 +1358,14 @@ function PlayerBreakdown({
   title,
   players,
   week,
+  sleeperProjections,
+  sleeperReady,
 }: {
   title: string;
   players: FullTradeAnalysis['sideA'];
   week: number;
+  sleeperProjections: Record<string, number> | undefined;
+  sleeperReady: boolean;
 }) {
   if (players.length === 0) {
     return (
@@ -1307,6 +1388,12 @@ function PlayerBreakdown({
             <span className={styles.pTeam}>{player.team}</span>
             <MatchupChip team={player.team} pos={player.pos} week={week} />
             <span className={styles.vor}>{vor.toFixed(1)}</span>
+            <SleeperValue
+              player={player}
+              projections={sleeperProjections}
+              ready={sleeperReady}
+              week={week}
+            />
           </li>
         ))}
       </ul>

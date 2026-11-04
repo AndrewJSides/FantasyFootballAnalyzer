@@ -517,6 +517,12 @@
   font-weight: 700;
 }
 
+/* Item-129 Sleeper value beside the VOR: the market number, dim so the
+   verdict's own value keeps the emphasis. */
+.sleeper {
+  color: var(--bone-dim);
+}
+
 .emptySide {
   font-family: var(--font-mono);
   font-size: 0.8rem;
