@@ -178,6 +178,80 @@ describe('buildWeeklyRankings', () => {
     expect(rows[0].consistency).toBeNull();
   });
 
+  it('excludes players ruled Out this week even with the best projection', () => {
+    const pool = {
+      players: [
+        player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' }),
+        player({
+          id: 'b',
+          name: 'Beta',
+          sleeperId: 's-b',
+          pos: 'RB',
+          injuryStatus: 'Out',
+          injuryBodyPart: 'Knee',
+        }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    // Beta outscores Alpha every completed week, but a ruled-out player
+    // scores 0 — he must not rank on the frozen projection.
+    const wk = weekly(
+      {
+        's-a': { 1: 8, 2: 8, 3: 8, 4: 8 },
+        's-b': { 1: 20, 2: 20, 3: 20, 4: 20 },
+      },
+      { 's-a': [1, 2, 3, 4], 's-b': [1, 2, 3, 4] },
+    );
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    expect(rows.map(r => r.player.id)).toEqual(['a']);
+  });
+
+  it('keeps Questionable players: no invented discount without a practice feed', () => {
+    const pool = {
+      players: [
+        player({
+          id: 'a',
+          name: 'Alpha',
+          sleeperId: 's-a',
+          pos: 'RB',
+          injuryStatus: 'Questionable',
+          injuryBodyPart: 'Hamstring',
+        }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly({ 's-a': { 1: 8, 2: 8, 3: 8, 4: 8 } }, { 's-a': [1, 2, 3, 4] });
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    expect(rows.map(r => r.player.id)).toEqual(['a']);
+    expect(rows[0].projection).toBeCloseTo(8, 0);
+  });
+
+  it('excludes IR players ruled out this week', () => {
+    const pool = {
+      players: [
+        player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' }),
+        player({
+          id: 'b',
+          name: 'Beta',
+          sleeperId: 's-b',
+          pos: 'RB',
+          injuryStatus: 'IR',
+          injuryBodyPart: 'Knee - ACL',
+        }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly(
+      {
+        's-a': { 1: 8, 2: 8, 3: 8, 4: 8 },
+        's-b': { 1: 20, 2: 20, 3: 20, 4: 20 },
+      },
+      { 's-a': [1, 2, 3, 4], 's-b': [1, 2, 3, 4] },
+    );
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    expect(rows.map(r => r.player.id)).toEqual(['a']);
+  });
+
   it('excludes the in-progress week from the consistency verdict', () => {
     const pool = {
       players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' })],

@@ -360,7 +360,9 @@ export function WeeklyRankingsPage({
               over weeks {dataStart}–{dataEnd}. Consistency reuses the
               Player Journey boom/bust engine (P25 floor / P75 ceiling, TraderApe&apos;s
               own per-position bars). Players on bye this week are
-              excluded. Top 40 per position. The Sleeper column shows
+              excluded, as are players the injury report rules out this
+              week — a ruled-out player&apos;s expected score is 0, not his
+              frozen projection. Top 40 per position. The Sleeper column shows
               Sleeper&apos;s own week {week} projection for the same player —
               the market read next to TraderApe&apos;s number; a dash means
               Sleeper published no line. Trade research only — nothing here

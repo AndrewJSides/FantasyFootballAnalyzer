@@ -6,10 +6,18 @@
 // term) — the browsable board version of the same model the Start/Sit
 // Compare page, and Matchup view price one player at a time. Players on
 // bye in the current week are excluded (there is nothing to project).
+// Item-136: players the bundled injury report rules out this week (Out, IR,
+// PUP, NFI, suspension, COVID, or a season-ending IR description) are
+// excluded on the same discipline — a frozen full projection for a player
+// who will score 0 is worse than no line. The pool refreshes twice daily,
+// so a Saturday downgrade reaches the board on the next deploy. Questionable
+// and Doubtful players are NOT discounted: no practice-participation feed
+// exists to price them, and an invented discount would be a guess.
 // Players with no completed-week data land behind every projected player,
 // ordered by season points per game and then pool rank, so deep
 // projections never outrank a real one.
 import type { WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
+import { injuryOf } from '@/utils/seasonOutlook';
 import {
   getMatchupRating,
   leagueAvgAllowed,
@@ -121,7 +129,13 @@ export function buildWeeklyRankings({
   const rows: WeeklyRankRow[] = [];
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
     const ranked = pool.players
-      .filter(p => p.pos === pos && p.bye !== currentWeek)
+      .filter(p => {
+        if (p.pos !== pos || p.bye === currentWeek) return false;
+        // Item-136: ruled out this week — same predicate the board's
+        // injury tag uses, so a tagged player can never also rank.
+        const info = injuryOf(p);
+        return !(info?.outNow || info?.seasonEnding);
+      })
       .map(p => rowFor(p, weekly, currentWeek))
       .sort(
         (a, b) =>
