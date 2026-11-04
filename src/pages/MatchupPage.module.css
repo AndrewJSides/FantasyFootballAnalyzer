@@ -258,3 +258,35 @@
   background: var(--lime);
   color: #0b0b0b;
 }
+
+/* Item 139: sole-back + weather-risk tags on the game-plan table, same
+   chip language as the Weekly Rankings board and Start/Sit tables — lime
+   for the vacancy upside, amber for the passing-game downgrade.
+   Display-only; neither changes the projection. */
+.soleBackTag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lime);
+  border: 1px solid var(--lime);
+  padding: 0.1rem 0.4rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.weatherTag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f5b942;
+  border: 1px solid #f5b942;
+  padding: 0.1rem 0.4rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}

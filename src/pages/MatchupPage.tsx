@@ -29,6 +29,16 @@ import { fetchWeekPprStats, fetchWeeklyPprPoints, type WeekPprStats, type Weekly
 import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { sleeperLineupTotal, type SleeperLineupTotal } from '@/utils/sleeperTeamTotals';
 import { mapRosterToSleeperIds, mapSleeperComponentsToRosterKeys, type RosterComponentMaps } from '@/utils/leagueComponents';
+import { POOL } from '@/data/draftPool';
+import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
+import { buildGameVenues, fetchKickoffWeather } from '@/utils/weatherWatch';
+import {
+  weatherRiskByTeam,
+  weatherRiskLabel,
+  WEATHER_RISK_POSITIONS,
+  type WeatherRisk,
+} from '@/utils/weatherRisk';
+import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
 import type { ScoredPlayer } from '@/utils/rosterScoring';
 import { liveForPreview, type LiveMatchup, type LiveTeamScore } from '@/utils/liveMatchup';
 import styles from './MatchupPage.module.css';
@@ -232,7 +242,7 @@ function SwapCall({ flag, impact }: { flag: SwapFlag; impact?: SwapImpact }) {
   );
 }
 
-function MatchupDetail({ league, preview, componentMaps }: { league: League; preview: MatchupPreview; componentMaps?: RosterComponentMaps }) {
+function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { league: League; preview: MatchupPreview; componentMaps?: RosterComponentMaps; leagueWeekly?: WeeklyPprPoints | null }) {
   const location = useLocation();
   const teamById = useMemo(() => new Map(league.teams.map(t => [t.id, t])), [league.teams]);
   const aName = teamById.get(preview.teamAId)?.name ?? '?';
@@ -316,6 +326,78 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
       >
         {value.toFixed(1)}
       </span>
+    );
+  };
+
+  // --- Sole-back + weather-risk tags (backlog item 139) ------------------
+  // The Weekly Rankings board's and Start/Sit tables' display-only tags
+  // come to the game-plan lineup, the third place a weekly lineup call is
+  // made. Same non-blocking discipline: a failed forecast fetch just
+  // leaves the tags off, and the ranked projection is deliberately NOT
+  // changed — both terms stay display-only until a graded week measures
+  // them (the model's priced-term discipline). The sole-back map joins
+  // the same Sleeper weekly series the parent already fetches for the
+  // component maps; league points stay authoritative.
+  const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    const venues = buildGameVenues(preview.week);
+    fetchKickoffWeather(venues)
+      .then(w => {
+        if (!cancelled) setWeatherRisk(weatherRiskByTeam(venues, w));
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherRisk(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [preview.week]);
+  const poolIndex = useMemo(() => indexPool(POOL), []);
+  const soleBack = useMemo(
+    () => soleBackMap(POOL, leagueWeekly ?? undefined, preview.week),
+    [leagueWeekly, preview.week],
+  );
+  // Display-only tags under the player name in the game-plan table: a
+  // lime "Sole back" upside flag for RBs whose backfield mate is ruled
+  // out, an amber "Weather risk" flag for passing-game players in a
+  // windy or wet outdoor game. Neither changes the projection.
+  const rowTags = (s: ScoredPlayer | null): ReactNode => {
+    if (!s) return null;
+    const poolPlayer = resolvePoolPlayer(s.player, poolIndex);
+    const sole: SoleBackInfo | undefined = poolPlayer
+      ? soleBack.get(poolPlayer.id)
+      : undefined;
+    const soleLabel = sole
+      ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10`
+      : null;
+    const risk =
+      WEATHER_RISK_POSITIONS.has(s.position) && weatherRisk
+        ? weatherRisk.get(s.nflTeam) ?? null
+        : null;
+    const riskLabel = risk ? weatherRiskLabel(risk) : null;
+    if (!sole && !risk) return null;
+    return (
+      <>
+        {sole && soleLabel && (
+          <span
+            className={styles.soleBackTag}
+            title={soleLabel}
+            aria-label={soleLabel}
+          >
+            Sole back +{sole.upside.toFixed(1)}
+          </span>
+        )}
+        {risk && riskLabel && (
+          <span
+            className={styles.weatherTag}
+            title={riskLabel}
+            aria-label={riskLabel}
+          >
+            Weather risk
+          </span>
+        )}
+      </>
     );
   };
 
@@ -692,7 +774,7 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
                 {plan.slots.map((s, i) => (
                   <tr key={`${s.slot}-${i}`}>
                     <td className={styles.slotCell}>{s.slot}</td>
-                    <td>{s.player ? s.player.name : <span aria-label="empty slot">—</span>}</td>
+                    <td>{s.player ? <>{s.player.name}{rowTags(s.player)}</> : <span aria-label="empty slot">—</span>}</td>
                     <td>{s.player ? s.player.score.toFixed(1) : '—'}</td>
                     <td>{sleeperCell(s.player)}</td>
                   </tr>
@@ -813,7 +895,7 @@ export default function MatchupPage({ league }: MatchupPageProps) {
               );
             })}
           </div>
-          {preview && <MatchupDetail key={`${preview.week}-${preview.teamAId}-${preview.teamBId}`} league={league} preview={preview} componentMaps={componentMaps} />}
+          {preview && <MatchupDetail key={`${preview.week}-${preview.teamAId}-${preview.teamBId}`} league={league} preview={preview} componentMaps={componentMaps} leagueWeekly={leagueComponents} />}
         </>
       )}
 
@@ -853,7 +935,12 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         Sleeper projected score line sums the same week-N projections over
         each side&apos;s optimal starters (a dash where Sleeper published no
         line for a side&apos;s starters, partial coverage named in the hover
-        label); it carries no weight in the win probability.
+        label); it carries no weight in the win probability. The game-plan
+        lineup also carries the Weekly Rankings / Start/Sit display-only
+        tags: &quot;Sole back&quot; flags an RB whose backfield mate is ruled
+        out (estimated upside from the vacated usage), &quot;Weather
+        risk&quot; flags passing-game players in a windy or wet outdoor
+        game; neither changes any projection.
       </p>
     </div>
   );
