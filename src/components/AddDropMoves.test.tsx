@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AddDropMoves } from './AddDropMoves';
 import { addDropSuggestions } from '@/utils/addDropSuggest';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import type { League, Team } from '@/types';
 
 vi.mock('@/utils/addDropSuggest', () => ({
@@ -12,6 +13,11 @@ vi.mock('@/utils/addDropSuggest', () => ({
   MAX_SUGGESTIONS: 3,
 }));
 const mockSuggest = vi.mocked(addDropSuggestions);
+
+vi.mock('@/api/sleeperWeeklyProjections', () => ({
+  fetchSleeperWeekProjections: vi.fn(),
+}));
+const mockSleeper = vi.mocked(fetchSleeperWeekProjections);
 
 function rosterPlayer(id: string, pos: string) {
   return { id, platformId: id, name: id, position: pos, team: 'FA' };
@@ -31,6 +37,8 @@ function leagueOf(teams: Team[]): League {
     id: 'test',
     name: 'Test League',
     platform: 'sleeper',
+    season: 2026,
+    currentWeek: 9,
     totalTeams: 10,
     rosterSlots: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 },
     scoringType: 'ppr',
@@ -39,8 +47,20 @@ function leagueOf(teams: Team[]): League {
 }
 
 const moveFor = (addName: string, dropName: string) => ({
-  add: { id: `add-${addName}`, name: addName, pos: 'QB', team: 'DAL' },
-  drop: { id: `drop-${dropName}`, name: dropName, pos: 'QB', team: 'FA' },
+  add: {
+    id: `add-${addName}`,
+    name: addName,
+    pos: 'QB',
+    team: 'DAL',
+    sleeperId: `s-add-${addName}`,
+  },
+  drop: {
+    id: `drop-${dropName}`,
+    name: dropName,
+    pos: 'QB',
+    team: 'FA',
+    sleeperId: `s-drop-${dropName}`,
+  },
   addVor: 30,
   dropVor: 20,
   gain: 10,
@@ -49,6 +69,7 @@ const moveFor = (addName: string, dropName: string) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockSleeper.mockResolvedValue({});
 });
 
 describe('AddDropMoves', () => {
@@ -93,5 +114,44 @@ describe('AddDropMoves', () => {
     mockSuggest.mockReturnValue([]);
     render(<AddDropMoves league={leagueOf([me])} />);
     expect(screen.getByText(/Nothing on the waiver wire beats/)).toBeInTheDocument();
+  });
+
+  it('shows Sleeper week-N projections for the add and the drop', async () => {
+    const me = mkTeam('t1', 'My Team', { mine: true });
+    mockSuggest.mockReturnValue([moveFor('Hot QB', 'Bench QB')]);
+    mockSleeper.mockResolvedValue({
+      's-add-Hot QB': 14.2,
+      's-drop-Bench QB': 9.8,
+    });
+    render(<AddDropMoves league={leagueOf([me])} />);
+    expect(
+      await screen.findByLabelText(
+        /Sleeper week 9 projections: add Hot QB 14\.2, drop Bench QB 9\.8/,
+      ),
+    ).toHaveTextContent('14.2 / 9.8');
+    expect(mockSleeper).toHaveBeenCalledWith(2026, 9);
+  });
+
+  it('shows a dash where Sleeper published no line', async () => {
+    const me = mkTeam('t1', 'My Team', { mine: true });
+    mockSuggest.mockReturnValue([moveFor('Hot QB', 'Bench QB')]);
+    mockSleeper.mockResolvedValue({ 's-add-Hot QB': 14.2 });
+    render(<AddDropMoves league={leagueOf([me])} />);
+    expect(
+      await screen.findByLabelText(
+        /Sleeper week 9 projections: add Hot QB 14\.2, drop Bench QB —/,
+      ),
+    ).toHaveTextContent('14.2 / —');
+  });
+
+  it('leaves the moves intact when the Sleeper fetch fails', async () => {
+    const me = mkTeam('t1', 'My Team', { mine: true });
+    mockSuggest.mockReturnValue([moveFor('Hot QB', 'Bench QB')]);
+    mockSleeper.mockRejectedValue(new Error('boom'));
+    render(<AddDropMoves league={leagueOf([me])} />);
+    expect(screen.getByText('Hot QB')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sleeper projection not loaded')).toHaveTextContent(
+      '— / —',
+    );
   });
 });

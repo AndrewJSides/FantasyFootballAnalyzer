@@ -88,6 +88,17 @@
   white-space: nowrap;
 }
 
+.sleeper {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--bone);
+  white-space: nowrap;
+}
+
+.dim {
+  color: var(--bone-dim);
+}
+
 .reasons {
   list-style: none;
   padding: 0;

@@ -1,11 +1,51 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { League } from '@/types';
 import { POOL } from '@/data/draftPool';
 import { teamProfiles } from '@/utils/tradeFinder';
-import { addDropSuggestions, MAX_SUGGESTIONS } from '@/utils/addDropSuggest';
+import {
+  addDropSuggestions,
+  MAX_SUGGESTIONS,
+  type AddDropMove,
+} from '@/utils/addDropSuggest';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { currentWeekEstimate } from '@/utils/matchupRating';
 import { PosBadge } from './PosBadge';
 import { NflTeamLabel } from './NflTeamLabel';
 import styles from './AddDropMoves.module.css';
+
+// Item-133 Sleeper projection cell: Sleeper's own week-N projection for
+// the add and for the drop next to TraderApe's Net VOR, so the swap can
+// be checked against the market number. A pending or failed fetch just
+// leaves dashes — the table never waits on it.
+function SleeperCell({
+  move,
+  projections,
+  ready,
+  week,
+}: {
+  move: AddDropMove;
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const addVal =
+    ready && move.add.sleeperId ? projections?.[move.add.sleeperId] : undefined;
+  const dropVal =
+    ready && move.drop.sleeperId ? projections?.[move.drop.sleeperId] : undefined;
+  const fmt = (v: number | undefined) => (v === undefined ? '—' : v.toFixed(1));
+  const label = ready
+    ? `Sleeper week ${week} projections: add ${move.add.name} ${fmt(addVal)}, drop ${move.drop.name} ${fmt(dropVal)}`
+    : 'Sleeper projection not loaded';
+  return (
+    <td
+      className={`${styles.sleeper} ${addVal === undefined && dropVal === undefined ? styles.dim : ''}`}
+      title={label}
+      aria-label={label}
+    >
+      {fmt(addVal)} / {fmt(dropVal)}
+    </td>
+  );
+}
 
 interface AddDropMovesProps {
   league: League;
@@ -27,6 +67,31 @@ export function AddDropMoves({ league }: AddDropMovesProps) {
     const profile = profiles.find(p => p.team.id === team.id);
     return addDropSuggestions(league, team, profile, POOL, MAX_SUGGESTIONS);
   }, [league, team, profiles]);
+
+  const week = league.currentWeek ?? currentWeekEstimate();
+
+  // Sleeper projection column (backlog item 133): one no-auth request
+  // shared across the move rows; silent degrade to dashes on failure.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(league.season, week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the moves still rank on their own number.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, week]);
 
   const hasRoster = (team?.roster?.length ?? 0) > 0;
 
@@ -69,6 +134,7 @@ export function AddDropMoves({ league }: AddDropMovesProps) {
                 <th scope="col">Add</th>
                 <th scope="col">Drop</th>
                 <th scope="col">Net VOR</th>
+                <th scope="col">Sleeper</th>
                 <th scope="col">Why</th>
               </tr>
             </thead>
@@ -95,6 +161,12 @@ export function AddDropMoves({ league }: AddDropMovesProps) {
                   >
                     +{move.gain}
                   </td>
+                  <SleeperCell
+                    move={move}
+                    projections={sleeperProjections}
+                    ready={sleeperReady}
+                    week={week}
+                  />
                   <td>
                     <ul
                       className={styles.reasons}
@@ -122,7 +194,10 @@ export function AddDropMoves({ league }: AddDropMovesProps) {
         bench player below projected starter demand (a FLEX slot counts as
         one more starter for RB/WR/TE), and values are VOR from the
         bundled full-PPR projections against this league&rsquo;s
-        replacement levels.
+        replacement levels. The Sleeper column shows Sleeper&rsquo;s own
+        week {week} projection for the add and the drop where published;
+        a dash means Sleeper published no line or the projection
+        hasn&rsquo;t loaded.
       </p>
     </section>
   );
