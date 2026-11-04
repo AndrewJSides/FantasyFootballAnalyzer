@@ -25,6 +25,7 @@ import {
 } from '@/utils/matchupRating';
 import { consistencySummary, type ConsistencySummary } from '@/utils/consistency';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
+import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
 export const WEEKLY_RANKS_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
@@ -42,6 +43,10 @@ export interface WeeklyRankRow {
   consistency: ConsistencySummary | null;
   /** League mode: owning fantasy team name; null when on waivers. Absent in guest mode. */
   owner: string | null;
+  /** Item-137 sole-back vacancy: null unless a ruled-out same-team RB mate
+   * vacates real rotation usage this week. Display-only — the ranked
+   * projection does not fold it in. */
+  soleBack: SoleBackInfo | null;
   /** 1-based rank within his position, priced on the same context. */
   posRank: number;
 }
@@ -110,6 +115,9 @@ function rowFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, currentWeek:
       p.pos,
     ),
     owner: null,
+    // The vacancy map attaches the real value at push time (rowFor has
+    // no view of the pool's other players).
+    soleBack: null,
     sortScore: projection ?? ppg ?? -1,
     sortGroup: projection === null ? 1 : 0,
   };
@@ -127,6 +135,7 @@ export function buildWeeklyRankings({
   perPosition = 40,
 }: BuildWeeklyRankingsInput): WeeklyRankRow[] {
   const rows: WeeklyRankRow[] = [];
+  const soleBack = soleBackMap(pool, weekly, currentWeek);
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
     const ranked = pool.players
       .filter(p => {
@@ -155,6 +164,7 @@ export function buildWeeklyRankings({
         matchup: r.matchup,
         consistency: r.consistency,
         owner: ownerByPoolId?.get(r.player.id) ?? null,
+        soleBack: soleBack.get(r.player.id) ?? null,
         posRank: i + 1,
       });
     });

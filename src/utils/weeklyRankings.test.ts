@@ -252,6 +252,39 @@ describe('buildWeeklyRankings', () => {
     expect(rows.map(r => r.player.id)).toEqual(['a']);
   });
 
+  it('attaches sole-back info when a same-team RB mate is ruled out (item 137)', () => {
+    const pool = {
+      players: [
+        player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB', team: 'TEN' }),
+        player({
+          id: 'b',
+          name: 'Beta',
+          sleeperId: 's-b',
+          pos: 'RB',
+          team: 'TEN',
+          injuryStatus: 'Out',
+        }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = {
+      ...weekly(
+        { 's-a': { 1: 8, 2: 16, 3: 8, 4: 16 }, 's-b': { 1: 5, 2: 5, 3: 5, 4: 5 } },
+        { 's-a': [1, 2, 3, 4], 's-b': [1, 2, 3, 4] },
+      ),
+      usageBySleeperId: {
+        's-a': { 1: 10, 2: 20, 3: 10, 4: 20 },
+        's-b': { 1: 6, 2: 6, 3: 6, 4: 6 },
+      },
+    } as WeeklyPprPoints;
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    // Ruled-out Beta is excluded; Alpha carries the vacancy, and the
+    // ranked projection is untouched by it.
+    expect(rows.map(r => r.player.id)).toEqual(['a']);
+    expect(rows[0].soleBack).toEqual({ mates: ['Beta'], upside: 4.8 });
+    expect(rows[0].projection).toBeGreaterThan(0);
+  });
+
   it('excludes the in-progress week from the consistency verdict', () => {
     const pool = {
       players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' })],
