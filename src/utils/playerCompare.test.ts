@@ -139,6 +139,38 @@ describe('comparePlayers', () => {
     expect(r.verdict).toContain('Josh Allen');
   });
 
+  // Item-136 remainder: a ruled-out player prices at 0 for the week, not
+  // his frozen full projection (the A.J. Brown week-8 miss class).
+  it('zeroes a ruled-out player week projection and names it in the verdict', () => {
+    const weekly = weeklyFor([
+      ['allen-sid', [[1, 25], [2, 28], [3, 22], [4, 30]]],
+      ['daniels-sid', [[1, 15], [2, 18], [3, 12], [4, 20]]],
+    ]);
+    const hurt = { ...allen(), injuryStatus: 'Out', injuryBodyPart: 'Knee' };
+    const r = comparePlayers(hurt, daniels(), weekly, ctxFor());
+    expect(r.metricsA.ruledOut).toBe(true);
+    expect(r.metricsA.projection).toBe(0);
+    expect(r.metricsA.boomPct).toBe(0);
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('projection')!.a).toBe('0.0 pts (ruled out)');
+    expect(byKey.get('projection')!.winner).toBe('B');
+    expect(r.verdict).toContain('Josh Allen is ruled out this week');
+    // Season numbers are untouched — only the week projection zeroes.
+    expect(r.metricsA.ppg).toBe(26.3);
+  });
+
+  it('keeps a Questionable player at his full projection (no invented discount)', () => {
+    const weekly = weeklyFor([
+      ['allen-sid', [[1, 25], [2, 28], [3, 22], [4, 30]]],
+      ['daniels-sid', [[1, 15], [2, 18], [3, 12], [4, 20]]],
+    ]);
+    const q = { ...allen(), injuryStatus: 'Questionable', injuryBodyPart: 'Knee' };
+    const r = comparePlayers(q, daniels(), weekly, ctxFor());
+    expect(r.metricsA.ruledOut).toBe(false);
+    expect(r.metricsA.projection).toBeGreaterThan(0);
+    expect(r.verdict).not.toContain('ruled out');
+  });
+
   it('reports matchup text when the schedule covers the week', () => {
     const weekly = weeklyFor([
       ['allen-sid', [[1, 20], [2, 20], [3, 20], [4, 20]]],

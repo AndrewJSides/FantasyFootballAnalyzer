@@ -19,7 +19,7 @@ import {
   type MatchupRating,
 } from '@/utils/matchupRating';
 import { vorPoints, type ValueLeague, type VorConfig } from '@/utils/projectionValues';
-import { seasonOutlooks } from '@/utils/seasonOutlook';
+import { injuryOf, seasonOutlooks } from '@/utils/seasonOutlook';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
 
 export type CompareWinner = 'A' | 'B' | 'tie';
@@ -42,6 +42,11 @@ export interface CompareMetrics {
   ppg: number | null;
   last3: number | null;
   projection: number | null;
+  /** Item-136 remainder: true when the bundled injury report rules this
+   * player out this week (Out, IR, PUP, NFI, suspension, COVID, or a
+   * season-ending IR description) — his week projection is then 0, not
+   * the frozen full projection, because he will score 0. */
+  ruledOut: boolean;
   matchup: MatchupRating | null;
   matchupText: string | null;
   /** Projected points for the remaining weeks (ROS outlook). */
@@ -112,9 +117,17 @@ function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: Com
     matchup !== null && leagueAvg !== null
       ? { avgAllowed: matchup.avgAllowed, leagueAverage: leagueAvg }
       : null;
-  const projection =
-    projectWeeklyPoints(entries, gpCompleted.length > 0 ? gpCompleted.length : null, matchupContext)
-      ?.projection ?? null;
+  // Item-136 remainder: same predicate as the Weekly Rankings exclusion,
+  // so a ruled-out player can never also show a full week projection here
+  // (the A.J. Brown week-8 miss class). Questionable/Doubtful players are
+  // deliberately NOT discounted — no practice-participation feed exists
+  // to price them, and an invented discount would be a guess.
+  const info = injuryOf(p);
+  const ruledOut = Boolean(info?.outNow || info?.seasonEnding);
+  const projection = ruledOut
+    ? 0
+    : (projectWeeklyPoints(entries, gpCompleted.length > 0 ? gpCompleted.length : null, matchupContext)
+        ?.projection ?? null);
 
   // Consistency + boom chance price on the same completed-week series the
   // projection uses. Volatility is the population std dev of completed
@@ -140,8 +153,11 @@ function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: Com
     ppg,
     last3,
     projection: projection === null ? null : round1(projection),
+    ruledOut,
+    // A ruled-out player cannot boom: his week score is 0, whatever the
+    // volatility of his completed weeks says.
+    boomPct: ruledOut ? 0 : boomProb === null ? null : round1(boomProb * 100),
     consistency,
-    boomPct: boomProb === null ? null : round1(boomProb * 100),
     matchup,
     matchupText: matchup ? matchupShort(matchup) : null,
     // ROS + VOR are filled in by comparePlayers (they need shared maps).
@@ -260,9 +276,11 @@ const consistencyText = (m: CompareMetrics): string | null =>
 const pctText = (pct: number | null): string | null => (pct === null ? null : `${round1(pct)}%`);
 
 function buildRows(a: CompareMetrics, b: CompareMetrics, currentWeek: number): CompareRow[] {
+  const projText = (m: CompareMetrics): string | null =>
+    m.ruledOut ? '0.0 pts (ruled out)' : fmtPts(m.projection);
   return [
     row('projection', `Week ${currentWeek} projection`, a.projection, b.projection,
-      fmtPts(a.projection), fmtPts(b.projection), ' pts'),
+      projText(a), projText(b), ' pts'),
     row('matchup', `Week ${currentWeek} matchup`, a.matchup ? matchupScore(a.matchup) : null,
       b.matchup ? matchupScore(b.matchup) : null, a.matchupText, b.matchupText, ''),
     row('ppg', 'Points per game', a.ppg, b.ppg, fmtPts(a.ppg), fmtPts(b.ppg), ' pts'),
@@ -289,11 +307,19 @@ function buildVerdict(
 ): string {
   const nameA = a.player.name;
   const nameB = b.player.name;
+  // Item-136 remainder: name the zeroing so a lopsided verdict against a
+  // ruled-out player reads as an injury call, not a talent call.
+  const ruledOutNote =
+    a.ruledOut && !b.ruledOut
+      ? ` ${nameA} is ruled out this week, so the week projection is 0.`
+      : !a.ruledOut && b.ruledOut
+        ? ` ${nameB} is ruled out this week, so the week projection is 0.`
+        : '';
   if (winsA === 0 && winsB === 0) {
-    return `No usable data to separate ${nameA} and ${nameB} — pick players with weekly stats.`;
+    return `No usable data to separate ${nameA} and ${nameB} — pick players with weekly stats.${ruledOutNote}`;
   }
   if (winsA === winsB) {
-    return `${nameA} and ${nameB} split the comparison ${winsA}–${winsB}; pick on roster need, not a clear edge.`;
+    return `${nameA} and ${nameB} split the comparison ${winsA}–${winsB}; pick on roster need, not a clear edge.${ruledOutNote}`;
   }
   const [leader, laggard] = winsA > winsB ? [nameA, nameB] : [nameB, nameA];
   // Name the biggest numeric edge for the leading side.
@@ -303,7 +329,7 @@ function buildVerdict(
     if (!biggest || marginOf(r) > marginOf(biggest)) biggest = r;
   }
   const edge = biggest ? `, biggest edge ${biggest.label.toLowerCase()} (${biggest.margin})` : '';
-  return `${leader} takes the comparison ${winsA}–${winsB} over ${laggard}${edge}.`;
+  return `${leader} takes the comparison ${winsA}–${winsB} over ${laggard}${edge}.${ruledOutNote}`;
 }
 
 function marginOf(r: CompareRow): number {

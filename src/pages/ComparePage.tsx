@@ -335,7 +335,12 @@ export function ComparePage({ league }: { league: League }) {
             </div>
             <p className={styles.footnote}>
               Week {week} projections come from TraderApe's model (recency-weighted
-              form, regression to baseline). Matchup ratings are
+              form, regression to baseline). A player the bundled injury report
+              rules out this week (Out, IR, PUP, NFI, suspension, COVID, or
+              season-ending IR) shows a 0.0-pt TraderApe week projection — a
+              frozen full projection for a player who will score 0 is worse
+              than no line; the Sleeper row beside it stays Sleeper's own
+              published number. Matchup ratings are
               priced on the opponent's fantasy points allowed per position over
               weeks {dataStart}–{dataEnd}; the rest-of-season outlook blends the
               player's pace with his season projection. The Sleeper row is
