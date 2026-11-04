@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { TrendingAdds } from './TrendingAdds';
 import { fetchTrendingAdds } from '@/api/sleeperTrending';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import type { League, Team } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
@@ -13,6 +14,11 @@ vi.mock('@/api/sleeperTrending', () => ({
   fetchTrendingAdds: vi.fn(),
 }));
 const mockFetch = vi.mocked(fetchTrendingAdds);
+
+vi.mock('@/api/sleeperWeeklyProjections', () => ({
+  fetchSleeperWeekProjections: vi.fn(),
+}));
+const mockProjections = vi.mocked(fetchSleeperWeekProjections);
 
 function player(overrides: Partial<PoolPlayer> & { id: string; name: string }): PoolPlayer {
   return {
@@ -55,6 +61,7 @@ beforeEach(() => {
     { playerId: 'sid-hot', count: 1200 },
     { playerId: 'sid-owned', count: 900 },
   ]);
+  mockProjections.mockResolvedValue({ 'sid-hot': 14.2 });
 });
 
 describe('TrendingAdds', () => {
@@ -65,6 +72,34 @@ describe('TrendingAdds', () => {
     expect(screen.getByText('1,200')).toBeInTheDocument();
     expect(screen.queryByText('Owned Receiver')).not.toBeInTheDocument();
     expect(screen.getByRole('table')).toHaveAccessibleName();
+  });
+
+  it('renders the Sleeper week projection for a trending row', async () => {
+    render(<TrendingAdds league={leagueWith(['owned'])} pool={pool} />);
+    await waitFor(() => expect(screen.getByText('Hot Receiver')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText(/Sleeper projection 14.2 for week/),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it('shows a dash where Sleeper published no line for the player', async () => {
+    mockProjections.mockResolvedValue({});
+    render(<TrendingAdds league={leagueWith(['owned'])} pool={pool} />);
+    await waitFor(() => expect(screen.getByText('Hot Receiver')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('No Sleeper projection for this player'),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it('leaves the trending table intact when the Sleeper fetch fails', async () => {
+    mockProjections.mockRejectedValueOnce(new Error('Sleeper projections: HTTP 500'));
+    render(<TrendingAdds league={leagueWith(['owned'])} pool={pool} />);
+    await waitFor(() => expect(screen.getByText('Hot Receiver')).toBeInTheDocument());
+    expect(screen.getByText('1,200')).toBeInTheDocument();
   });
 
   it('renders an all-rostered note when nothing trending is available', async () => {
