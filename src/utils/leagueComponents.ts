@@ -31,6 +31,26 @@ export interface RosterComponentMaps {
   weeklyUsage: Record<string, Record<number, number>>;
 }
 
+/**
+ * Backlog item 123 — roster key (platformId ?? id) -> Sleeper id, via the
+ * same pool join as the component maps. Unlike the component maps this is
+ * not restricted to skill positions: Sleeper publishes weekly projections
+ * for kickers and defenses too, so a K/DST row gets its market number when
+ * the pool resolves it. Players with no pool match (or no Sleeper id) are
+ * simply absent — the caller renders a dash, never a guess.
+ */
+export function mapRosterToSleeperIds(roster: Player[]): Map<string, string> {
+  const poolIndex = indexPool(POOL);
+  const out = new Map<string, string>();
+  for (const rosterPlayer of roster) {
+    const poolPlayer = resolvePoolPlayer(rosterPlayer, poolIndex);
+    const sleeperId = poolPlayer?.sleeperId;
+    if (!sleeperId) continue;
+    out.set(rosterPlayer.platformId ?? rosterPlayer.id, String(sleeperId));
+  }
+  return out;
+}
+
 /** Skill positions only: K/DST carry no TD/usage series worth pricing. */
 const COMPONENT_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 

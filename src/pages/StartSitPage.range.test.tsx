@@ -51,10 +51,10 @@ function rangeCell(playerId: string): string {
     .getAllByRole('row')
     .find(r => (r.textContent ?? '').includes(playerId));
   expect(row).toBeDefined();
-  // Cells after the row header: Player, Proj., Range, Pts/game, Last 3,
-  // Matchup, Kickoff, Why they start.
+  // Cells after the row header: Player, Proj., Sleeper, Range, Pts/game,
+  // Last 3, Matchup, Kickoff, Why they start.
   const cells = within(row!).getAllByRole('cell');
-  return cells[2].textContent ?? '';
+  return cells[3].textContent ?? '';
 }
 
 describe('StartSitPage projected range column', () => {

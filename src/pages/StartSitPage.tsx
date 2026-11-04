@@ -11,7 +11,11 @@ import { gameKickoff } from '@/utils/gameTimes';
 import { lateSwapAlerts } from '@/utils/lateSwap';
 import { WeatherWatch } from '@/components/WeatherWatch';
 import { round1, scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
-import { mapSleeperComponentsToRosterKeys } from '@/utils/leagueComponents';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import {
+  mapRosterToSleeperIds,
+  mapSleeperComponentsToRosterKeys,
+} from '@/utils/leagueComponents';
 import {
   LINEUP_MODES,
   modeScore,
@@ -273,6 +277,73 @@ export function StartSitPage({ league }: StartSitPageProps) {
         : null,
     [isGuest, leagueComponents, roster],
   );
+
+  // --- Sleeper projection column (backlog item 123) -----------------------
+  // Sleeper's own week-N projection next to TraderApe's on both optimizer
+  // tables, so the start/sit call can be checked against the market number
+  // where the decision is made. One no-auth request shared by both tables;
+  // the tables never wait on it — a pending or failed fetch just leaves
+  // dashes, exactly like the Weekly Rankings column (item 122). League rows
+  // resolve to Sleeper ids through the same pool join as the component
+  // maps above; guest rows already carry Sleeper ids as platform ids.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    if (currentWeek == null) return;
+    let cancelled = false;
+    fetchSleeperWeekProjections(league.season, currentWeek)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the optimizer still ranks on its own number.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, currentWeek]);
+  const sleeperIdByKey = useMemo(() => {
+    if (isGuest) {
+      const m = new Map<string, string>();
+      for (const p of roster) {
+        if (p.platformId) m.set(p.platformId ?? p.id, p.platformId);
+      }
+      return m;
+    }
+    return mapRosterToSleeperIds(roster);
+  }, [isGuest, roster]);
+  const sleeperCell = (s: ScoredPlayer | null): ReactNode => {
+    if (!s) return '—';
+    const sid = sleeperIdByKey.get(s.player.platformId ?? s.player.id);
+    const value =
+      sleeperReady && sid ? sleeperProjections?.[sid] : undefined;
+    if (value === undefined) {
+      return (
+        <span
+          aria-label={
+            sleeperReady
+              ? 'No Sleeper projection for this player'
+              : 'Sleeper projection not loaded'
+          }
+        >
+          —
+        </span>
+      );
+    }
+    return (
+      <span
+        title={`Sleeper's projected fantasy points for week ${currentWeek}`}
+        aria-label={`Sleeper projection ${value.toFixed(1)}`}
+      >
+        {value.toFixed(1)}
+      </span>
+    );
+  };
 
   // Projected range (backlog item 62): each starter's P25–P75 weekly band
   // from their own played weeks (the consistency engine's percentiles), so
@@ -1041,6 +1112,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                   <th scope="col">Slot</th>
                   <th scope="col">Player</th>
                   <th scope="col">Proj.</th>
+                  <th scope="col">Sleeper</th>
                   <th scope="col">Range</th>
                   <th scope="col">Boom %</th>
                   <th scope="col">Pts/game</th>
@@ -1071,6 +1143,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                         )}
                       </td>
                       <td>{s?.projection?.projection ?? '—'}</td>
+                      <td>{sleeperCell(s)}</td>
                       <td>
                         {range ? (
                           <span title={range.title ?? undefined}>{range.label}</span>
@@ -1144,6 +1217,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                     <tr>
                       <th scope="col">Player</th>
                       <th scope="col">Proj.</th>
+                      <th scope="col">Sleeper</th>
                       <th scope="col">Pts/game</th>
                       <th scope="col">Last 3</th>
                       <th scope="col">Matchup</th>
@@ -1160,6 +1234,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
                           <NflTeamLabel team={s.nflTeam} />
                         </td>
                         <td>{s.projection?.projection ?? '—'}</td>
+                        <td>{sleeperCell(s)}</td>
                         <td>{s.ppg ?? '—'}</td>
                         <td>{s.last3 ?? '—'}</td>
                         <td>
@@ -1260,7 +1335,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
               checklist consolidates the page&apos;s actionable pieces —
               game-time decisions, kickoff lock order, benched Out starters,
               and no-cover holes with waiver fillers — into one check-off
-              list; checked items persist for the week.
+              list; checked items persist for the week. Sleeper is
+              Sleeper&apos;s own week {currentWeek} projection beside
+              TraderApe&apos;s — a dash means Sleeper published no line
+              for the player (or the load failed); the optimizer still
+              ranks on TraderApe&apos;s number.
             </p>
 
             {lineupPlan.length > 1 && (

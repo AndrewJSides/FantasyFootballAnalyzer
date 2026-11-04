@@ -22,7 +22,10 @@ vi.mock('@/data/draftPool', () => ({
   },
 }));
 
-import { mapSleeperComponentsToRosterKeys } from './leagueComponents';
+import {
+  mapRosterToSleeperIds,
+  mapSleeperComponentsToRosterKeys,
+} from './leagueComponents';
 import { scoreRosterPlayers } from './rosterScoring';
 
 function mkPlayer(platformId: string, name: string, pos: string): Player {
@@ -115,5 +118,28 @@ describe('joined maps price the model terms', () => {
     });
     expect(scored.projection?.tdAdjustment).toBe(0);
     expect(scored.projection?.usageAdjustment).toBe(0);
+  });
+});
+
+describe('mapRosterToSleeperIds (item 123)', () => {
+  it('maps every resolvable roster key to its Sleeper id, including K/DST', () => {
+    const ids = mapRosterToSleeperIds(ROSTER);
+    expect(ids.get('yahoo-999')).toBe('2001');
+    expect(ids.get('2002')).toBe('2002');
+    expect(ids.get('2003')).toBe('2003');
+    expect(ids.get('2004')).toBe('2004');
+    expect(ids.get('2005')).toBe('2005');
+    expect(ids.has('nobody-1')).toBe(false);
+    expect(ids.size).toBe(5);
+  });
+
+  it('falls back to the roster id when platformId is absent', () => {
+    const noPlatform = {
+      id: '2002',
+      name: 'Pool Runner',
+      position: 'RB',
+      team: 'XXX',
+    } as Player;
+    expect(mapRosterToSleeperIds([noPlatform]).get('2002')).toBe('2002');
   });
 });
