@@ -177,3 +177,40 @@ describe('Player Journey matchup calendar', () => {
     expect(screen.queryByText('Matchup Calendar')).toBeNull();
   });
 });
+
+// Rest-of-season rank stat card (backlog item 127): the ROS engine's rank
+// for the viewed player, in the pane's Stats Summary.
+describe('Player Journey rest-of-season rank', () => {
+  it('shows the ROS rank card for a player who resolves in the pool', () => {
+    renderPage(
+      league([player({ name: 'Jahmyr Gibbs', team: 'DET' })], WEEK),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Jahmyr Gibbs's journey/i }),
+    );
+    const label = screen.getByText('Rest-of-season rank');
+    const card = label.closest('div') as HTMLElement;
+    // Value is a position rank like "RB4", with the projection window in
+    // the hover text / accessible name.
+    expect(within(card).getByText(/^RB\d+$/)).toBeTruthy();
+    expect(
+      within(card).getByLabelText(/Projected .* points from week \d+ through week 17, ranked \d+ among RBs/),
+    ).toBeTruthy();
+  });
+
+  it('hides the card for a player who does not resolve in the pool', () => {
+    renderPage(league([player({})], WEEK));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
+    );
+    expect(screen.queryByText('Rest-of-season rank')).toBeNull();
+  });
+
+  it('hides the card for kickers', () => {
+    renderPage(league([player({ position: 'K', team: 'GB' })], WEEK));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
+    );
+    expect(screen.queryByText('Rest-of-season rank')).toBeNull();
+  });
+});

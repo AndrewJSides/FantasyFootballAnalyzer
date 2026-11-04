@@ -17,6 +17,14 @@ import {
 } from '@/utils/matchupRating';
 import { AWARD_ICONS } from '@/utils/awardIcons';
 import { consistencySummary } from '@/utils/consistency';
+import { POOL } from '@/data/draftPool';
+import { WEEKLY_SHAPE } from '@/data/weeklyShape';
+import { buildRosRankings } from '@/utils/rosRankings';
+import {
+  findPlayerRosRow,
+  rosRankDetail,
+  rosRankLabel,
+} from '@/utils/playerRosRank';
 import styles from './PlayerJourneyPage.module.css';
 
 interface PlayerJourneyPageProps {
@@ -258,6 +266,40 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
       : matchupRating.label === 'tough'
         ? styles.muTough
         : styles.muNeutral;
+
+  // Rest-of-season rank (backlog item 127): the same ROS engine rows the
+  // ROS Rankings page renders, memoized once per league (the full-position
+  // cap keeps deep players resolvable) and joined to the viewed player by
+  // normalized name + position. Hides for K/DST and unresolvable players.
+  const rosRows = useMemo(() => {
+    const live = league.status === 'live' && league.currentWeek != null;
+    const picks = live ? league.teams.flatMap(t => t.draftPicks ?? []) : [];
+    return buildRosRankings({
+      pool: POOL,
+      shape: POOL.season === WEEKLY_SHAPE.season ? WEEKLY_SHAPE : undefined,
+      scoring: league.scoringType,
+      slots: league.rosterSlots,
+      teamCount: league.totalTeams || 10,
+      currentWeek: live ? (league.currentWeek as number) : currentWeekEstimate(),
+      season: POOL.season,
+      passTdPoints: league.passTdPoints,
+      tePremiumPerReception: league.tePremiumPerReception,
+      gamesPlayed:
+        live && league.gamesPlayed && league.gamesPlayed.season === league.season
+          ? league.gamesPlayed
+          : undefined,
+      platform: league.platform,
+      picks,
+      maxPerPosition: 1000,
+    });
+  }, [league, matchupWeek]);
+  const rosRow = selectedPlayer
+    ? findPlayerRosRow(rosRows, {
+        name: selectedPlayer.player.name,
+        position: selectedPlayer.player.position,
+        team: selectedPlayer.player.team,
+      })
+    : null;
 
   // Season matchup calendar (backlog item 31): every remaining week with
   // that week's opponent and the same favorable/tough/neutral rating as the
@@ -563,6 +605,23 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                     </span>
                     <span className={styles.statLabel}>Season Pts</span>
                   </div>
+                  {/* Rest-of-season rank (backlog item 127): the ROS
+                      engine's rank + projected remaining points for this
+                      player, so the "what's left" question is answered in
+                      the pane itself. Hides for K/DST and unresolvable
+                      players. */}
+                  {rosRow && (
+                    <div className={styles.statCard}>
+                      <span
+                        className={styles.statValue}
+                        title={rosRankDetail(rosRow, matchupWeek)}
+                        aria-label={rosRankDetail(rosRow, matchupWeek)}
+                      >
+                        {rosRankLabel(rosRow)}
+                      </span>
+                      <span className={styles.statLabel}>Rest-of-season rank</span>
+                    </div>
+                  )}
                   {/* Weekly matchup chip: same favorable/tough/neutral rating
                       as the other pages, priced on the league's current week. */}
                   <div className={styles.statCard}>
