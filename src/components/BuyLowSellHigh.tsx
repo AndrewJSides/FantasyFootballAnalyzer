@@ -3,6 +3,7 @@
 // 3 weeks, with remaining-schedule softness/toughness as the kicker and
 // the owning league team named where there is one. Guidance only —
 // nothing here moves rosters.
+import type { ReactNode } from 'react';
 import type { MarketTarget } from '@/utils/buyLowSellHigh';
 import { PosBadge } from './PosBadge';
 import { NflTeamLabel } from './NflTeamLabel';
@@ -14,6 +15,10 @@ interface BuyLowSellHighProps {
   sellHigh: MarketTarget[];
   /** League mode shows the owning team; guest mode has no rosters. */
   showRosteredBy: boolean;
+  /** Sleeper's own week-N projections, shared from the page's item-130 fetch. */
+  sleeperProjections?: Record<string, number>;
+  /** True once the projections fetch resolved; false while pending/failed. */
+  sleeperReady?: boolean;
 }
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
@@ -38,16 +43,52 @@ function rosClass(t: MarketTarget): string {
       : styles.muNeutral;
 }
 
+function sleeperCell(
+  t: MarketTarget,
+  week: number,
+  projections?: Record<string, number>,
+  ready?: boolean,
+): ReactNode {
+  const sid = t.player.sleeperId;
+  const value = ready && sid ? projections?.[String(sid)] : undefined;
+  if (value === undefined) {
+    return (
+      <td
+        className={styles.dim}
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </td>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <td className={styles.nums} title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </td>
+  );
+}
+
 function TargetTable({
   targets,
   kind,
   showRosteredBy,
   emptyText,
+  week,
+  sleeperProjections,
+  sleeperReady,
 }: {
   targets: MarketTarget[];
   kind: 'buy' | 'sell';
   showRosteredBy: boolean;
   emptyText: string;
+  week: number;
+  sleeperProjections?: Record<string, number>;
+  sleeperReady?: boolean;
 }) {
   if (targets.length === 0) {
     return <p className={styles.empty}>{emptyText}</p>;
@@ -63,6 +104,7 @@ function TargetTable({
           <th scope="col">Player</th>
           <th scope="col">Last-3</th>
           <th scope="col">Proj.</th>
+          <th scope="col">Sleeper</th>
           <th scope="col">Gap</th>
           <th scope="col">ROS sched</th>
           {showRosteredBy && <th scope="col">Rostered by</th>}
@@ -84,6 +126,7 @@ function TargetTable({
             </td>
             <td className={styles.nums}>{t.last3}</td>
             <td className={styles.nums}>{t.projection}</td>
+            {sleeperCell(t, week, sleeperProjections, sleeperReady)}
             <td
               className={`${styles.nums} ${kind === 'buy' ? styles.gapBuy : styles.gapSell}`}
             >
@@ -105,6 +148,8 @@ export function BuyLowSellHigh({
   buyLow,
   sellHigh,
   showRosteredBy,
+  sleeperProjections,
+  sleeperReady,
 }: BuyLowSellHighProps) {
   return (
     <section className={styles.panel} aria-label="Buy Low Sell High targets">
@@ -126,6 +171,9 @@ export function BuyLowSellHigh({
         kind="buy"
         showRosteredBy={showRosteredBy}
         emptyText="No buy-low candidates right now — no startable asset is running 3+ under projection."
+        week={week}
+        sleeperProjections={sleeperProjections}
+        sleeperReady={sleeperReady}
       />
       <h3 className={styles.sideHeading}>
         <span className={styles.sell}>Sell high</span> — overperforming their
@@ -136,12 +184,18 @@ export function BuyLowSellHigh({
         kind="sell"
         showRosteredBy={showRosteredBy}
         emptyText="No sell-high candidates right now — no startable asset is running 3+ over projection."
+        week={week}
+        sleeperProjections={sleeperProjections}
+        sleeperReady={sleeperReady}
       />
       <p className={styles.footnote}>
         Method: TraderApe weekly projection (recency-weighted form blended
         with the season baseline, matchup-neutral) vs last-3 actuals; only
         assets with VOR ≥ 1 and 2+ recent stat lines. ROS sched is the
         remaining opponents&apos; allowed-vs-position rank (lower = softer).
+        The Sleeper column is Sleeper&apos;s own week-{week} projection
+        where published; a dash means no Sleeper line for that player, and
+        the buy/sell flags count TraderApe rows only.
       </p>
     </section>
   );

@@ -7,13 +7,14 @@ import { BuyLowSellHigh } from './BuyLowSellHigh';
 import type { MarketTarget } from '@/utils/buyLowSellHigh';
 import type { PoolPlayer } from '@/types/draft';
 
-function target(overrides: Partial<MarketTarget> & { id: string; name: string }): MarketTarget {
+function target(overrides: Partial<MarketTarget> & { id: string; name: string; sleeperId?: string }): MarketTarget {
   return {
     player: {
       id: overrides.id,
       name: overrides.name,
       pos: 'WR',
       team: 'DAL',
+      ...(overrides.sleeperId ? { sleeperId: overrides.sleeperId } : {}),
     } as PoolPlayer,
     rosteredBy: null,
     last3: 10,
@@ -72,5 +73,41 @@ describe('BuyLowSellHigh', () => {
     const row = within(screen.getByText('ROS Receiver').closest('tr')!);
     expect(row.getByText(/Soft \(8.4\)/)).toBeInTheDocument();
     expect(screen.getByText(/matchup-neutral/i)).toBeInTheDocument();
+  });
+
+  it('shows Sleeper values in both tables and a dash for a missing line', () => {
+    const buySleeper = target({ id: 'wr-cold', name: 'Cold Receiver', sleeperId: '111' });
+    const sellNoLine = target({
+      id: 'wr-hot',
+      name: 'Hot Receiver',
+      gap: -4.5,
+      reasons: ['Averaging 24, 4.5 over his forward projection — peak sell window.'],
+    });
+    render(
+      <BuyLowSellHigh
+        week={9}
+        buyLow={[buySleeper]}
+        sellHigh={[sellNoLine]}
+        showRosteredBy
+        sleeperProjections={{ '111': 15.7 }}
+        sleeperReady
+      />,
+    );
+    const buyRow = within(screen.getByText('Cold Receiver').closest('tr')!);
+    expect(buyRow.getByLabelText('Sleeper projection 15.7 for week 9')).toHaveTextContent('15.7');
+    const sellRow = within(screen.getByText('Hot Receiver').closest('tr')!);
+    expect(sellRow.getByLabelText('No Sleeper projection for this player')).toHaveTextContent('—');
+    expect(screen.getByText(/Sleeper column is Sleeper's own week-9 projection/i)).toBeInTheDocument();
+  });
+
+  it('renders dashes and leaves both tables intact while Sleeper is pending or failed', () => {
+    render(
+      <BuyLowSellHigh week={9} buyLow={[buy]} sellHigh={[sell]} showRosteredBy />,
+    );
+    expect(screen.getByText('Cold Receiver')).toBeInTheDocument();
+    expect(screen.getByText('Hot Receiver')).toBeInTheDocument();
+    expect(
+      screen.getAllByLabelText('Sleeper projection not loaded'),
+    ).toHaveLength(2);
   });
 });

@@ -202,10 +202,14 @@ function MarketTargetsPanel({
   targets,
   week,
   showRosteredBy,
+  sleeperProjections,
+  sleeperReady,
 }: {
   targets: { buyLow: MarketTarget[]; sellHigh: MarketTarget[] } | null;
   week: number;
   showRosteredBy: boolean;
+  sleeperProjections?: Record<string, number>;
+  sleeperReady?: boolean;
 }) {
   if (!targets) return null;
   return (
@@ -215,6 +219,8 @@ function MarketTargetsPanel({
         buyLow={targets.buyLow}
         sellHigh={targets.sellHigh}
         showRosteredBy={showRosteredBy}
+        sleeperProjections={sleeperProjections}
+        sleeperReady={sleeperReady}
       />
     </div>
   );
@@ -652,6 +658,8 @@ function GuestTradeFinder() {
           targets={market}
           week={guestWeek}
           showRosteredBy={false}
+          sleeperProjections={sleeperProjections}
+          sleeperReady={sleeperReady}
         />
 
         <p className={styles.footnote}>
@@ -954,6 +962,8 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           targets={market}
           week={currentWeek}
           showRosteredBy
+          sleeperProjections={sleeperProjections}
+          sleeperReady={sleeperReady}
         />
 
         <p className={styles.footnote}>
