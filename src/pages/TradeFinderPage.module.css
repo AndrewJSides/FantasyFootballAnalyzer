@@ -104,6 +104,14 @@
   margin-left: auto;
 }
 
+/* Item-130 Sleeper value beside the VOR: the market number, dim so the
+   proposal's own value keeps the emphasis. */
+.sleeper {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--bone-dim);
+}
+
 .reasons {
   list-style: none;
   padding: 0;

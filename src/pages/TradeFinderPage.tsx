@@ -28,6 +28,7 @@ import {
   fetchWeeklyPprPoints,
   type WeeklyPprPoints,
 } from '@/api/sleeperWeeklyPoints';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import styles from './TradeFinderPage.module.css';
 
@@ -50,16 +51,61 @@ interface TradeFinderPageProps {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+// Item-130 Sleeper projection value: Sleeper's own week-N projection next
+// to TraderApe's VOR, so a proposed swap can be checked against the market
+// number. A pending or failed fetch just leaves dashes — the cards never
+// wait on it, and proposals still count VOR rows only.
+function SleeperValue({
+  player,
+  projections,
+  ready,
+  week,
+}: {
+  player: PoolPlayer;
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const sid = player.sleeperId;
+  const value = ready && sid ? projections?.[String(sid)] : undefined;
+  if (value === undefined) {
+    return (
+      <span
+        className={styles.sleeper}
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </span>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <span className={styles.sleeper} title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </span>
+  );
+}
+
 function CandidateList({
   candidates,
   search,
   includeTeamIds,
   emptyText,
+  sleeperProjections,
+  sleeperReady,
+  week,
 }: {
   candidates: TradeCandidate[];
   search: string;
   includeTeamIds: boolean;
   emptyText: string;
+  sleeperProjections: Record<string, number> | undefined;
+  sleeperReady: boolean;
+  week: number;
 }) {
   return (
     <>
@@ -92,6 +138,12 @@ function CandidateList({
                           <span className={styles.vor}>
                             {round1(c.analysis.sideA.find(v => v.player.id === p.id)?.vor ?? 0)} VOR
                           </span>
+                          <SleeperValue
+                            player={p}
+                            projections={sleeperProjections}
+                            ready={sleeperReady}
+                            week={week}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -108,6 +160,12 @@ function CandidateList({
                           <span className={styles.vor}>
                             {round1(c.analysis.sideB.find(v => v.player.id === p.id)?.vor ?? 0)} VOR
                           </span>
+                          <SleeperValue
+                            player={p}
+                            projections={sleeperProjections}
+                            ready={sleeperReady}
+                            week={week}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -458,6 +516,30 @@ function GuestTradeFinder() {
     };
   }, [guestLeague.season, guestWeek]);
 
+  // Sleeper projection values (backlog item 130): one no-auth request
+  // shared across every proposal card; silent degrade to dashes on
+  // failure, exactly like the Trade Analyzer's item-129 values.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(guestLeague.season, guestWeek)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the cards still grade on VOR.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [guestLeague.season, guestWeek]);
+
   const market = useMemo(
     () =>
       guestWeekly
@@ -510,6 +592,9 @@ function GuestTradeFinder() {
               ? 'No win-win swaps right now — no position lines up with complementary needs and depth.'
               : 'Add players to both rosters above to see win-win swaps.'
           }
+          sleeperProjections={sleeperProjections}
+          sleeperReady={sleeperReady}
+          week={guestWeek}
         />
 
         {aIds.length > 0 && (
@@ -550,6 +635,9 @@ function GuestTradeFinder() {
                 search={location.search}
                 includeTeamIds={false}
                 emptyText={`No fair offers for ${shopPlayerName} right now — no deal with the trade partner lines up at a fair price.`}
+                sleeperProjections={sleeperProjections}
+                sleeperReady={sleeperReady}
+                week={guestWeek}
               />
             )}
           </section>
@@ -573,7 +661,10 @@ function GuestTradeFinder() {
           depth swaps leave every starter untouched, while star-for-star
           swaps are allowed only when each team nets an upgrade at its
           starting lineup. Needs and surplus are priced against the median
-          of the two entered rosters.
+          of the two entered rosters. The dim number beside each VOR is
+          Sleeper's own week-{guestWeek} projection where published; a dash
+          means no Sleeper line for that player, and the proposal counts
+          VOR rows only.
         </p>
       </div>
     </div>
@@ -605,6 +696,32 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
     () => (league && !league.isGuest ? leagueRosterMaps(league) : null),
     [league],
   );
+
+  // Sleeper projection values (backlog item 130): one no-auth request
+  // shared across every proposal card; silent degrade to dashes on
+  // failure, exactly like the Trade Analyzer's item-129 values. Placed
+  // before the guest early-return below so hook order stays stable.
+  const sleeperSeason = league?.season ?? POOL_SEASON;
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(sleeperSeason, currentWeek)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the cards still grade on VOR.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sleeperSeason, currentWeek]);
   const market = useMemo(
     () =>
       league && !league.isGuest && league.playerWeeklyPoints && rosterMaps
@@ -711,6 +828,9 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           search={location.search}
           includeTeamIds
           emptyText="No win-win swaps right now — no team pair lines up with complementary needs and depth."
+          sleeperProjections={sleeperProjections}
+          sleeperReady={sleeperReady}
+          week={currentWeek}
         />
 
         <TeamNeedsMatrix profiles={profiles} />
@@ -769,6 +889,9 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
               search={location.search}
               includeTeamIds
               emptyText={`No fair offers for ${shopPlayerName} right now — no team lines up with a need at his position plus a return that keeps your starters intact.`}
+              sleeperProjections={sleeperProjections}
+              sleeperReady={sleeperReady}
+              week={currentWeek}
             />
           )}
         </section>
@@ -840,6 +963,9 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           every starter untouched, while star-for-star swaps are allowed only
           when each team nets an upgrade at its starting lineup. Needs and
           surplus are priced against the league median at each position.
+          The dim number beside each VOR is Sleeper's own week-{currentWeek}
+          projection where published; a dash means no Sleeper line for that
+          player, and the proposal counts VOR rows only.
         </p>
       </div>
     </div>

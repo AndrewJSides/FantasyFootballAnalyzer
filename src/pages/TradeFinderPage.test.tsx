@@ -4,7 +4,7 @@
 // the test never depends on the live player data.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
@@ -39,6 +39,10 @@ const h = vi.hoisted(() => {
 
 vi.mock('@/data/draftPool', () => ({
   POOL: { players: h.players, season: 2026 },
+}));
+
+vi.mock('@/api/sleeperWeeklyProjections', () => ({
+  fetchSleeperWeekProjections: vi.fn(() => Promise.resolve({})),
 }));
 
 function team(id: string, name: string, rosterIds: string[]): Team {
@@ -80,6 +84,9 @@ function renderPage(leagueArg: League) {
 // Imported after the mock so the page binds the mocked pool.
 import { TradeFinderPage } from './TradeFinderPage';
 import { fireEvent } from '@testing-library/react';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+
+const mockSleeper = vi.mocked(fetchSleeperWeekProjections);
 
 function renderGuest() {
   return render(
@@ -428,5 +435,86 @@ describe('TradeFinderPage', () => {
     // Best player at a position renders with a verdict chip.
     expect(within(table).getByText('QB1')).toBeInTheDocument();
     expect(within(table).getAllByText(/Need|Surplus|Balanced/).length).toBeGreaterThan(0);
+  });
+});
+
+// TradeFinderPage Sleeper values (item 130): the same complementary
+// guest rosters as the swap-card test, with Sleeper ids on every pool
+// player so the card rows resolve. Runs last in this file so the
+// sleeperId mutation cannot leak into earlier tests.
+describe('TradeFinderPage Sleeper values (item 130)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    for (const p of h.players) {
+      (p as PoolPlayer).sleeperId = `sid-${p.name}`;
+    }
+    mockSleeper.mockResolvedValue(
+      Object.fromEntries(
+        h.players.map((p, i) => [`sid-${p.name}`, 10 + (i % 20)]),
+      ),
+    );
+  });
+
+  function fillComplementaryRosters() {
+    renderGuest();
+    for (const [q, name] of [
+      ['RB1', 'RB1'],
+      ['RB2', 'RB2'],
+      ['RB3', 'RB3'],
+      ['RB4', 'RB4'],
+      ['WR40', 'WR40'],
+      ['TE20', 'TE20'],
+    ] as const) {
+      addToRoster('Your team', q, name);
+    }
+    for (const [q, name] of [
+      ['WR1', 'WR1'],
+      ['WR2', 'WR2'],
+      ['WR3', 'WR3'],
+      ['WR4', 'WR4'],
+      ['RB40', 'RB40'],
+      ['TE25', 'TE25'],
+    ] as const) {
+      addToRoster('Trade partner', q, name);
+    }
+  }
+
+  it('shows Sleeper projections beside VOR on proposal cards', async () => {
+    fillComplementaryRosters();
+    await waitFor(() =>
+      expect(
+        screen.getAllByLabelText(/Sleeper projection [0-9.]+ for week/).length,
+      ).toBeGreaterThan(0),
+    );
+    // The proposal itself still grades on VOR, not the market number.
+    expect(
+      screen.getAllByRole('link', {
+        name: /Analyze Your team and Trade partner trade/,
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('dashes card players with no Sleeper line', async () => {
+    mockSleeper.mockResolvedValue({});
+    fillComplementaryRosters();
+    await waitFor(() =>
+      expect(
+        screen.getAllByLabelText('No Sleeper projection for this player')
+          .length,
+      ).toBeGreaterThan(0),
+    );
+  });
+
+  it('leaves the cards intact when the Sleeper fetch fails', async () => {
+    mockSleeper.mockRejectedValue(new Error('boom'));
+    fillComplementaryRosters();
+    await waitFor(() =>
+      expect(
+        screen.getAllByLabelText('Sleeper projection not loaded').length,
+      ).toBeGreaterThan(0),
+    );
+    expect(
+      screen.getByRole('list', { name: 'Proposed trades' }),
+    ).toBeInTheDocument();
   });
 });
