@@ -36,6 +36,12 @@ import {
   type WeatherRisk,
 } from '@/utils/weatherRisk';
 import { ProjectionDisagreements } from '@/components/ProjectionDisagreements';
+import {
+  loadWatchlist,
+  saveWatchlist,
+  toggleWatchlistId,
+  WATCHLIST_MAX,
+} from '@/utils/watchlist';
 import styles from './WeeklyRankingsPage.module.css';
 
 type PosFilter = 'ALL' | 'QB' | 'RB' | 'WR' | 'TE';
@@ -167,6 +173,33 @@ export function WeeklyRankingsPage({
   // rows by NFL team. Non-blocking like the Sleeper column — a failed
   // fetch just leaves the tags off while the board renders.
   const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
+  // Item-140 watchlist toggles: the same localStorage list the /watchlist
+  // page reads (pool ids), so a toggle here shows up there immediately.
+  const [watchedIds, setWatchedIds] = useState<string[]>([]);
+  const [watchAnnouncement, setWatchAnnouncement] = useState('');
+
+  useEffect(() => {
+    const valid = new Set(pool.players.map(p => p.id));
+    setWatchedIds(loadWatchlist(id => valid.has(id)));
+  }, [pool]);
+
+  const toggleWatch = (player: PoolPlayer) => {
+    const watched = watchedIds.includes(player.id);
+    const next = toggleWatchlistId(watchedIds, player.id);
+    if (next === watchedIds && !watched) {
+      setWatchAnnouncement(
+        `Watchlist is full (${WATCHLIST_MAX} players) — remove one from the Watchlist page first.`,
+      );
+      return;
+    }
+    saveWatchlist(next);
+    setWatchedIds(next);
+    setWatchAnnouncement(
+      watched
+        ? `Removed ${player.name} from your watchlist.`
+        : `Added ${player.name} to your watchlist.`,
+    );
+  };
 
   const live = league.status === 'live' && league.currentWeek != null;
   const week = league.currentWeek ?? currentWeekEstimate();
@@ -294,6 +327,11 @@ export function WeeklyRankingsPage({
           </p>
         )}
 
+        {watchAnnouncement && (
+          <p className={styles.status} role="status" aria-live="polite">
+            {watchAnnouncement}
+          </p>
+        )}
         {weeklyState === 'ready' && (
           <section aria-label={`Weekly rankings for week ${week}${pos === 'ALL' ? '' : `, ${pos}s`}`}>
             <div className={styles.tableWrap} aria-live="polite">
@@ -336,6 +374,9 @@ export function WeeklyRankingsPage({
                         </abbr>
                       </th>
                       {live && <th scope="col">Owner</th>}
+                      <th scope="col">
+                        <abbr title="Add the player to your watchlist, or remove them from it">Watch</abbr>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -403,6 +444,28 @@ export function WeeklyRankingsPage({
                               {r.owner ?? <span className={styles.freeAgent}>Free agent</span>}
                             </td>
                           )}
+                          <td>
+                            <button
+                              type="button"
+                              className={styles.watchButton}
+                              aria-pressed={watchedIds.includes(r.player.id)}
+                              aria-label={
+                                watchedIds.includes(r.player.id)
+                                  ? `Remove ${r.player.name} from watchlist`
+                                  : `Add ${r.player.name} to watchlist`
+                              }
+                              title={
+                                watchedIds.includes(r.player.id)
+                                  ? 'On your watchlist — tap to remove'
+                                  : 'Tap to add to your watchlist'
+                              }
+                              onClick={() => toggleWatch(r.player)}
+                            >
+                              <span aria-hidden="true">
+                                {watchedIds.includes(r.player.id) ? '★' : '☆'}
+                              </span>
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -434,7 +497,9 @@ export function WeeklyRankingsPage({
               passing game a notch for that game; the ranked number does
               not fold it in, and RBs carry no tag because wet weather
               favors the run. Top 40 per
-              position. The Sleeper column shows
+              position. The Watch column stars a player onto your
+              watchlist (same list as the Watchlist page, which reflects
+              the toggle immediately) — tap again to remove. The Sleeper column shows
               Sleeper&apos;s own week {week} projection for the same player —
               the market read next to TraderApe&apos;s number; a dash means
               Sleeper published no line. Trade research only — nothing here

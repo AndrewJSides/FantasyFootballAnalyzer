@@ -147,6 +147,23 @@
   white-space: nowrap;
 }
 
+/* Item-140 watchlist toggle: star button in the Watch column — lime when
+   the player is watched, dim otherwise. The accessible name carries the
+   add/remove meaning; the glyph is decorative. */
+.watchButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--bone-dim);
+  padding: 0.1rem 0.3rem;
+}
+
+.watchButton[aria-pressed='true'] { color: var(--lime); }
+
+.watchButton:hover { color: var(--lime); }
+
 .mono { font-family: var(--font-mono); font-size: 0.85rem; }
 
 .num { font-family: var(--font-mono); font-size: 0.92rem; text-align: right; }
