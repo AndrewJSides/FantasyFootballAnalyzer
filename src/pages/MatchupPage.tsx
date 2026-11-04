@@ -9,7 +9,7 @@
 // Teams page folded into this view; league mode only (no schedule, no
 // previews).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { League } from '@/types';
 import { previewWeeklyMatchups, scoreTeamLineup, type MatchupPreview } from '@/utils/matchupPreview';
@@ -26,7 +26,9 @@ import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import { timeAgo } from '@/utils/relativeTime';
 import { fetchWeekPprStats, fetchWeeklyPprPoints, type WeekPprStats, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
-import { mapSleeperComponentsToRosterKeys, type RosterComponentMaps } from '@/utils/leagueComponents';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { mapRosterToSleeperIds, mapSleeperComponentsToRosterKeys, type RosterComponentMaps } from '@/utils/leagueComponents';
+import type { ScoredPlayer } from '@/utils/rosterScoring';
 import { liveForPreview, type LiveMatchup, type LiveTeamScore } from '@/utils/liveMatchup';
 import styles from './MatchupPage.module.css';
 
@@ -254,6 +256,67 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
     [focusTeam, league, componentMaps],
   );
   const focusName = teamById.get(focusId)?.name ?? '?';
+
+  // --- Sleeper projection column (backlog item 125) -----------------------
+  // Sleeper's own week-N projection next to TraderApe's on the game-plan
+  // lineup table, so the week's lineup can be checked against the market
+  // number where the win is decided. One no-auth request per matchup week;
+  // the table never waits on it — a pending or failed fetch just leaves
+  // dashes, exactly like the Start/Sit column (item 123). Focus-team rows
+  // resolve to Sleeper ids through the same pool join as the component
+  // maps above; no winner marks, so the close calls and win probability
+  // are unchanged.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(league.season, preview.week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the game plan still prices on its own number.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, preview.week]);
+  const sleeperIdByKey = useMemo(
+    () => (focusTeam ? mapRosterToSleeperIds(focusTeam.roster ?? []) : new Map<string, string>()),
+    [focusTeam],
+  );
+  const sleeperCell = (s: ScoredPlayer | null): ReactNode => {
+    if (!s) return '—';
+    const sid = sleeperIdByKey.get(s.player.platformId ?? s.player.id);
+    const value =
+      sleeperReady && sid ? sleeperProjections?.[sid] : undefined;
+    if (value === undefined) {
+      return (
+        <span
+          aria-label={
+            sleeperReady
+              ? 'No Sleeper projection for this player'
+              : 'Sleeper projection not loaded'
+          }
+        >
+          —
+        </span>
+      );
+    }
+    return (
+      <span
+        title={`Sleeper's projected fantasy points for week ${preview.week}`}
+        aria-label={`Sleeper projection ${value.toFixed(1)}`}
+      >
+        {value.toFixed(1)}
+      </span>
+    );
+  };
 
   // Swap impact: each close-call flag priced on this week's Monte Carlo
   // win probability, so the flag answers "how much does my win chance move
@@ -568,6 +631,7 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
                   <th scope="col">Slot</th>
                   <th scope="col">Player</th>
                   <th scope="col">Proj.</th>
+                  <th scope="col">Sleeper</th>
                 </tr>
               </thead>
               <tbody>
@@ -576,6 +640,7 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
                     <td className={styles.slotCell}>{s.slot}</td>
                     <td>{s.player ? s.player.name : <span aria-label="empty slot">—</span>}</td>
                     <td>{s.player ? s.player.score.toFixed(1) : '—'}</td>
+                    <td>{sleeperCell(s.player)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -727,7 +792,10 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         are live) prices starters whose NFL games have started at their
         actual points and everyone else at their TraderApe projection; the
         live win probability reuses the same 30-pt ≈ 91% calibration as the
-        pre-game preview.
+        pre-game preview. The game-plan lineup&apos;s Sleeper column shows
+        Sleeper&apos;s own week-N projection next to TraderApe&apos;s (a dash
+        where Sleeper published no line); it carries no winner mark, so the
+        close calls and win probability count TraderApe rows only.
       </p>
     </div>
   );
