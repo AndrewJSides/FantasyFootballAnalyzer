@@ -27,6 +27,7 @@ import { SITE_TITLE } from '../utils/siteTitle';
 import { timeAgo } from '@/utils/relativeTime';
 import { fetchWeekPprStats, fetchWeeklyPprPoints, type WeekPprStats, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
 import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { sleeperLineupTotal, type SleeperLineupTotal } from '@/utils/sleeperTeamTotals';
 import { mapRosterToSleeperIds, mapSleeperComponentsToRosterKeys, type RosterComponentMaps } from '@/utils/leagueComponents';
 import type { ScoredPlayer } from '@/utils/rosterScoring';
 import { liveForPreview, type LiveMatchup, type LiveTeamScore } from '@/utils/liveMatchup';
@@ -318,6 +319,55 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
     );
   };
 
+  // --- Sleeper projected score (backlog item 126) ------------------------
+  // Sleeper's own week-N team total next to TraderApe's on the game card:
+  // the same no-auth fetch as the game-plan column (item 125), summed
+  // over each side's optimal starters — the same lineups the preview
+  // prices, so the two totals can't disagree about who's starting. A
+  // side with no published line for any starter shows a dash; partial
+  // coverage is named in the hover/aria label. No winner mark: the win
+  // probability counts TraderApe rows only.
+  const sleeperTotals = useMemo(() => {
+    if (!sleeperReady || !sleeperProjections) return null;
+    const a = teamById.get(preview.teamAId);
+    const b = teamById.get(preview.teamBId);
+    if (!a || !b) return null;
+    const la = scoreTeamLineup(a, league, { componentMaps });
+    const lb = scoreTeamLineup(b, league, { componentMaps });
+    if (!la || !lb) return null;
+    return {
+      a: sleeperLineupTotal(la.starters, mapRosterToSleeperIds(a.roster ?? []), sleeperProjections),
+      b: sleeperLineupTotal(lb.starters, mapRosterToSleeperIds(b.roster ?? []), sleeperProjections),
+    };
+  }, [sleeperReady, sleeperProjections, teamById, preview, league, componentMaps]);
+  const sleeperSide = (name: string, total: SleeperLineupTotal | null | undefined): ReactNode => {
+    if (total) {
+      const coverage =
+        total.counted === total.starters
+          ? `all ${total.starters} starters`
+          : `${total.counted} of ${total.starters} starters`;
+      return (
+        <span
+          title={`Sleeper's week ${preview.week} projections summed over the optimal starters with a published line (${coverage})`}
+          aria-label={`Sleeper projected score ${name}: ${total.total.toFixed(1)} over ${coverage}`}
+        >
+          {total.total.toFixed(1)}
+        </span>
+      );
+    }
+    return (
+      <span
+        aria-label={
+          sleeperReady
+            ? `No Sleeper projection for ${name} starters`
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </span>
+    );
+  };
+
   // Swap impact: each close-call flag priced on this week's Monte Carlo
   // win probability, so the flag answers "how much does my win chance move
   // if I make this swap". Re-prices both optimal lineups on the same
@@ -402,6 +452,10 @@ function MatchupDetail({ league, preview, componentMaps }: { league: League; pre
         <div className={styles.scoreLine}>
           Projected score: {aName} {preview.projA.toFixed(1)} – {bName}{' '}
           {preview.projB.toFixed(1)}
+        </div>
+        <div className={styles.scoreLine}>
+          Sleeper projected score: {aName} {sleeperSide(aName, sleeperTotals?.a)} –{' '}
+          {bName} {sleeperSide(bName, sleeperTotals?.b)}
         </div>
         <div className={styles.probRow}>
           <div className={styles.probTrack} aria-hidden="true">
@@ -795,7 +849,11 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         pre-game preview. The game-plan lineup&apos;s Sleeper column shows
         Sleeper&apos;s own week-N projection next to TraderApe&apos;s (a dash
         where Sleeper published no line); it carries no winner mark, so the
-        close calls and win probability count TraderApe rows only.
+        close calls and win probability count TraderApe rows only. The
+        Sleeper projected score line sums the same week-N projections over
+        each side&apos;s optimal starters (a dash where Sleeper published no
+        line for a side&apos;s starters, partial coverage named in the hover
+        label); it carries no weight in the win probability.
       </p>
     </div>
   );
