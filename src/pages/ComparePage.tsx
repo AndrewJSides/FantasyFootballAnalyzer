@@ -2,9 +2,10 @@
 // see season points, recent trend, this week's TraderApe projection, matchup,
 // rest-of-season outlook, and VOR value side by side. Works in league mode
 // (priced on the league's scoring) and guest mode (10-team full-PPR default).
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { PosBadge } from '@/components';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { POOL } from '@/data/draftPool';
 import type { League } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
@@ -136,6 +137,10 @@ export function ComparePage({ league }: { league: League }) {
   const [idB, setIdB] = useState<string | null>(() => loadStoredId(COMPARE_B_KEY));
   const [weekly, setWeekly] = useState<WeeklyPprPoints | undefined>(undefined);
   const [weeklyState, setWeeklyState] = useState<WeeklyState>('loading');
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperState, setSleeperState] = useState<WeeklyState>('loading');
 
   useEffect(() => {
     try {
@@ -167,6 +172,20 @@ export function ComparePage({ league }: { league: League }) {
   };
   // Keyed on season/week only: loadWeekly re-runs whenever they change.
   useEffect(loadWeekly, [league.season, week]);
+
+  // The comparison never waits on this fetch: a failed or pending Sleeper
+  // load just leaves the Sleeper row in its dash state while TraderApe's
+  // own numbers render (same convention as Weekly Rankings / Start/Sit).
+  const loadSleeper = () => {
+    setSleeperState('loading');
+    fetchSleeperWeekProjections(league.season, week)
+      .then(data => {
+        setSleeperProjections(data);
+        setSleeperState('ready');
+      })
+      .catch(() => setSleeperState('error'));
+  };
+  useEffect(loadSleeper, [league.season, week]);
 
   const byId = useMemo(() => new Map(POOL.players.map(p => [p.id, p])), []);
   const playerA = idA ? byId.get(idA) ?? null : null;
@@ -261,23 +280,55 @@ export function ComparePage({ league }: { league: League }) {
                 </thead>
                 <tbody>
                   {result.rows.map(r => (
-                    <tr key={r.key}>
-                      <th scope="row">{r.label}</th>
-                      <td
-                        className={r.winner === 'A' ? styles.winner : undefined}
-                        aria-label={r.winner === 'A' && r.margin ? `${r.a}. ${r.margin}` : r.a ?? undefined}
-                      >
-                        {r.a ?? '—'}
-                        {r.winner === 'A' && <span className={styles.leadTag} aria-hidden="true"> ✓</span>}
-                      </td>
-                      <td
-                        className={r.winner === 'B' ? styles.winner : undefined}
-                        aria-label={r.winner === 'B' && r.margin ? `${r.b}. ${r.margin}` : r.b ?? undefined}
-                      >
-                        {r.b ?? '—'}
-                        {r.winner === 'B' && <span className={styles.leadTag} aria-hidden="true"> ✓</span>}
-                      </td>
-                    </tr>
+                    <Fragment key={r.key}>
+                      <tr>
+                        <th scope="row">{r.label}</th>
+                        <td
+                          className={r.winner === 'A' ? styles.winner : undefined}
+                          aria-label={r.winner === 'A' && r.margin ? `${r.a}. ${r.margin}` : r.a ?? undefined}
+                        >
+                          {r.a ?? '—'}
+                          {r.winner === 'A' && <span className={styles.leadTag} aria-hidden="true"> ✓</span>}
+                        </td>
+                        <td
+                          className={r.winner === 'B' ? styles.winner : undefined}
+                          aria-label={r.winner === 'B' && r.margin ? `${r.b}. ${r.margin}` : r.b ?? undefined}
+                        >
+                          {r.b ?? '—'}
+                          {r.winner === 'B' && <span className={styles.leadTag} aria-hidden="true"> ✓</span>}
+                        </td>
+                      </tr>
+                      {/* Item-124 Sleeper row, right after TraderApe's projection:
+                          the market number next to the model's. No winner mark —
+                          a market number is not a TraderApe call, so the verdict
+                          above is unchanged. */}
+                      {r.key === 'projection' && (
+                        <tr key="sleeper-projection">
+                          <th scope="row">Sleeper week {week} projection</th>
+                          {([playerA, playerB] as const).map((p, i) => {
+                            const sid = p?.sleeperId;
+                            const value =
+                              sleeperState === 'ready' && sid
+                                ? sleeperProjections?.[sid]
+                                : undefined;
+                            return (
+                              <td
+                                key={i}
+                                aria-label={
+                                  value !== undefined
+                                    ? `Sleeper projection ${value.toFixed(1)} pts`
+                                    : sleeperState === 'ready'
+                                      ? 'No Sleeper projection for this player'
+                                      : 'Sleeper projection not loaded'
+                                }
+                              >
+                                {value !== undefined ? `${value.toFixed(1)} pts` : '—'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -287,7 +338,9 @@ export function ComparePage({ league }: { league: League }) {
               form, regression to baseline). Matchup ratings are
               priced on the opponent's fantasy points allowed per position over
               weeks {dataStart}–{dataEnd}; the rest-of-season outlook blends the
-              player's pace with his season projection. VOR values are priced
+              player's pace with his season projection. The Sleeper row is
+              Sleeper's own week {week} projection (pts_ppr) for each player,
+              a dash where Sleeper published no line. VOR values are priced
               on {league.totalTeams || 10}-team {league.scoringType} scoring.
               Consistency is the item-20 Steady/Mixed/Volatile verdict with its
               P25–P75 floor–ceiling band over completed weeks (dash under 3

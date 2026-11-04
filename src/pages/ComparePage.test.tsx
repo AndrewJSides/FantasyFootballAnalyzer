@@ -65,15 +65,22 @@ import { ComparePage } from './ComparePage';
 
 beforeEach(() => {
   // Four completed weeks: Alpha scores 25/week, Beta scores 15/week.
-  vi.stubGlobal('fetch', vi.fn(() =>
+  // Routed by URL: the weekly-stats endpoint returns the map, the
+  // Sleeper projections endpoint returns rows (none for Charlie).
+  vi.stubGlobal('fetch', vi.fn((url: string) =>
     Promise.resolve({
       ok: true,
       json: () =>
-        Promise.resolve({
-          'sid-a1': { pts_ppr: 25, gp: 1 },
-          'sid-b1': { pts_ppr: 15, gp: 1 },
-          'sid-c1': { pts_ppr: 20, gp: 1 },
-        }),
+        String(url).includes('/projections/nfl/')
+          ? Promise.resolve([
+              { player_id: 'sid-a1', stats: { pts_ppr: 22.4 } },
+              { player_id: 'sid-b1', stats: { pts_ppr: 18.1 } },
+            ])
+          : Promise.resolve({
+              'sid-a1': { pts_ppr: 25, gp: 1 },
+              'sid-b1': { pts_ppr: 15, gp: 1 },
+              'sid-c1': { pts_ppr: 20, gp: 1 },
+            }),
     }),
   ));
 });
@@ -132,6 +139,68 @@ describe('ComparePage', () => {
     });
     const caption = screen.getByText(/Head-to-head comparison: Beta Badger vs Charlie Cheetah/);
     expect(caption).toBeInTheDocument();
+  });
+
+  it('shows Sleeper projections right after the TraderApe projection row', async () => {
+    renderPage();
+    pickPlayer('Player A', 'Alpha Aardvark');
+    pickPlayer('Player B', 'Beta Badger');
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+
+    const table = screen.getByRole('table');
+    const headers = within(table).getAllByRole('rowheader').map(r => r.textContent);
+    expect(headers[headers.indexOf('Sleeper week 5 projection') - 1]).toMatch(/Week 5 projection/);
+
+    // The projections fetch can land just after the table itself.
+    await waitFor(() => {
+      const sleeperRow = within(table).getByRole('row', { name: /Sleeper week 5 projection/ });
+      const cells = within(sleeperRow).getAllByRole('cell');
+      expect(cells[0]).toHaveTextContent('22.4 pts');
+      expect(cells[1]).toHaveTextContent('18.1 pts');
+    });
+    const sleeperRow = within(table).getByRole('row', { name: /Sleeper week 5 projection/ });
+    // No winner marks on a market number: the verdict counts TraderApe rows only.
+    expect(within(sleeperRow).queryByText('✓')).toBeNull();
+  });
+
+  it('dashes a player with no Sleeper projection line', async () => {
+    renderPage();
+    pickPlayer('Player A', 'Alpha Aardvark');
+    pickPlayer('Player B', 'Charlie Cheetah');
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+
+    // Charlie has no Sleeper projection row in the stub.
+    const table = screen.getByRole('table');
+    await waitFor(() => {
+      const sleeperRow = within(table).getByRole('row', { name: /Sleeper week 5 projection/ });
+      const cells = within(sleeperRow).getAllByRole('cell');
+      expect(cells[0]).toHaveTextContent('22.4 pts');
+      expect(cells[1]).toHaveTextContent('—');
+    });
+  });
+
+  it('keeps the table intact when the projections fetch fails', async () => {
+    // Projections down, weekly stats fine: dashes only, table still renders.
+    vi.stubGlobal('fetch', vi.fn((url: string) =>
+      String(url).includes('/projections/nfl/')
+        ? Promise.reject(new Error('down'))
+        : Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                'sid-a1': { pts_ppr: 25, gp: 1 },
+                'sid-b1': { pts_ppr: 15, gp: 1 },
+                'sid-c1': { pts_ppr: 20, gp: 1 },
+              }),
+          }),
+    ));
+    renderPage();
+    pickPlayer('Player A', 'Alpha Aardvark');
+    pickPlayer('Player B', 'Beta Badger');
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+    const table = screen.getByRole('table');
+    const sleeperRow = within(table).getByRole('row', { name: /Sleeper week 5 projection/ });
+    within(sleeperRow).getAllByRole('cell').forEach(c => expect(c).toHaveTextContent('—'));
   });
 
   it('shows a retry affordance when weekly stats fail to load', async () => {
