@@ -29,12 +29,11 @@ import {
   buildTeamExpectationGap,
   expectationVerdict,
 } from '@/utils/startSitReportCard';
-import {
-  buildAllPlayRecord,
-  formatRecord,
-} from '@/utils/allPlayRecord';
+import { buildAllPlayRecord, formatRecord } from '@/utils/allPlayRecord';
+import { buildByeGrid } from '@/utils/byeGrid';
 import { injuryAbbrev, injuryTitle } from '@/utils/injury';
 import type { InjurySeverityTier } from '@/utils/injuryReport';
+import { ByeWeekGrid } from '@/components/ByeWeekGrid';
 import { TeamDetail } from './TeamDetail';
 import styles from './TeamsPage.module.css';
 
@@ -351,6 +350,10 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
   // every week. Hides when the sync fetched no matchups (old snapshots,
   // guest mode) or no week is complete yet.
   const allPlay = useMemo(() => buildAllPlayRecord(league), [league]);
+  // Bye week grid: optimal starters on bye per team per remaining week.
+  // Hides with no resolvable rosters (guest mode) or once the regular
+  // season is over.
+  const byeGrid = useMemo(() => buildByeGrid(league, pool), [league, pool]);
   const sovByTeam = useMemo(
     () => new Map(buildStrengthOfVictory(league).map(r => [r.teamId, r])),
     [league],
@@ -933,6 +936,25 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
                 </tbody>
               </table>
             </div>
+          </section>
+        )}
+
+        {byeGrid && (
+          <section className={styles.raceSection} aria-labelledby="bye-grid-heading">
+            <h2 id="bye-grid-heading" className={styles.sectionTitle}>
+              Bye Week Grid
+            </h2>
+            <p className={styles.sectionHint}>
+              Every team&apos;s bye pain for every remaining regular-season
+              week, at a glance. Each cell counts that team&apos;s optimal
+              starters on bye that week — bench players on bye don&apos;t
+              count, since they don&apos;t cost a starting slot. The
+              highlighted cell is each team&apos;s worst week, and Total
+              sums starters lost across all remaining weeks. Lineups are
+              priced on bundled-pool full-PPR projections, the same basis
+              as Roster Alerts.
+            </p>
+            <ByeWeekGrid grid={byeGrid} />
           </section>
         )}
 

@@ -1062,3 +1062,70 @@ describe('TeamsPage expectation gap', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('TeamsPage bye week grid', () => {
+  // Synthetic pool: Alpha's QB and TE share bye 9, Beta's RB is on bye 10.
+  const mkPool = (): import('@/types/draft').DraftPoolFile => {
+    const player = (
+      id: string,
+      name: string,
+      pos: 'QB' | 'RB' | 'WR' | 'TE',
+      bye: number | null,
+      proj: number,
+    ): import('@/types/draft').PoolPlayer =>
+      ({
+        id, name, team: 'DAL', pos, posRank: 1, overallRank: 10, tier: 1,
+        bye, baseValue: null, projPtsPpr: proj,
+      }) as import('@/types/draft').PoolPlayer;
+    return {
+      season: 2026,
+      generatedAt: 'test',
+      baseline: { budget: 200, teams: 10, rounds: 15 },
+      players: [
+        player('aqb', 'Alpha QB', 'QB', 9, 300),
+        player('ate', 'Alpha TE', 'TE', 9, 150),
+        player('brb', 'Beta RB', 'RB', 10, 280),
+      ],
+    };
+  };
+
+  const gridLeague = (): League => {
+    const mkRosterPlayer = (id: string, name: string, pos: string): Player =>
+      ({ id, name, position: pos, team: 'DAL' }) as Player;
+    const l = league();
+    l.playoffStartWeek = 15;
+    l.rosterSlots = {
+      QB: 1, RB: 1, WR: 0, TE: 1, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0, BENCH: 5, IR: 0,
+    } as League['rosterSlots'];
+    l.teams = l.teams.slice(0, 2).map(t => {
+      if (t.id === 'A') {
+        return { ...t, roster: [
+          mkRosterPlayer('aqb', 'Alpha QB', 'QB'),
+          mkRosterPlayer('ate', 'Alpha TE', 'TE'),
+        ] };
+      }
+      return { ...t, roster: [mkRosterPlayer('brb', 'Beta RB', 'RB')] };
+    });
+    return l;
+  };
+
+  it('renders starters-on-bye counts per remaining week with the worst week', () => {
+    render(
+      <MemoryRouter>
+        <TeamsPage league={gridLeague()} pool={mkPool()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Bye Week Grid' })).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: /bye week grid/i });
+    const rows = within(table).getAllByRole('row');
+    // Alpha: 2 starters out in W9 (worst), 0 in W10; Beta: 0 in W9, 1 in W10.
+    expect(rows[1]).toHaveTextContent('Alpha');
+    expect(screen.getByLabelText('Alpha: 2 starters on bye in week 9: Alpha QB, Alpha TE')).toBeInTheDocument();
+    expect(screen.getByLabelText('Beta: 1 starter on bye in week 10: Beta RB')).toBeInTheDocument();
+  });
+
+  it('hides the section when teams have no rosters', () => {
+    renderPage(league());
+    expect(screen.queryByRole('heading', { name: 'Bye Week Grid' })).not.toBeInTheDocument();
+  });
+});

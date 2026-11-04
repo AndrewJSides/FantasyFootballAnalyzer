@@ -1,0 +1,54 @@
+/* GRIDIRON · Bye week grid (Teams page, backlog item 119) */
+
+.wrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--bone-dim);
+}
+
+.table th[scope='col'] {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+}
+
+.table th[scope='row'] {
+  text-align: left;
+}
+
+.team {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.clear {
+  color: var(--bone-dim);
+}
+
+.hit {
+  font-weight: 600;
+  color: var(--amber, #e0a23e);
+}
+
+.worst {
+  font-weight: 700;
+  color: var(--red, #e05252);
+  background: color-mix(in srgb, var(--red, #e05252) 12%, transparent);
+}
+
+.total {
+  font-weight: 700;
+}
