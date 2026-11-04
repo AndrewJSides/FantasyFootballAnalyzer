@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { League } from '@/types';
+import type { DraftPoolFile } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { currentWeekEstimate } from '@/utils/matchupRating';
 import { teamProfiles } from '@/utils/tradeFinder';
 import {
   ASSUMED_FAAB_BUDGET,
@@ -15,20 +18,48 @@ import styles from './FaabGuidance.module.css';
 
 interface FaabGuidanceProps {
   league: League;
+  /** Bundled pool override (tests); defaults to the real pool. */
+  pool?: DraftPoolFile;
 }
 
 // FAAB bid guidance: what should a waiver claim cost? Prices the most
 // valuable available players (bundled pool, nobody's roster) against this
 // league's own spending norms, the target's value, and the selected team's
 // positional need. Guidance only — nothing is bid or spent here.
-export function FaabGuidance({ league }: FaabGuidanceProps) {
+export function FaabGuidance({ league, pool = POOL }: FaabGuidanceProps) {
   const myTeam = league.teams.find(t => t.isMyTeam) ?? league.teams[0];
   const [teamId, setTeamId] = useState<string>(myTeam?.id ?? '');
   const team = league.teams.find(t => t.id === teamId) ?? myTeam;
 
-  const norms = useMemo(() => faabNorms(league, POOL), [league]);
-  const profiles = useMemo(() => teamProfiles(league, POOL), [league]);
-  const targets = useMemo(() => availableTargets(league, POOL, 8), [league]);
+  const norms = useMemo(() => faabNorms(league, pool), [league, pool]);
+  const profiles = useMemo(() => teamProfiles(league, pool), [league, pool]);
+  const targets = useMemo(() => availableTargets(league, pool, 8), [league, pool]);
+
+  // Item-135 Sleeper projection: one no-auth request shared across the
+  // target rows; silent degrade to dashes on failure — the list never
+  // waits on it, and bid ranges price on league norms regardless.
+  const [week] = useState(() => currentWeekEstimate());
+  const season = league.season ?? pool.season;
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(season, week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the bid ranges still render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [season, week]);
 
   const suggestions = useMemo(() => {
     if (!team || !norms) return [];
@@ -137,6 +168,31 @@ export function FaabGuidance({ league }: FaabGuidanceProps) {
                     >
                       {target.projPtsPpr} proj
                     </span>
+                    {(() => {
+                      const sid = target.sleeperId;
+                      const value =
+                        sleeperReady && sid ? sleeperProjections?.[sid] : undefined;
+                      if (value === undefined) {
+                        return (
+                          <span
+                            className={styles.proj}
+                            aria-label={
+                              sleeperReady
+                                ? 'No Sleeper projection for this player'
+                                : 'Sleeper projection not loaded'
+                            }
+                          >
+                            — Sleeper
+                          </span>
+                        );
+                      }
+                      const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+                      return (
+                        <span className={styles.proj} title={label} aria-label={label}>
+                          {value.toFixed(1)} Sleeper
+                        </span>
+                      );
+                    })()}
                   </span>
                 </div>
                 <div className={styles.bid}>
@@ -165,7 +221,9 @@ export function FaabGuidance({ league }: FaabGuidanceProps) {
       <p className={styles.footnote}>
         Guidance only — nothing is bid or spent here. Player values are
         preseason pool projections; remaining budget assumes a
-        ${ASSUMED_FAAB_BUDGET} season budget.
+        ${ASSUMED_FAAB_BUDGET} season budget. The Sleeper figure is
+        Sleeper&apos;s own week {week} projection where published; a dash
+        means no Sleeper line for that player.
       </p>
     </section>
   );
