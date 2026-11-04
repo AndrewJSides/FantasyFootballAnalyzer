@@ -83,4 +83,40 @@ describe('ProjectionDisagreements', () => {
       expect(screen.getByText(/No disagreements this week/)).toBeTruthy();
     });
   });
+
+  it('uses parent-provided projections without fetching', async () => {
+    render(
+      <ProjectionDisagreements
+        rows={rows}
+        season={2026}
+        week={9}
+        sleeperProjections={{ 'sid-bull': 14, 'sid-bear': 12, 'sid-flat': 12 }}
+        sleeperProjectionsLoading={false}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Bull Receiver')).toBeTruthy();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('shows the parent error state and calls the parent retry', async () => {
+    const onRetry = vi.fn();
+    render(
+      <ProjectionDisagreements
+        rows={rows}
+        season={2026}
+        week={9}
+        sleeperProjectionsLoading={false}
+        sleeperProjectionsFailed
+        onRetrySleeperProjections={onRetry}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/Couldn't load Sleeper's projections/)).toBeTruthy();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Retry'));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

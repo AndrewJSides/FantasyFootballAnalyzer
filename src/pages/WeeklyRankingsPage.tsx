@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PosBadge } from '@/components';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { POOL } from '@/data/draftPool';
 import { LeagueLeaders } from '@/components/LeagueLeaders';
 import type { League } from '@/types';
@@ -97,6 +98,45 @@ function ConsistencyCell({ row }: { row: WeeklyRankRow }) {
   );
 }
 
+// Item-122 Sleeper column: Sleeper's own week-N projection next to
+// TraderApe's, priced from the same fetch the disagreement section uses
+// (lifted to the page so one request serves both). A dash means Sleeper
+// published no line for the player — never a zero.
+function SleeperCell({
+  row,
+  week,
+  sleeperProjections,
+  sleeperReady,
+}: {
+  row: WeeklyRankRow;
+  week: number;
+  sleeperProjections: Record<string, number> | undefined;
+  sleeperReady: boolean;
+}) {
+  const sid = row.player.sleeperId;
+  const value = sleeperReady && sid ? sleeperProjections?.[sid] : undefined;
+  if (typeof value === 'number' && Number.isFinite(value))
+    return (
+      <td
+        className={styles.num}
+        title={`Sleeper's projected fantasy points for week ${week}`}
+        aria-label={`Sleeper projection ${value.toFixed(1)}`}
+      >
+        {value.toFixed(1)}
+      </td>
+    );
+  return (
+    <td
+      className={`${styles.num} ${styles.dim}`}
+      aria-label={
+        sleeperReady ? 'No Sleeper projection for this player' : 'Sleeper projection not loaded'
+      }
+    >
+      -
+    </td>
+  );
+}
+
 export function WeeklyRankingsPage({
   league,
   pool: poolOverride,
@@ -109,9 +149,28 @@ export function WeeklyRankingsPage({
   const [pool] = useState(() => poolOverride ?? POOL);
   const [weekly, setWeekly] = useState<WeeklyPprPoints | undefined>(undefined);
   const [weeklyState, setWeeklyState] = useState<WeeklyState>('loading');
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperState, setSleeperState] = useState<WeeklyState>('loading');
 
   const live = league.status === 'live' && league.currentWeek != null;
   const week = league.currentWeek ?? currentWeekEstimate();
+
+  // The board never waits on this fetch: a failed or pending Sleeper load
+  // just leaves the column (and the disagreement section below) in its
+  // dash / loading state while TraderApe's own numbers render.
+  const loadSleeper = useCallback(() => {
+    setSleeperState('loading');
+    fetchSleeperWeekProjections(league.season, week)
+      .then(data => {
+        setSleeperProjections(data);
+        setSleeperState('ready');
+      })
+      .catch(() => setSleeperState('error'));
+  }, [league.season, week]);
+
+  useEffect(loadSleeper, [loadSleeper]);
 
   // Score completed weeks only; the in-progress week's partial stats would
   // halve a player's pace (same convention as Start/Sit and Compare).
@@ -228,6 +287,11 @@ export function WeeklyRankingsPage({
                         </abbr>
                       </th>
                       <th scope="col">
+                        <abbr title={`Sleeper's projected fantasy points for week ${week}`}>
+                          Sleeper
+                        </abbr>
+                      </th>
+                      <th scope="col">
                         <abbr title="Points per game over completed weeks">PPG</abbr>
                       </th>
                       <th scope="col">
@@ -265,6 +329,12 @@ export function WeeklyRankingsPage({
                           </td>
                           <td className={styles.mono}>{r.player.team}</td>
                           <td className={styles.num}>{fmt(r.projection)}</td>
+                          <SleeperCell
+                            row={r}
+                            week={week}
+                            sleeperProjections={sleeperProjections}
+                            sleeperReady={sleeperState === 'ready'}
+                          />
                           <td className={styles.num}>{fmt(r.ppg)}</td>
                           <td className={styles.num}>{fmt(r.last3)}</td>
                           <MatchupCell team={r.player.team} pos={r.player.pos} week={week} />
@@ -290,14 +360,25 @@ export function WeeklyRankingsPage({
               over weeks {dataStart}–{dataEnd}. Consistency reuses the
               Player Journey boom/bust engine (P25 floor / P75 ceiling, TraderApe&apos;s
               own per-position bars). Players on bye this week are
-              excluded. Top 40 per position. Trade research only — nothing here
+              excluded. Top 40 per position. The Sleeper column shows
+              Sleeper&apos;s own week {week} projection for the same player —
+              the market read next to TraderApe&apos;s number; a dash means
+              Sleeper published no line. Trade research only — nothing here
               moves a roster.
             </p>
           </section>
         )}
 
         {weeklyState === 'ready' && (
-          <ProjectionDisagreements rows={rows} season={league.season} week={week} />
+          <ProjectionDisagreements
+            rows={rows}
+            season={league.season}
+            week={week}
+            sleeperProjections={sleeperProjections}
+            sleeperProjectionsLoading={sleeperState === 'loading'}
+            sleeperProjectionsFailed={sleeperState === 'error'}
+            onRetrySleeperProjections={loadSleeper}
+          />
         )}
 
         {weeklyState === 'ready' && (

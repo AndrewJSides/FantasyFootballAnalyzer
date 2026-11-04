@@ -154,4 +154,112 @@ describe('WeeklyRankingsPage', () => {
     });
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
+
+  it('shows a Sleeper column with Sleeper projections and a dash for missing lines', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/projections/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve([
+                { player_id: 'sid-a1', stats: { pts_ppr: 22.5 } },
+                { player_id: 'sid-c1', stats: { pts_ppr: 17 } },
+              ]),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              'sid-a1': { pts_ppr: 25, gp: 1 },
+              'sid-c1': { pts_ppr: 18, gp: 1 },
+            }),
+        });
+      }),
+    );
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Sleeper projection 22.5')).toBeInTheDocument();
+    });
+    const table = screen.getByRole('table', { name: /week \d+ rankings/i });
+    expect(
+      within(table).getByRole('columnheader', { name: /sleeper/i }),
+    ).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    const delta = rows.find(r =>
+      within(r).queryByRole('rowheader', { name: 'Delta Dolphin' }),
+    );
+    expect(
+      within(delta!).getByLabelText('No Sleeper projection for this player'),
+    ).toBeInTheDocument();
+  });
+
+  it('leaves the Sleeper column dashed and the board intact when Sleeper projections fail', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/projections/')) return Promise.reject(new Error('down'));
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              'sid-a1': { pts_ppr: 25, gp: 1 },
+              'sid-c1': { pts_ppr: 18, gp: 1 },
+            }),
+        });
+      }),
+    );
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/Couldn't load Sleeper's projections/)).toBeInTheDocument();
+    });
+    const table = screen.getByRole('table', { name: /week \d+ rankings/i });
+    const rows = within(table).getAllByRole('row');
+    const alpha = rows.find(r =>
+      within(r).queryByRole('rowheader', { name: 'Alpha Aardvark' }),
+    );
+    expect(
+      within(alpha!).getByLabelText('Sleeper projection not loaded'),
+    ).toBeInTheDocument();
+  });
+
+  it('fetches Sleeper projections once for both the column and the disagreement section', async () => {
+    const fetchMock = vi.fn((url: string) => {
+      if (url.includes('/projections/')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              { player_id: 'sid-a1', stats: { pts_ppr: 22.5 } },
+              { player_id: 'sid-c1', stats: { pts_ppr: 17 } },
+            ]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            'sid-a1': { pts_ppr: 25, gp: 1 },
+            'sid-c1': { pts_ppr: 18, gp: 1 },
+          }),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Sleeper projection 22.5')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('TraderApe higher')).toBeInTheDocument();
+    });
+    const projectionCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes('/projections/'),
+    );
+    expect(projectionCalls).toHaveLength(1);
+  });
 });

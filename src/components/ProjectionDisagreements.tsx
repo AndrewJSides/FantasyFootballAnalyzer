@@ -14,6 +14,19 @@ interface ProjectionDisagreementsProps {
   rows: WeeklyRankRow[];
   season: number;
   week: number;
+  /**
+   * Item-122 shared fetch: when the parent page already holds Sleeper's
+   * projections (it renders them in the board's Sleeper column), pass them
+   * here instead of fetching a second copy. Passing sleeperProjectionsLoading
+   * opts into shared mode entirely: ready data renders the tables, a failed
+   * load renders the error state with the parent's retry, and loading
+   * renders the loading note. With none of these props the component keeps
+   * its original self-fetch behavior.
+   */
+  sleeperProjections?: Record<string, number>;
+  sleeperProjectionsLoading?: boolean;
+  sleeperProjectionsFailed?: boolean;
+  onRetrySleeperProjections?: () => void;
 }
 
 type LoadState =
@@ -26,7 +39,15 @@ type LoadState =
 // directions. A big bullish gap is a start/sit tiebreak; a big bearish
 // gap is a fade warning. Nothing here moves a roster — it's the model's
 // edge made inspectable.
-export function ProjectionDisagreements({ rows, season, week }: ProjectionDisagreementsProps) {
+export function ProjectionDisagreements({
+  rows,
+  season,
+  week,
+  sleeperProjections,
+  sleeperProjectionsLoading,
+  sleeperProjectionsFailed,
+  onRetrySleeperProjections,
+}: ProjectionDisagreementsProps) {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
   const load = useCallback(async () => {
@@ -42,9 +63,29 @@ export function ProjectionDisagreements({ rows, season, week }: ProjectionDisagr
     }
   }, [rows, season, week]);
 
+  // Shared mode is signaled by the loading prop alone; the self-fetch
+  // effect below stays dormant so the page's single request serves both
+  // the board column and this section.
+  const sharedMode = sleeperProjectionsLoading !== undefined;
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!sharedMode) void load();
+  }, [load, sharedMode]);
+
+  // In shared mode the display state derives from the parent's fetch, so
+  // the tables re-price the moment the parent's data lands (and the
+  // parent's retry re-runs them) with no second request.
+  const displayState: LoadState = sharedMode
+    ? sleeperProjectionsLoading
+      ? { kind: 'loading' }
+      : sleeperProjectionsFailed
+        ? { kind: 'error', message: 'Sleeper projections request failed' }
+        : sleeperProjections
+          ? { kind: 'ready', data: buildProjectionDisagreements(rows, sleeperProjections) }
+          : { kind: 'loading' }
+    : state;
+
+  const retry = sharedMode && onRetrySleeperProjections ? onRetrySleeperProjections : load;
 
   return (
     <section className={styles.panel} aria-label={`Where TraderApe disagrees with Sleeper for week ${week}`}>
@@ -58,35 +99,35 @@ export function ProjectionDisagreements({ rows, season, week }: ProjectionDisagr
       {/* The tables swap in place on load/retry with no navigation; announce
           the change politely. */}
       <div aria-live="polite">
-        {state.kind === 'loading' && (
+        {displayState.kind === 'loading' && (
           <p className={styles.note}>Loading Sleeper&apos;s week {week} projections…</p>
         )}
 
-        {state.kind === 'error' && (
+        {displayState.kind === 'error' && (
           <div className={styles.error}>
             <p className={styles.note}>
-              Couldn&apos;t load Sleeper&apos;s projections ({state.message}).
+              Couldn&apos;t load Sleeper&apos;s projections ({displayState.message}).
               The rankings board above is unaffected.
             </p>
-            <button type="button" className="input" onClick={() => void load()}>
+            <button type="button" className="input" onClick={() => void retry()}>
               Retry
             </button>
           </div>
         )}
 
-        {state.kind === 'ready' &&
-          (state.data.bullish.length > 0 || state.data.bearish.length > 0 ? (
+        {displayState.kind === 'ready' &&
+          (displayState.data.bullish.length > 0 || displayState.data.bearish.length > 0 ? (
             <div className={styles.tables}>
               <DisagreementTable
                 title="TraderApe higher"
                 caption={`Players TraderApe's week ${week} projection rates above Sleeper's, largest gap first`}
-                rows={state.data.bullish}
+                rows={displayState.data.bullish}
                 week={week}
               />
               <DisagreementTable
                 title="TraderApe lower"
                 caption={`Players TraderApe's week ${week} projection rates below Sleeper's, largest gap first`}
-                rows={state.data.bearish}
+                rows={displayState.data.bearish}
                 week={week}
               />
             </div>
