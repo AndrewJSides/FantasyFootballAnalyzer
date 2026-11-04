@@ -18,6 +18,8 @@ import {
 import { AWARD_ICONS } from '@/utils/awardIcons';
 import { consistencySummary } from '@/utils/consistency';
 import { POOL } from '@/data/draftPool';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
 import { WEEKLY_SHAPE } from '@/data/weeklyShape';
 import { buildRosRankings } from '@/utils/rosRankings';
 import {
@@ -266,6 +268,35 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
       : matchupRating.label === 'tough'
         ? styles.muTough
         : styles.muNeutral;
+
+  // Sleeper week-N projection (backlog item 132): Sleeper's own full-PPR
+  // projection for the selected player in the league's current week, next
+  // to the Matchup card. The pane never waits on this fetch: a pending,
+  // failed, unresolvable, or unpublished line just leaves the card in its
+  // dash state (same convention as Compare / Weekly Rankings).
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperState, setSleeperState] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
+  useEffect(() => {
+    setSleeperState('loading');
+    fetchSleeperWeekProjections(league.season, matchupWeek)
+      .then(data => {
+        setSleeperProjections(data);
+        setSleeperState('ready');
+      })
+      .catch(() => setSleeperState('error'));
+  }, [league.season, matchupWeek]);
+  const poolIndex = useMemo(() => indexPool(POOL), []);
+  const sleeperId = selectedPlayer
+    ? resolvePoolPlayer(selectedPlayer.player, poolIndex)?.sleeperId
+    : undefined;
+  const sleeperValue =
+    sleeperState === 'ready' && sleeperId
+      ? sleeperProjections?.[String(sleeperId)]
+      : undefined;
 
   // Rest-of-season rank (backlog item 127): the same ROS engine rows the
   // ROS Rankings page renders, memoized once per league (the full-position
@@ -645,6 +676,31 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                     </span>
                     <span className={styles.statLabel}>Week {matchupWeek} Matchup</span>
                   </div>
+                  {/* Sleeper week-N projection (backlog item 132): the market
+                      number next to the matchup rating, so the pane answers
+                      "what's he projected this week" without leaving it. */}
+                  <div className={styles.statCard}>
+                    <span
+                      className={styles.statValue}
+                      title={
+                        sleeperValue !== undefined
+                          ? `Sleeper week ${matchupWeek} projection: ${sleeperValue.toFixed(1)} full-PPR points`
+                          : sleeperState === 'ready'
+                            ? 'No Sleeper projection for this player'
+                            : 'Sleeper projection not loaded'
+                      }
+                      aria-label={
+                        sleeperValue !== undefined
+                          ? `Sleeper week ${matchupWeek} projection ${sleeperValue.toFixed(1)} points`
+                          : sleeperState === 'ready'
+                            ? 'No Sleeper projection for this player'
+                            : 'Sleeper projection not loaded'
+                      }
+                    >
+                      {sleeperValue !== undefined ? sleeperValue.toFixed(1) : '-'}
+                    </span>
+                    <span className={styles.statLabel}>Week {matchupWeek} Sleeper Proj.</span>
+                  </div>
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{selectedPlayer.events.length}</span>
                     <span className={styles.statLabel}>Transactions</span>
@@ -657,7 +713,9 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                 <p className={styles.matchupFootnote}>
                   Matchup prices on week {matchupWeek} — the opponent's points
                   allowed to the position from completed weeks{' '}
-                  {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}.
+                  {matchupDataWeeks()[0]}–{matchupDataWeeks()[1]}. Sleeper Proj.
+                  is Sleeper's own week {matchupWeek} full-PPR projection; a
+                  dash means no line published or the fetch failed.
                 </p>
 
                 {/* Player value over time (backlog item 8): week-by-week

@@ -5,16 +5,25 @@
 // dim dash instead.
 
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { League, Player, Team } from '@/types';
 import { PlayerJourneyPage } from './PlayerJourneyPage';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+
+const mockedProjections = vi.mocked(fetchSleeperWeekProjections);
 
 // The detail pane's PlayerNews section (item 110) fetches ESPN on mount;
 // keep these tests offline and warning-free: a never-resolving fetch leaves
 // the section in its loading (renders-nothing) state.
 vi.mock('@/api/espnNews', () => ({
   fetchNflNews: vi.fn(() => new Promise(() => {})),
+}));
+
+// Sleeper week-N projections (backlog item 132): MarShawn Lloyd's pool
+// sleeperId is 11581, so the fixture player resolves by platform id.
+vi.mock('@/api/sleeperWeeklyProjections', () => ({
+  fetchSleeperWeekProjections: vi.fn(() => Promise.resolve({ '11581': 14.7 })),
 }));
 
 function player(overrides: Partial<Player>): Player {
@@ -212,5 +221,61 @@ describe('Player Journey rest-of-season rank', () => {
       screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
     );
     expect(screen.queryByText('Rest-of-season rank')).toBeNull();
+  });
+});
+
+// Sleeper week-N projection stat card (backlog item 132): the market
+// number next to the Matchup card in the detail pane.
+describe('Player Journey Sleeper projection card', () => {
+  it('shows Sleeper\'s week-N projection for a player who resolves in the pool', async () => {
+    renderPage(
+      league(
+        [player({ name: 'MarShawn Lloyd', platformId: '11581' })],
+        WEEK,
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show MarShawn Lloyd's journey/i }),
+    );
+    // The fetch resolves async; the card label renders immediately.
+    expect(screen.getByText(`Week ${WEEK} Sleeper Proj.`)).toBeTruthy();
+    expect(await screen.findByText('14.7')).toBeTruthy();
+  });
+
+  it('shows a dash when the player does not resolve in the pool', async () => {
+    const callsBefore = mockedProjections.mock.calls.length;
+    renderPage(league([player({})], WEEK));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show Pack Runner's journey/i }),
+    );
+    const label = screen.getByText(`Week ${WEEK} Sleeper Proj.`);
+    const card = label.closest('div') as HTMLElement;
+    await waitFor(() =>
+      expect(mockedProjections.mock.calls.length).toBeGreaterThan(callsBefore),
+    );
+    expect(
+      within(card).getByLabelText('No Sleeper projection for this player'),
+    ).toBeTruthy();
+  });
+
+  it('leaves the card in its dash state when the fetch fails', async () => {
+    mockedProjections.mockRejectedValueOnce(new Error('down'));
+    const callsBefore = mockedProjections.mock.calls.length;
+    renderPage(
+      league(
+        [player({ name: 'MarShawn Lloyd', platformId: '11581' })],
+        WEEK,
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Show MarShawn Lloyd's journey/i }),
+    );
+    const label = screen.getByText(`Week ${WEEK} Sleeper Proj.`);
+    const card = label.closest('div') as HTMLElement;
+    await waitFor(() =>
+      expect(mockedProjections.mock.calls.length).toBeGreaterThan(callsBefore),
+    );
+    // A failed fetch never blocks the pane: the card stays a dash.
+    expect(within(card).queryByText('14.7')).toBeNull();
   });
 });
