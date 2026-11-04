@@ -25,6 +25,16 @@ import {
 import { leagueOwnerMap } from '@/utils/rosRankings';
 import { injuryOf } from '@/utils/seasonOutlook';
 import { buildWeeklyRankings, type WeeklyRankRow } from '@/utils/weeklyRankings';
+import {
+  buildGameVenues,
+  fetchKickoffWeather,
+} from '@/utils/weatherWatch';
+import {
+  weatherRiskByTeam,
+  weatherRiskLabel,
+  WEATHER_RISK_POSITIONS,
+  type WeatherRisk,
+} from '@/utils/weatherRisk';
 import { ProjectionDisagreements } from '@/components/ProjectionDisagreements';
 import styles from './WeeklyRankingsPage.module.css';
 
@@ -153,9 +163,31 @@ export function WeeklyRankingsPage({
     Record<string, number> | undefined
   >(undefined);
   const [sleeperState, setSleeperState] = useState<WeeklyState>('loading');
+  // Item-138 weather risk: kickoff-hour forecast for this week, joined to
+  // rows by NFL team. Non-blocking like the Sleeper column — a failed
+  // fetch just leaves the tags off while the board renders.
+  const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
 
   const live = league.status === 'live' && league.currentWeek != null;
   const week = league.currentWeek ?? currentWeekEstimate();
+
+  // Item-138 weather risk: kickoff-hour forecast for this week, joined to
+  // rows by NFL team. Non-blocking like the Sleeper column — a failed
+  // fetch just leaves the tags off while the board renders.
+  useEffect(() => {
+    let cancelled = false;
+    const venues = buildGameVenues(week);
+    fetchKickoffWeather(venues)
+      .then(w => {
+        if (!cancelled) setWeatherRisk(weatherRiskByTeam(venues, w));
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherRisk(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [week]);
 
   // The board never waits on this fetch: a failed or pending Sleeper load
   // just leaves the column (and the disagreement section below) in its
@@ -313,6 +345,11 @@ export function WeeklyRankingsPage({
                       const soleLabel = sole
                         ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10`
                         : null;
+                      const risk =
+                        WEATHER_RISK_POSITIONS.has(r.player.pos) && weatherRisk
+                          ? weatherRisk.get(r.player.team) ?? null
+                          : null;
+                      const riskLabel = risk ? weatherRiskLabel(risk) : null;
                       return (
                         <tr key={r.player.id}>
                           <td className={styles.rank}>{pos === 'ALL' ? i + 1 : r.posRank}</td>
@@ -334,6 +371,15 @@ export function WeeklyRankingsPage({
                                 aria-label={soleLabel}
                               >
                                 Sole back +{sole.upside.toFixed(1)}
+                              </span>
+                            )}
+                            {risk && riskLabel && (
+                              <span
+                                className={styles.weatherTag}
+                                title={riskLabel}
+                                aria-label={riskLabel}
+                              >
+                                Weather risk
                               </span>
                             )}
                           </th>
@@ -380,7 +426,14 @@ export function WeeklyRankingsPage({
               share (5+ opportunities per game): the estimate prices the
               mate&apos;s recent usage at the lead back&apos;s own points per
               opportunity, capped at +10 — upside to weigh, not a new
-              projection; the ranked number does not fold it in. Top 40 per
+              projection; the ranked number does not fold it in. A
+              &ldquo;Weather risk&rdquo; tag marks a QB/WR/TE playing outdoors
+              in a flagged kickoff-hour forecast (wind 15+ mph sustained or
+              25+ mph gusts, 40%+ chance of precipitation — the same
+              thresholds as Start/Sit&apos;s Weather Watch): downgrade the
+              passing game a notch for that game; the ranked number does
+              not fold it in, and RBs carry no tag because wet weather
+              favors the run. Top 40 per
               position. The Sleeper column shows
               Sleeper&apos;s own week {week} projection for the same player —
               the market read next to TraderApe&apos;s number; a dash means

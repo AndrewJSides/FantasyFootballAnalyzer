@@ -115,6 +115,22 @@
   vertical-align: middle;
 }
 
+/* Item-138 weather-risk tag: same chip language as the injury tag,
+   amber — a downgrade warning for the passing game, not a projection. */
+.weatherTag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f5b942;
+  border: 1px solid #f5b942;
+  padding: 0.1rem 0.4rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 /* Item-137 sole-back vacancy tag: same chip language as the injury tag,
    lime instead of red — an opportunity flag, not a warning. */
 .soleBackTag {
