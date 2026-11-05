@@ -50,6 +50,11 @@ export interface WeeklyUsageLine {
   rushTd: number;
   /** Receiving touchdowns (rec_td) — same board, the receiving half. */
   recTd: number;
+  /** Passing yards (pass_yd) — the volume read behind the Passing
+   *  Leaders board (backlog item 154). */
+  passYards: number;
+  /** Passing touchdowns (pass_td) — same board, the scoring half. */
+  passTd: number;
 }
 
 export interface WeeklyUsage {
@@ -109,6 +114,8 @@ export async function fetchWeeklyUsage(
         rushYards: num(stats.rush_yd),
         rushTd: num(stats.rush_td),
         recTd: num(stats.rec_td),
+        passYards: num(stats.pass_yd),
+        passTd: num(stats.pass_td),
       };
     }
   }

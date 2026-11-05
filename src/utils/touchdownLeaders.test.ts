@@ -39,6 +39,8 @@ function line(rushTd: number, recTd: number, carries = 10, receptions = 5): Week
     rushYards: 0,
     rushTd,
     recTd,
+    passYards: 0,
+    passTd: 0,
   };
 }
 

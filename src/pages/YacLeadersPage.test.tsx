@@ -51,7 +51,7 @@ function line(yac: number, receptions = 5) {
     deepRec: 0,
     longRec: 0,
     yac,
-    recYards: 0, rushYards: 0, rushTd: 0, recTd: 0,
+    recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0,
   };
 }
 
