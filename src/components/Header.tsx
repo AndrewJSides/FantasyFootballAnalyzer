@@ -542,6 +542,14 @@ export function Header({
                   Fantasy Points
                 </Link>
                 <Link
+                  to="/snap-counts"
+                  className={`${styles.navLink} ${location.pathname === '/snap-counts' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/snap-counts' ? 'page' : undefined}
+                >
+                  Snap Counts
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -906,6 +914,14 @@ export function Header({
               aria-current={location.pathname === '/fantasy-points' ? 'page' : undefined}
             >
               Fantasy Points
+            </Link>
+            <Link
+              to="/snap-counts"
+              className={`${styles.navLink} ${location.pathname === '/snap-counts' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/snap-counts' ? 'page' : undefined}
+            >
+              Snap Counts
             </Link>
             <Link
               to="/watchlist"
