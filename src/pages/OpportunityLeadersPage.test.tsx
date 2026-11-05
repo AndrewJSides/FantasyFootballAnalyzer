@@ -40,7 +40,7 @@ const pool: DraftPoolFile = {
 };
 
 function line(targets: number, rushAtt = 0, receptions = 0) {
-  return { offSnaps: 70, teamSnaps: 70, targets, rushAtt, receptions };
+  return { offSnaps: 70, teamSnaps: 70, targets, rushAtt, receptions, rzOpps: 0 };
 }
 
 function renderPage() {

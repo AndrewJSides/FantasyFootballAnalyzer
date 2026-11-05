@@ -21,6 +21,10 @@ export interface WeeklyUsageLine {
   rushAtt: number;
   /** Receptions. */
   receptions: number;
+  /** Red-zone opportunities: rush attempts + targets inside the 20
+   *  (rush_rz_att + rec_rz_tgt) — the TD-probability read behind the
+   *  Red Zone Leaders board (backlog item 145). */
+  rzOpps: number;
 }
 
 export interface WeeklyUsage {
@@ -71,6 +75,7 @@ export async function fetchWeeklyUsage(
         targets: num(stats.rec_tgt),
         rushAtt: num(stats.rush_att),
         receptions: num(stats.rec),
+        rzOpps: num(stats.rush_rz_att) + num(stats.rec_rz_tgt),
       };
     }
   }

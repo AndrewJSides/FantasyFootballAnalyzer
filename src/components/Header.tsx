@@ -430,6 +430,14 @@ export function Header({
                   Opportunity Share
                 </Link>
                 <Link
+                  to="/red-zone"
+                  className={`${styles.navLink} ${location.pathname === '/red-zone' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/red-zone' ? 'page' : undefined}
+                >
+                  Red Zone
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -682,6 +690,14 @@ export function Header({
               aria-current={location.pathname === '/opportunity' ? 'page' : undefined}
             >
               Opportunity Share
+            </Link>
+            <Link
+              to="/red-zone"
+              className={`${styles.navLink} ${location.pathname === '/red-zone' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/red-zone' ? 'page' : undefined}
+            >
+              Red Zone
             </Link>
             <Link
               to="/watchlist"

@@ -61,6 +61,7 @@ const EfficiencyLeadersPage = lazyPage(() => import('@/pages/EfficiencyLeadersPa
 const PeakWeeksPage = lazyPage(() => import('@/pages/PeakWeeksPage'), 'PeakWeeksPage');
 const TargetLeadersPage = lazyPage(() => import('@/pages/TargetLeadersPage'), 'TargetLeadersPage');
 const OpportunityLeadersPage = lazyPage(() => import('@/pages/OpportunityLeadersPage'), 'OpportunityLeadersPage');
+const RedZoneLeadersPage = lazyPage(() => import('@/pages/RedZoneLeadersPage'), 'RedZoneLeadersPage');
 const DepthChartsPage = lazyPage(() => import('@/pages/DepthChartsPage'), 'DepthChartsPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
@@ -159,6 +160,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/peak-weeks': 'Peak Weeks',
   '/targets': 'Target Share Leaders',
   '/opportunity': 'Opportunity Share Leaders',
+  '/red-zone': 'Red Zone Leaders',
   '/depth-charts': 'Depth Charts',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
@@ -1056,6 +1058,7 @@ function App() {
           <Route path="/peak-weeks" element={<PeakWeeksPage />} />
           <Route path="/targets" element={<TargetLeadersPage />} />
           <Route path="/opportunity" element={<OpportunityLeadersPage />} />
+          <Route path="/red-zone" element={<RedZoneLeadersPage />} />
           {/* NFL depth charts are league-independent: the bundled pool's
               depth order, no auth — the same page for league and guest
               visitors. The page takes the league when one is loaded so it

@@ -27,7 +27,7 @@ function player(id: string, name: string, pos: string, team = 'DAL'): PoolPlayer
 }
 
 function line(targets: number, receptions = 0): WeeklyUsageLine {
-  return { offSnaps: 70, teamSnaps: 70, targets, rushAtt: 0, receptions };
+  return { offSnaps: 70, teamSnaps: 70, targets, rushAtt: 0, receptions, rzOpps: 0 };
 }
 
 const players = [
