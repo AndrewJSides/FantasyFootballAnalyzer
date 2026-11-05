@@ -486,6 +486,14 @@ export function Header({
                   YPC
                 </Link>
                 <Link
+                  to="/scrimmage"
+                  className={`${styles.navLink} ${location.pathname === '/scrimmage' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/scrimmage' ? 'page' : undefined}
+                >
+                  Scrimmage
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -794,6 +802,14 @@ export function Header({
               aria-current={location.pathname === '/ypc' ? 'page' : undefined}
             >
               YPC
+            </Link>
+            <Link
+              to="/scrimmage"
+              className={`${styles.navLink} ${location.pathname === '/scrimmage' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/scrimmage' ? 'page' : undefined}
+            >
+              Scrimmage
             </Link>
             <Link
               to="/watchlist"
