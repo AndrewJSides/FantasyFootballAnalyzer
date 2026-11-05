@@ -41,6 +41,8 @@ function line(passYards: number, passTd: number): WeeklyUsageLine {
     recTd: 0,
     passYards,
     passTd,
+    rushFd: 0,
+    recFd: 0,
   };
 }
 

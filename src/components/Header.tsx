@@ -518,6 +518,14 @@ export function Header({
                   Target Volume
                 </Link>
                 <Link
+                  to="/first-downs"
+                  className={`${styles.navLink} ${location.pathname === '/first-downs' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/first-downs' ? 'page' : undefined}
+                >
+                  First Downs
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -858,6 +866,14 @@ export function Header({
               aria-current={location.pathname === '/target-volume' ? 'page' : undefined}
             >
               Target Volume
+            </Link>
+            <Link
+              to="/first-downs"
+              className={`${styles.navLink} ${location.pathname === '/first-downs' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/first-downs' ? 'page' : undefined}
+            >
+              First Downs
             </Link>
             <Link
               to="/watchlist"

@@ -57,6 +57,8 @@ function line(passYards: number, passTd: number) {
     recTd: 0,
     passYards,
     passTd,
+    rushFd: 0,
+    recFd: 0,
   };
 }
 

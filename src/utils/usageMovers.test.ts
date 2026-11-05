@@ -20,7 +20,7 @@ function player(
 }
 
 function line(offSnaps: number, teamSnaps: number): WeeklyUsageLine {
-  return { offSnaps, teamSnaps, targets: 0, rushAtt: 0, receptions: 0, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0 };
+  return { offSnaps, teamSnaps, targets: 0, rushAtt: 0, receptions: 0, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0 };
 }
 
 function input(
