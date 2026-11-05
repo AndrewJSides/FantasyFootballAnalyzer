@@ -550,6 +550,14 @@ export function Header({
                   Snap Counts
                 </Link>
                 <Link
+                  to="/yards-per-target"
+                  className={`${styles.navLink} ${location.pathname === '/yards-per-target' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/yards-per-target' ? 'page' : undefined}
+                >
+                  Yards / Target
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -922,6 +930,14 @@ export function Header({
               aria-current={location.pathname === '/snap-counts' ? 'page' : undefined}
             >
               Snap Counts
+            </Link>
+            <Link
+              to="/yards-per-target"
+              className={`${styles.navLink} ${location.pathname === '/yards-per-target' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/yards-per-target' ? 'page' : undefined}
+            >
+              Yards / Target
             </Link>
             <Link
               to="/watchlist"
