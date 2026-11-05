@@ -39,6 +39,7 @@ function line(deepRec: number, longRec = 30): WeeklyUsageLine {
     airYards: 0,
     deepRec,
     longRec,
+    yac: 0,
   };
 }
 

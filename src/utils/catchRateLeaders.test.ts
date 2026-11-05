@@ -33,7 +33,7 @@ function line(targets: number, receptions: number): WeeklyUsageLine {
     rzOpps: 0,
     airYards: 0,
     deepRec: 0,
-    longRec: 0,
+    longRec: 0, yac: 0,
   };
 }
 

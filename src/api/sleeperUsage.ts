@@ -36,6 +36,9 @@ export interface WeeklyUsageLine {
   /** Longest reception of the week (rec_lng) — the ceiling read on the
    *  same board. */
   longRec: number;
+  /** Yards after the catch (rec_yar) — the after-the-catch read
+   *  behind the YAC Leaders board (backlog item 149). */
+  yac: number;
 }
 
 export interface WeeklyUsage {
@@ -90,6 +93,7 @@ export async function fetchWeeklyUsage(
         airYards: num(stats.rec_air_yd),
         deepRec: num(stats.rec_20_29) + num(stats.rec_30_39) + num(stats.rec_40p),
         longRec: num(stats.rec_lng),
+        yac: num(stats.rec_yar),
       };
     }
   }

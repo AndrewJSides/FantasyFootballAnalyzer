@@ -462,6 +462,14 @@ export function Header({
                   Catch Rate
                 </Link>
                 <Link
+                  to="/yac"
+                  className={`${styles.navLink} ${location.pathname === '/yac' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/yac' ? 'page' : undefined}
+                >
+                  YAC
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -746,6 +754,14 @@ export function Header({
               aria-current={location.pathname === '/catch-rate' ? 'page' : undefined}
             >
               Catch Rate
+            </Link>
+            <Link
+              to="/yac"
+              className={`${styles.navLink} ${location.pathname === '/yac' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/yac' ? 'page' : undefined}
+            >
+              YAC
             </Link>
             <Link
               to="/watchlist"
