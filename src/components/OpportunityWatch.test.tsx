@@ -34,7 +34,7 @@ const pool: DraftPoolFile = {
 };
 
 function line(offSnaps: number, teamSnaps: number, targets = 0) {
-  return { offSnaps, teamSnaps, targets, rushAtt: 0, receptions: 0, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0 };
+  return { offSnaps, teamSnaps, targets, rushAtt: 0, receptions: 0, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0 };
 }
 
 function leaguePlayer(id: string, name: string): Player {

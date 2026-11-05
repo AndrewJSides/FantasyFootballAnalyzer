@@ -51,7 +51,7 @@ function line(deepRec: number, longRec = 30) {
     deepRec,
     longRec,
     yac: 0,
-    recYards: 0,
+    recYards: 0, rushYards: 0,
   };
 }
 

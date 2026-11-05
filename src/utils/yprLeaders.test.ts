@@ -36,6 +36,7 @@ function line(recYards: number, receptions = 5): WeeklyUsageLine {
     longRec: 0,
     yac: 0,
     recYards,
+    rushYards: 0,
   };
 }
 

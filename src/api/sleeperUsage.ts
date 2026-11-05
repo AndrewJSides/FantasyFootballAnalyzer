@@ -42,6 +42,9 @@ export interface WeeklyUsageLine {
   /** Receiving yards (rec_yd) — the per-catch efficiency read
    *  behind the YPR Leaders board (backlog item 150). */
   recYards: number;
+  /** Rushing yards (rush_yd) — the per-carry efficiency read
+   *  behind the YPC Leaders board (backlog item 151). */
+  rushYards: number;
 }
 
 export interface WeeklyUsage {
@@ -98,6 +101,7 @@ export async function fetchWeeklyUsage(
         longRec: num(stats.rec_lng),
         yac: num(stats.rec_yar),
         recYards: num(stats.rec_yd),
+        rushYards: num(stats.rush_yd),
       };
     }
   }
