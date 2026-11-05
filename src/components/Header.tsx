@@ -454,6 +454,14 @@ export function Header({
                   Deep Plays
                 </Link>
                 <Link
+                  to="/catch-rate"
+                  className={`${styles.navLink} ${location.pathname === '/catch-rate' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/catch-rate' ? 'page' : undefined}
+                >
+                  Catch Rate
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -730,6 +738,14 @@ export function Header({
               aria-current={location.pathname === '/deep-plays' ? 'page' : undefined}
             >
               Deep Plays
+            </Link>
+            <Link
+              to="/catch-rate"
+              className={`${styles.navLink} ${location.pathname === '/catch-rate' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/catch-rate' ? 'page' : undefined}
+            >
+              Catch Rate
             </Link>
             <Link
               to="/watchlist"
