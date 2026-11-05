@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { League, Player, Team } from '@/types';
 import { PlayerJourneyPage } from './PlayerJourneyPage';
 import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { WATCHLIST_KEY } from '@/utils/watchlist';
 
 const mockedProjections = vi.mocked(fetchSleeperWeekProjections);
 
@@ -277,5 +278,52 @@ describe('Player Journey Sleeper projection card', () => {
     );
     // A failed fetch never blocks the pane: the card stays a dash.
     expect(within(card).queryByText('14.7')).toBeNull();
+  });
+});
+
+// Watchlist star toggles on journey rows (backlog item 140 remainder):
+// the star is keyed on the resolved pool id, so it feeds the same list
+// the Watchlist page reads; players the pool doesn't cover get no star.
+describe('Player Journey watchlist toggles', () => {
+  it('renders an unpressed star for a player who resolves in the pool', () => {
+    renderPage(league([player({ name: 'Jahmyr Gibbs', team: 'DET' })], WEEK));
+    const star = screen.getByRole('button', {
+      name: /Add Jahmyr Gibbs to watchlist/i,
+    });
+    expect(star.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('adds on click, persists, announces, and removes on second click', () => {
+    renderPage(league([player({ name: 'Jahmyr Gibbs', team: 'DET' })], WEEK));
+    const star = screen.getByRole('button', {
+      name: /Add Jahmyr Gibbs to watchlist/i,
+    });
+    fireEvent.click(star);
+    expect(star.getAttribute('aria-pressed')).toBe('true');
+    expect(JSON.parse(localStorage.getItem(WATCHLIST_KEY) ?? '[]')).toEqual([
+      'jahmyr-gibbs-rb',
+    ]);
+    fireEvent.click(star);
+    expect(star.getAttribute('aria-pressed')).toBe('false');
+    expect(JSON.parse(localStorage.getItem(WATCHLIST_KEY) ?? '[]')).toEqual([]);
+  });
+
+  it('renders pressed for a pre-seeded watchlist entry', () => {
+    localStorage.setItem(
+      WATCHLIST_KEY,
+      JSON.stringify(['jahmyr-gibbs-rb']),
+    );
+    renderPage(league([player({ name: 'Jahmyr Gibbs', team: 'DET' })], WEEK));
+    const star = screen.getByRole('button', {
+      name: /Remove Jahmyr Gibbs from watchlist/i,
+    });
+    expect(star.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('renders no star for a player who does not resolve in the pool', () => {
+    renderPage(league([player({})], WEEK));
+    expect(
+      screen.queryByRole('button', { name: /watchlist/i }),
+    ).toBeNull();
   });
 });

@@ -27,6 +27,13 @@ import {
   rosRankDetail,
   rosRankLabel,
 } from '@/utils/playerRosRank';
+import {
+  loadWatchlist,
+  saveWatchlist,
+  toggleWatchlistId,
+  WATCHLIST_MAX,
+} from '@/utils/watchlist';
+import type { PoolPlayer } from '@/types/draft';
 import styles from './PlayerJourneyPage.module.css';
 
 interface PlayerJourneyPageProps {
@@ -76,6 +83,36 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
     }, { replace: true });
   }, [setSearchParams]);
   const [positionFilter, setPositionFilter] = useState<string>('all');
+  // Item-140 watchlist toggles: the same localStorage list the /watchlist
+  // page reads (pool ids), so a toggle here shows up there immediately.
+  // Journey rows carry league players, not pool players, so each row
+  // resolves to its pool entry first; unresolvable players get no star
+  // (their id would never match the Watchlist page's pool list).
+  const [watchedIds, setWatchedIds] = useState<string[]>([]);
+  const [watchAnnouncement, setWatchAnnouncement] = useState('');
+
+  useEffect(() => {
+    const valid = new Set(POOL.players.map(p => p.id));
+    setWatchedIds(loadWatchlist(id => valid.has(id)));
+  }, []);
+
+  const toggleWatch = (player: PoolPlayer) => {
+    const watched = watchedIds.includes(player.id);
+    const next = toggleWatchlistId(watchedIds, player.id);
+    if (next === watchedIds && !watched) {
+      setWatchAnnouncement(
+        `Watchlist is full (${WATCHLIST_MAX} players) — remove one from the Watchlist page first.`,
+      );
+      return;
+    }
+    saveWatchlist(next);
+    setWatchedIds(next);
+    setWatchAnnouncement(
+      watched
+        ? `Removed ${player.name} from your watchlist.`
+        : `Added ${player.name} to your watchlist.`,
+    );
+  };
   // How many of the filtered list to actually render. Restart when the filters
   // change so the user lands at the top of the new result set.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -530,32 +567,61 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                   ? `Showing ${Math.min(visibleCount, filteredPlayers.length)} of ${filteredPlayers.length} players`
                   : `Showing ${Math.min(visibleCount, filteredPlayers.length)} of ${filteredPlayers.length} ${positionFilter} players`}
             </div>
+            {/* Watchlist toggle announcements reuse the list's live region
+                pattern: the toggle swaps nothing visible except the star,
+                so the add/remove needs a spoken confirmation. */}
+            <div aria-live="polite" className="visually-hidden">
+              {watchAnnouncement}
+            </div>
             <div className={styles.listItems}>
-              {filteredPlayers.slice(0, visibleCount).map(p => (
-                <button
-                  key={p.player.id}
-                  type="button"
-                  className={`${styles.playerItem} ${selectedPlayerId === p.player.id ? styles.selected : ''}`}
-                  onClick={() => setSelectedPlayerId(p.player.id)}
-                  title={`Show ${p.player.name}'s journey`}
-                  aria-label={`Show ${p.player.name}'s journey`}
-                >
-                  <div className={styles.playerInfo}>
-                    <span className={styles.playerName}>{p.player.name}</span>
-                    <span className={styles.playerMeta}>
-                      <PosBadge pos={p.player.position} /> <NflTeamLabel team={p.player.team} />
-                    </span>
-                  </div>
-                  <div className={styles.playerStats}>
-                    {p.totalSeasonPoints !== undefined && (
-                      <span className={styles.points}>{p.totalSeasonPoints.toFixed(1)} pts</span>
+              {filteredPlayers.slice(0, visibleCount).map(p => {
+                const poolPlayer = resolvePoolPlayer(p.player, poolIndex);
+                const watched = poolPlayer
+                  ? watchedIds.includes(poolPlayer.id)
+                  : false;
+                return (
+                  <div key={p.player.id} className={styles.playerItem}>
+                    <button
+                      type="button"
+                      className={`${styles.playerSelect} ${selectedPlayerId === p.player.id ? styles.selected : ''}`}
+                      onClick={() => setSelectedPlayerId(p.player.id)}
+                      title={`Show ${p.player.name}'s journey`}
+                      aria-label={`Show ${p.player.name}'s journey`}
+                    >
+                      <div className={styles.playerInfo}>
+                        <span className={styles.playerName}>{p.player.name}</span>
+                        <span className={styles.playerMeta}>
+                          <PosBadge pos={p.player.position} /> <NflTeamLabel team={p.player.team} />
+                        </span>
+                      </div>
+                      <div className={styles.playerStats}>
+                        {p.totalSeasonPoints !== undefined && (
+                          <span className={styles.points}>{p.totalSeasonPoints.toFixed(1)} pts</span>
+                        )}
+                        {p.events.length > 0 && (
+                          <span className={styles.eventCount}>{p.events.length} event{p.events.length === 1 ? '' : 's'}</span>
+                        )}
+                      </div>
+                    </button>
+                    {poolPlayer && (
+                      <button
+                        type="button"
+                        className={styles.watchButton}
+                        aria-pressed={watched}
+                        aria-label={
+                          watched
+                            ? `Remove ${p.player.name} from watchlist`
+                            : `Add ${p.player.name} to watchlist`
+                        }
+                        title={watched ? 'On your watchlist — tap to remove' : 'Tap to add to your watchlist'}
+                        onClick={() => toggleWatch(poolPlayer)}
+                      >
+                        <span aria-hidden="true">{watched ? '★' : '☆'}</span>
+                      </button>
                     )}
-                    {p.events.length > 0 && (
-                      <span className={styles.eventCount}>{p.events.length} event{p.events.length === 1 ? '' : 's'}</span>
-                    )}
                   </div>
-                </button>
-              ))}
+                );
+              })}
               {filteredPlayers.length > visibleCount && (
                 <button
                   type="button"
@@ -575,6 +641,11 @@ export function PlayerJourneyPage({ league }: PlayerJourneyPageProps) {
                 </div>
               )}
             </div>
+            <p className={styles.watchNote}>
+              ★ adds a player to your Watchlist — the same list the
+              Watchlist page shows. Players the pool doesn&apos;t cover
+              have no star.
+            </p>
           </div>
 
           {/* Player Detail */}
