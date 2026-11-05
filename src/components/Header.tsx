@@ -510,6 +510,14 @@ export function Header({
                   Passing
                 </Link>
                 <Link
+                  to="/target-volume"
+                  className={`${styles.navLink} ${location.pathname === '/target-volume' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/target-volume' ? 'page' : undefined}
+                >
+                  Target Volume
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -842,6 +850,14 @@ export function Header({
               aria-current={location.pathname === '/passing' ? 'page' : undefined}
             >
               Passing
+            </Link>
+            <Link
+              to="/target-volume"
+              className={`${styles.navLink} ${location.pathname === '/target-volume' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/target-volume' ? 'page' : undefined}
+            >
+              Target Volume
             </Link>
             <Link
               to="/watchlist"

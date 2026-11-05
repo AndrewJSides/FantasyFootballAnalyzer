@@ -71,6 +71,7 @@ const YpcLeadersPage = lazyPage(() => import('@/pages/YpcLeadersPage'), 'YpcLead
 const ScrimmageLeadersPage = lazyPage(() => import('@/pages/ScrimmageLeadersPage'), 'ScrimmageLeadersPage');
 const TouchdownLeadersPage = lazyPage(() => import('@/pages/TouchdownLeadersPage'), 'TouchdownLeadersPage');
 const PassingLeadersPage = lazyPage(() => import('@/pages/PassingLeadersPage'), 'PassingLeadersPage');
+const TargetVolumeLeadersPage = lazyPage(() => import('@/pages/TargetVolumeLeadersPage'), 'TargetVolumeLeadersPage');
 const DepthChartsPage = lazyPage(() => import('@/pages/DepthChartsPage'), 'DepthChartsPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
@@ -179,6 +180,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/scrimmage': 'Scrimmage Yards Leaders',
   '/touchdowns': 'Touchdown Leaders',
   '/passing': 'Passing Leaders',
+  '/target-volume': 'Target Volume Leaders',
   '/depth-charts': 'Depth Charts',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
@@ -1086,6 +1088,7 @@ function App() {
           <Route path="/scrimmage" element={<ScrimmageLeadersPage />} />
           <Route path="/touchdowns" element={<TouchdownLeadersPage />} />
           <Route path="/passing" element={<PassingLeadersPage />} />
+          <Route path="/target-volume" element={<TargetVolumeLeadersPage />} />
           {/* NFL depth charts are league-independent: the bundled pool's
               depth order, no auth — the same page for league and guest
               visitors. The page takes the league when one is loaded so it
