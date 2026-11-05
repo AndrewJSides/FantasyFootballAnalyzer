@@ -43,7 +43,7 @@ const pool: DraftPoolFile = {
 };
 
 function line(rushAtt: number, receptions: number) {
-  return { offSnaps: 50, teamSnaps: 70, targets: receptions, rushAtt, receptions, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0 };
+  return { offSnaps: 50, teamSnaps: 70, targets: receptions, rushAtt, receptions, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0, ptsPpr: 0 };
 }
 
 function renderPage() {

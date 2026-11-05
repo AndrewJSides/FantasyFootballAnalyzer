@@ -59,6 +59,7 @@ function line(rushFd: number, recFd: number) {
     passTd: 0,
     rushFd,
     recFd,
+    ptsPpr: 0,
   };
 }
 

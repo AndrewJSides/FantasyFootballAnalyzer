@@ -60,6 +60,9 @@ export interface WeeklyUsageLine {
   rushFd: number;
   /** Receiving first downs (rec_fd) — same board, the through-the-air half. */
   recFd: number;
+  /** PPR fantasy points (pts_ppr) — the scoreboard read behind the
+   *  Fantasy Points Leaders board (backlog item 158). */
+  ptsPpr: number;
 }
 
 export interface WeeklyUsage {
@@ -123,6 +126,7 @@ export async function fetchWeeklyUsage(
         passTd: num(stats.pass_td),
         rushFd: num(stats.rush_fd),
         recFd: num(stats.rec_fd),
+        ptsPpr: num(stats.pts_ppr),
       };
     }
   }

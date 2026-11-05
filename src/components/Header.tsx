@@ -534,6 +534,14 @@ export function Header({
                   Touches
                 </Link>
                 <Link
+                  to="/fantasy-points"
+                  className={`${styles.navLink} ${location.pathname === '/fantasy-points' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/fantasy-points' ? 'page' : undefined}
+                >
+                  Fantasy Points
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -890,6 +898,14 @@ export function Header({
               aria-current={location.pathname === '/touches' ? 'page' : undefined}
             >
               Touches
+            </Link>
+            <Link
+              to="/fantasy-points"
+              className={`${styles.navLink} ${location.pathname === '/fantasy-points' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/fantasy-points' ? 'page' : undefined}
+            >
+              Fantasy Points
             </Link>
             <Link
               to="/watchlist"

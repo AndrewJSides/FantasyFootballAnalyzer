@@ -28,7 +28,7 @@ function player(id: string, name: string, pos: string, team = 'DAL'): PoolPlayer
 }
 
 function line(rzOpps: number, offSnaps = 50): WeeklyUsageLine {
-  return { offSnaps, teamSnaps: 70, targets: 0, rushAtt: 0, receptions: 0, rzOpps, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0 };
+  return { offSnaps, teamSnaps: 70, targets: 0, rushAtt: 0, receptions: 0, rzOpps, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0, ptsPpr: 0 };
 }
 
 function input(

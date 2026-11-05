@@ -56,7 +56,7 @@ function line(rushTd: number, recTd: number, carries = 10, receptions = 5) {
     rushTd,
     recTd,
     passYards: 0,
-    passTd: 0, rushFd: 0, recFd: 0,
+    passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
   };
 }
 

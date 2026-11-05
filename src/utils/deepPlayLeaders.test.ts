@@ -40,7 +40,7 @@ function line(deepRec: number, longRec = 30): WeeklyUsageLine {
     deepRec,
     longRec,
     yac: 0,
-    recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0,
+    recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
   };
 }
 
