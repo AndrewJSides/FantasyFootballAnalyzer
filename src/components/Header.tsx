@@ -470,6 +470,14 @@ export function Header({
                   YAC
                 </Link>
                 <Link
+                  to="/ypr"
+                  className={`${styles.navLink} ${location.pathname === '/ypr' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/ypr' ? 'page' : undefined}
+                >
+                  YPR
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -762,6 +770,14 @@ export function Header({
               aria-current={location.pathname === '/yac' ? 'page' : undefined}
             >
               YAC
+            </Link>
+            <Link
+              to="/ypr"
+              className={`${styles.navLink} ${location.pathname === '/ypr' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/ypr' ? 'page' : undefined}
+            >
+              YPR
             </Link>
             <Link
               to="/watchlist"

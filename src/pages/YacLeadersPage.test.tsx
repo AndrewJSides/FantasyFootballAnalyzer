@@ -51,6 +51,7 @@ function line(yac: number, receptions = 5) {
     deepRec: 0,
     longRec: 0,
     yac,
+    recYards: 0,
   };
 }
 

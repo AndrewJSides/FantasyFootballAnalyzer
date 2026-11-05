@@ -39,6 +39,9 @@ export interface WeeklyUsageLine {
   /** Yards after the catch (rec_yar) — the after-the-catch read
    *  behind the YAC Leaders board (backlog item 149). */
   yac: number;
+  /** Receiving yards (rec_yd) — the per-catch efficiency read
+   *  behind the YPR Leaders board (backlog item 150). */
+  recYards: number;
 }
 
 export interface WeeklyUsage {
@@ -94,6 +97,7 @@ export async function fetchWeeklyUsage(
         deepRec: num(stats.rec_20_29) + num(stats.rec_30_39) + num(stats.rec_40p),
         longRec: num(stats.rec_lng),
         yac: num(stats.rec_yar),
+        recYards: num(stats.rec_yd),
       };
     }
   }
