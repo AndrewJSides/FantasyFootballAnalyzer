@@ -29,6 +29,13 @@ export interface WeeklyUsageLine {
    *  behind the Air Yards Leaders board (backlog item 146). Can be
    *  negative on screen-heavy weeks (targets behind the line). */
   airYards: number;
+  /** Deep receptions: catches of 20+ yards (rec_20_29 + rec_30_39 +
+   *  rec_40p) — the converted big play behind the Deep Play Leaders
+   *  board (backlog item 147). */
+  deepRec: number;
+  /** Longest reception of the week (rec_lng) — the ceiling read on the
+   *  same board. */
+  longRec: number;
 }
 
 export interface WeeklyUsage {
@@ -81,6 +88,8 @@ export async function fetchWeeklyUsage(
         receptions: num(stats.rec),
         rzOpps: num(stats.rush_rz_att) + num(stats.rec_rz_tgt),
         airYards: num(stats.rec_air_yd),
+        deepRec: num(stats.rec_20_29) + num(stats.rec_30_39) + num(stats.rec_40p),
+        longRec: num(stats.rec_lng),
       };
     }
   }
