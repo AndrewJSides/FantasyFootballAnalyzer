@@ -33,7 +33,7 @@ function line(
   rushAtt = 0,
   receptions = 0,
 ): WeeklyUsageLine {
-  return { offSnaps, teamSnaps, targets, rushAtt, receptions, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0 };
+  return { offSnaps, teamSnaps, targets, rushAtt, receptions, rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0 };
 }
 
 const players = [

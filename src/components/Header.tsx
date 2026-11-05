@@ -494,6 +494,14 @@ export function Header({
                   Scrimmage
                 </Link>
                 <Link
+                  to="/touchdowns"
+                  className={`${styles.navLink} ${location.pathname === '/touchdowns' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/touchdowns' ? 'page' : undefined}
+                >
+                  Touchdowns
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -810,6 +818,14 @@ export function Header({
               aria-current={location.pathname === '/scrimmage' ? 'page' : undefined}
             >
               Scrimmage
+            </Link>
+            <Link
+              to="/touchdowns"
+              className={`${styles.navLink} ${location.pathname === '/touchdowns' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/touchdowns' ? 'page' : undefined}
+            >
+              Touchdowns
             </Link>
             <Link
               to="/watchlist"

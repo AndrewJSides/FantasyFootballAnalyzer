@@ -37,6 +37,8 @@ function line(rushYards: number, carries = 10): WeeklyUsageLine {
     yac: 0,
     recYards: 0,
     rushYards,
+    rushTd: 0,
+    recTd: 0,
   };
 }
 

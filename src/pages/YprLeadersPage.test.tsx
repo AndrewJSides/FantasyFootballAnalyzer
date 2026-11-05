@@ -52,7 +52,7 @@ function line(recYards: number, receptions = 5) {
     longRec: 0,
     yac: 0,
     recYards,
-    rushYards: 0,
+    rushYards: 0, rushTd: 0, recTd: 0,
   };
 }
 

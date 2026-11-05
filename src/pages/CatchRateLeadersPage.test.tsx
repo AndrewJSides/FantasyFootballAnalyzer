@@ -49,7 +49,7 @@ function line(targets: number, receptions: number) {
     rzOpps: 0,
     airYards: 0,
     deepRec: 0,
-    longRec: 0, yac: 0, recYards: 0, rushYards: 0,
+    longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0,
   };
 }
 

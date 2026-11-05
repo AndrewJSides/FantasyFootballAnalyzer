@@ -45,6 +45,11 @@ export interface WeeklyUsageLine {
   /** Rushing yards (rush_yd) — the per-carry efficiency read
    *  behind the YPC Leaders board (backlog item 151). */
   rushYards: number;
+  /** Rushing touchdowns (rush_td) — the scoring read behind the
+   *  Touchdown Leaders board (backlog item 153). */
+  rushTd: number;
+  /** Receiving touchdowns (rec_td) — same board, the receiving half. */
+  recTd: number;
 }
 
 export interface WeeklyUsage {
@@ -102,6 +107,8 @@ export async function fetchWeeklyUsage(
         yac: num(stats.rec_yar),
         recYards: num(stats.rec_yd),
         rushYards: num(stats.rush_yd),
+        rushTd: num(stats.rush_td),
+        recTd: num(stats.rec_td),
       };
     }
   }
