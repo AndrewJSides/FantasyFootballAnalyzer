@@ -67,6 +67,16 @@
   color: var(--bone-dim);
 }
 
+.num {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.dim {
+  color: var(--bone-dim);
+}
+
 .playerName {
   font-weight: 600;
 }
