@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PosBadge } from '@/components';
 import { fetchWeeklyPprPoints, type WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { POOL } from '@/data/draftPool';
 import type { League } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
@@ -112,6 +113,45 @@ function ConsistencyCell({ row }: { row: WeeklyRankRow }) {
   );
 }
 
+// Item-141 Sleeper projection cell: Sleeper's own week-N projection next to
+// TraderApe's, so a watched player can be checked against the market
+// number. A pending or failed fetch just leaves dashes — the list never
+// waits on it.
+function SleeperCell({
+  player,
+  projections,
+  ready,
+  week,
+}: {
+  player: PoolPlayer;
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const sid = player.sleeperId;
+  const value = ready && sid ? projections?.[sid] : undefined;
+  if (value === undefined) {
+    return (
+      <td
+        className={`${styles.num} ${styles.dim}`}
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </td>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <td className={styles.num} title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </td>
+  );
+}
+
 type WeeklyState = 'loading' | 'ready' | 'error';
 
 export function WatchlistPage({ league }: { league: League }) {
@@ -145,6 +185,29 @@ export function WatchlistPage({ league }: { league: League }) {
   }, [league.season, week]);
 
   useEffect(loadWeekly, [loadWeekly]);
+
+  // Sleeper projection column (backlog item 141): one no-auth request
+  // shared across the rows; silent degrade to dashes on failure.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(league.season, week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the list still prices on its own number.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, week]);
 
   const watchedSet = useMemo(() => new Set(watchedIds), [watchedIds]);
   const results = useMemo(() => searchPool(query, watchedSet), [query, watchedSet]);
@@ -275,6 +338,11 @@ export function WatchlistPage({ league }: { league: League }) {
                           Wk {week} Proj
                         </abbr>
                       </th>
+                      <th scope="col">
+                        <abbr title={`Sleeper's projected fantasy points for week ${week}`}>
+                          Sleeper
+                        </abbr>
+                      </th>
                       <th scope="col">Matchup</th>
                       <th scope="col">
                         <abbr title="Week-to-week reliability from the player's completed weeks: floor/ceiling percentiles, boom and bust week counts">
@@ -315,6 +383,12 @@ export function WatchlistPage({ league }: { league: League }) {
                           </td>
                           <td className={styles.mono}>{p.team}</td>
                           <td className={styles.num}>{fmt(row?.projection)}</td>
+                          <SleeperCell
+                            player={p}
+                            projections={sleeperProjections}
+                            ready={sleeperReady}
+                            week={week}
+                          />
                           <MatchupCell team={p.team} pos={p.pos} week={week} />
                           {row ? (
                             <ConsistencyCell row={row} />
@@ -351,7 +425,10 @@ export function WatchlistPage({ league }: { league: League }) {
               Week {week} projections come from TraderApe&apos;s weekly model
               (recency-weighted last-4 form blended with the season baseline,
               nudged by this week&apos;s matchup difficulty), priced on full-PPR
-              scoring from Sleeper&apos;s free weekly stats. Matchup ratings
+              scoring from Sleeper&apos;s free weekly stats. The Sleeper
+              column shows Sleeper&apos;s own week {week} projection where
+              published; a dash means no Sleeper line for that player.
+              Matchup ratings
               are priced on the opponent&apos;s fantasy points allowed per
               position over weeks {dataStart}–{dataEnd}. The list is stored in
               this browser only — nothing here moves a roster.

@@ -71,15 +71,22 @@ function renderPage(league: League) {
 
 beforeEach(() => {
   // Four completed weeks: Alpha scores 25/week, Beta 15/week.
-  vi.stubGlobal('fetch', vi.fn(() =>
+  // The projections endpoint returns an array; the stats endpoint an
+  // object — branch on the URL so both fetches resolve realistically.
+  vi.stubGlobal('fetch', vi.fn((url: unknown) =>
     Promise.resolve({
       ok: true,
       json: () =>
-        Promise.resolve({
-          'sid-a1': { pts_ppr: 25, gp: 1 },
-          'sid-b1': { pts_ppr: 15, gp: 1 },
-          'sid-c1': { pts_ppr: 20, gp: 1 },
-        }),
+        String(url).includes('/projections/')
+          ? Promise.resolve([
+              { player_id: 'sid-a1', stats: { pts_ppr: 22.5 } },
+              { player_id: 'sid-b1', stats: { pts_ppr: 12.0 } },
+            ])
+          : Promise.resolve({
+              'sid-a1': { pts_ppr: 25, gp: 1 },
+              'sid-b1': { pts_ppr: 15, gp: 1 },
+              'sid-c1': { pts_ppr: 20, gp: 1 },
+            }),
     }),
   ));
   localStorage.clear();
@@ -168,8 +175,7 @@ describe('WatchlistPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('names the owning team in live league mode', async () => {
-    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(['a1']));
+  it('names the owning team in live league mode', async () => {    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(['a1']));
     renderPage(
       makeLeague({
         teams: [
@@ -188,5 +194,24 @@ describe('WatchlistPage', () => {
     const table = screen.getByRole('table');
     const row = within(table).getByRole('row', { name: /Alpha Aardvark/ });
     expect(within(row).getByText('Marauders')).toBeInTheDocument();
+  });
+
+  it('shows Sleeper projections on watched rows and a dash for a missing line', async () => {
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(['a1', 'c1']));
+    renderPage(makeLeague());
+
+    await waitFor(() => {
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+    const table = screen.getByRole('table');
+    expect(
+      within(table).getByRole('columnheader', { name: 'Sleeper' }),
+    ).toBeInTheDocument();
+    const alphaRow = within(table).getByRole('row', { name: /Alpha Aardvark/ });
+    expect(within(alphaRow).getByText('22.5')).toBeInTheDocument();
+    const charlieRow = within(table).getByRole('row', { name: /Charlie Cheetah/ });
+    expect(
+      within(charlieRow).getByLabelText('No Sleeper projection for this player'),
+    ).toBeInTheDocument();
   });
 });
