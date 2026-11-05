@@ -31,6 +31,12 @@ import {
   rosMatchupStrength,
   rosShort,
 } from '@/utils/rosSchedule';
+import {
+  loadWatchlist,
+  saveWatchlist,
+  toggleWatchlistId,
+  WATCHLIST_MAX,
+} from '@/utils/watchlist';
 import styles from './RankingsPage.module.css';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DST'];
@@ -165,6 +171,34 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
   const [sortBy, setSortBy] = useState<SortKey>('avg');
   const [sortRev, setSortRev] = useState(false);
   const { starred, avoided, cycle } = useTargets(POOL.season);
+  // Item-140 watchlist toggles: the same localStorage list the /watchlist
+  // page reads (pool ids), so a toggle here shows up there immediately.
+  // Mirrors the Weekly Rankings board column.
+  const [watchedIds, setWatchedIds] = useState<string[]>([]);
+  const [watchAnnouncement, setWatchAnnouncement] = useState('');
+
+  useEffect(() => {
+    const valid = new Set(POOL.players.map(p => p.id));
+    setWatchedIds(loadWatchlist(id => valid.has(id)));
+  }, []);
+
+  const toggleWatch = (player: PoolPlayer) => {
+    const watched = watchedIds.includes(player.id);
+    const next = toggleWatchlistId(watchedIds, player.id);
+    if (next === watchedIds && !watched) {
+      setWatchAnnouncement(
+        `Watchlist is full (${WATCHLIST_MAX} players) — remove one from the Watchlist page first.`,
+      );
+      return;
+    }
+    saveWatchlist(next);
+    setWatchedIds(next);
+    setWatchAnnouncement(
+      watched
+        ? `Removed ${player.name} from your watchlist.`
+        : `Added ${player.name} to your watchlist.`,
+    );
+  };
 
   const isAuction = league.draftType === 'auction';
   const [viewTab, setViewTab] = useState<ViewTab>(isAuction ? 'auction' : 'snake');
@@ -474,6 +508,11 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             ? `Showing ${visible.length} player rankings, ${viewTab === 'auction' ? 'Auction' : 'Snake'} view`
             : `Showing ${visible.length} ${labelForPos(posFilter)} rankings, ${viewTab === 'auction' ? 'Auction' : 'Snake'} view`}
         </div>
+        {watchAnnouncement && (
+          <p className={styles.watchStatus} role="status" aria-live="polite">
+            {watchAnnouncement}
+          </p>
+        )}
 
         <div className={styles.controls}>
           <input
@@ -585,6 +624,9 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                 >
                   Bye
                 </th>
+                <th scope="col">
+                  <abbr title="Add the player to your watchlist, or remove them from it">Watch</abbr>
+                </th>
                 {!auctionView && (
                   <>
                     {sortableTh('espnAdp', 'ESPN ADP', 'ESPN average draft position', 'ESPN ADP')}
@@ -640,7 +682,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                   <Fragment key={p.id}>
                   {showTierBreak && (
                     <tr className={styles.tierBreakRow} aria-hidden="true">
-                      <td colSpan={auctionView ? 14 : 13}>TIER {p.tier}</td>
+                      <td colSpan={auctionView ? 15 : 14}>TIER {p.tier}</td>
                     </tr>
                   )}
                   <tr className={styles.row}>
@@ -700,6 +742,28 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
                     <RosSosCell team={p.team} pos={p.pos} week={matchupWeek} />
                     <PlayoffSosCell team={p.team} pos={p.pos} weeks={playoffWeeks} />
                     <td className={`${styles.num} ${styles.dim}`}>{p.bye ?? '-'}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.watchButton}
+                        aria-pressed={watchedIds.includes(p.id)}
+                        aria-label={
+                          watchedIds.includes(p.id)
+                            ? `Remove ${p.name} from watchlist`
+                            : `Add ${p.name} to watchlist`
+                        }
+                        title={
+                          watchedIds.includes(p.id)
+                            ? 'On your watchlist — tap to remove'
+                            : 'Tap to add to your watchlist'
+                        }
+                        onClick={() => toggleWatch(p)}
+                      >
+                        <span aria-hidden="true">
+                          {watchedIds.includes(p.id) ? '★' : '☆'}
+                        </span>
+                      </button>
+                    </td>
                     {!auctionView && (
                       <>
                         <td className={`${styles.num} ${styles.dim}`}>{p.espnAdp ?? '-'}</td>
@@ -725,7 +789,7 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={auctionView ? 15 : 14} className={styles.emptyRow}>
+                  <td colSpan={auctionView ? 16 : 15} className={styles.emptyRow}>
                     No players match.
                   </td>
                 </tr>
@@ -752,7 +816,9 @@ export function RankingsPage({ league, onUpdateGuest, initialPos }: RankingsPage
             and Trade Analyzer pages use. ROS SOS averages the same rating over the player's
             remaining regular-season games (weeks {matchupWeek}–18); PO SOS averages it over
             the league's fantasy playoff weeks only (W{playoffWeeks[0]}–W
-            {playoffWeeks[playoffWeeks.length - 1]}); lower is softer.
+            {playoffWeeks[playoffWeeks.length - 1]}); lower is softer. The Watch column
+            stars a player onto your watchlist (same list as the Watchlist page, which
+            reflects the toggle immediately) — tap again to remove.
           </p>
         </div>
       </div>
