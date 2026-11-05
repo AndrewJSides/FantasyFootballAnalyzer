@@ -25,6 +25,10 @@ export interface WeeklyUsageLine {
    *  (rush_rz_att + rec_rz_tgt) — the TD-probability read behind the
    *  Red Zone Leaders board (backlog item 145). */
   rzOpps: number;
+  /** Receiving air yards (rec_air_yd) — the downfield-usage read
+   *  behind the Air Yards Leaders board (backlog item 146). Can be
+   *  negative on screen-heavy weeks (targets behind the line). */
+  airYards: number;
 }
 
 export interface WeeklyUsage {
@@ -76,6 +80,7 @@ export async function fetchWeeklyUsage(
         rushAtt: num(stats.rush_att),
         receptions: num(stats.rec),
         rzOpps: num(stats.rush_rz_att) + num(stats.rec_rz_tgt),
+        airYards: num(stats.rec_air_yd),
       };
     }
   }

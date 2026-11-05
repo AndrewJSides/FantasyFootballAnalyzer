@@ -15,7 +15,7 @@ function mockFetch(body: unknown, ok = true, status = 200) {
 describe('fetchWeeklyUsage', () => {
   it('maps per-week stats to usage lines for played weeks', async () => {
     mockFetch({
-      p1: { gp: 1, off_snp: 55, tm_off_snp: 70, rec_tgt: 8, rush_att: 2, rec: 6, rush_rz_att: 3, rec_rz_tgt: 2 },
+      p1: { gp: 1, off_snp: 55, tm_off_snp: 70, rec_tgt: 8, rush_att: 2, rec: 6, rush_rz_att: 3, rec_rz_tgt: 2, rec_air_yd: 96 },
       p2: { gp: 0, off_snp: 0, tm_off_snp: 70, rec_tgt: 0, rush_att: 0, rec: 0 },
     });
     const r = await fetchWeeklyUsage(2026, 1);
@@ -27,6 +27,7 @@ describe('fetchWeeklyUsage', () => {
       rushAtt: 2,
       receptions: 6,
       rzOpps: 5,
+      airYards: 96,
     });
     // gp 0 → no line recorded.
     expect(r?.usageBySleeperId.p2).toBeUndefined();
@@ -57,7 +58,8 @@ describe('fetchWeeklyUsage', () => {
       targets: 0,
       rushAtt: 0,
       receptions: 0,
-      rzOpps: 0,
+      rzOpps: 0, airYards: 0,
+      airYards: 0,
     });
   });
 

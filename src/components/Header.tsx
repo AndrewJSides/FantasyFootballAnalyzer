@@ -438,6 +438,14 @@ export function Header({
                   Red Zone
                 </Link>
                 <Link
+                  to="/air-yards"
+                  className={`${styles.navLink} ${location.pathname === '/air-yards' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/air-yards' ? 'page' : undefined}
+                >
+                  Air Yards
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -698,6 +706,14 @@ export function Header({
               aria-current={location.pathname === '/red-zone' ? 'page' : undefined}
             >
               Red Zone
+            </Link>
+            <Link
+              to="/air-yards"
+              className={`${styles.navLink} ${location.pathname === '/air-yards' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/air-yards' ? 'page' : undefined}
+            >
+              Air Yards
             </Link>
             <Link
               to="/watchlist"
