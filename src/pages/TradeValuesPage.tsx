@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PosBadge, TradeValueMovers } from '@/components';
 import { PositionalScarcity } from '@/components/PositionalScarcity';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { POOL } from '@/data/draftPool';
 import snapshotsJson from '@/data/tradeValueSnapshots.2026.json';
 import type { League } from '@/types';
@@ -159,6 +160,45 @@ function UpcomingCell({
         ) : null,
       )}
     </span>
+  );
+}
+
+// Item-142 Sleeper projection cell: Sleeper's own week-N projection next to
+// TraderApe's value, so a "fair" swap can be checked against the market
+// number. A pending or failed fetch just leaves dashes — the chart never
+// waits on it, and it never re-ranks anything.
+function SleeperCell({
+  player,
+  projections,
+  ready,
+  week,
+}: {
+  player: PoolPlayer;
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const sid = player.sleeperId;
+  const value = ready && sid ? projections?.[sid] : undefined;
+  if (value === undefined) {
+    return (
+      <td
+        className={styles.deltaNone}
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </td>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <td className={styles.valueCell} title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </td>
   );
 }
 
@@ -329,6 +369,29 @@ export function TradeValuesPage({
     };
   }, []);
 
+  // Sleeper projection column (backlog item 142): one no-auth request
+  // shared across the rows; silent degrade to dashes on failure.
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(league.season, chartWeek)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the chart still prices on its own values.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.season, chartWeek]);
+
   const rows = useMemo(() => {
     return buildTradeValueChart(pool.players, {
       league: valueLeague,
@@ -482,6 +545,11 @@ export function TradeValuesPage({
                     <th scope="col">Pos</th>
                     <th scope="col">NFL</th>
                     <th scope="col">Value</th>
+                    <th scope="col">
+                      <abbr title={`Sleeper's projected fantasy points for week ${chartWeek}`}>
+                        Sleeper
+                      </abbr>
+                    </th>
                     {auctionByPoolId && (
                       <th
                         scope="col"
@@ -524,6 +592,12 @@ export function TradeValuesPage({
                         </td>
                         <td>{row.player.team}</td>
                         <td className={styles.valueCell}>{row.value.toFixed(1)}</td>
+                        <SleeperCell
+                          player={row.player}
+                          projections={sleeperProjections}
+                          ready={sleeperReady}
+                          week={chartWeek}
+                        />
                         {auctionByPoolId && (
                           <td
                             title={`${row.player.name}: $${auctionByPoolId.get(row.player.id) ?? 0} of a $${auctionBudget?.toLocaleString()} auction budget`}
@@ -628,6 +702,8 @@ export function TradeValuesPage({
               weighs deals in auction dollars too.
             </>
           )}
+          {' '}Sleeper shows Sleeper&rsquo;s own week {chartWeek} projection
+          where published; a dash means no Sleeper line for that player.
           {' '}Next 3 shows each player&rsquo;s next three played weeks as
           matchup-difficulty chips (favorable/tough/neutral) on the same
           season-to-date averages as the weekly matchup ratings — a

@@ -120,6 +120,10 @@ describe('TradeValuesPage value-change deltas', () => {
     renderPage();
     const table = screen.getByRole('table', { name: /trade value chart/i });
     const row = within(table).getByRole('row', { name: /second back/i });
-    expect(within(row).getByText('—')).toBeInTheDocument();
+    // Scoped by the delta cell's title: the Sleeper column (item 142)
+    // renders its own dash in the same row.
+    expect(
+      within(row).getByTitle('Second Back was not on the Oct 29 baseline chart'),
+    ).toHaveTextContent('—');
   });
 });
