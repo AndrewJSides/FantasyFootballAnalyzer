@@ -94,7 +94,9 @@ function pickPlayer(pickerLabel: string, name: string) {
   const picker = screen.getByRole('region', { name: pickerLabel });
   const input = within(picker).getByLabelText(new RegExp(`Search for ${pickerLabel.toLowerCase()}`));
   fireEvent.change(input, { target: { value: name.slice(0, 6) } });
-  const button = within(picker).getByRole('button', { name: new RegExp(name) });
+  // Anchored on the Compare button: search rows now also carry a watchlist
+  // star whose name contains the player name (item 140).
+  const button = within(picker).getByRole('button', { name: new RegExp(`^Compare ${name}`) });
   fireEvent.click(button);
 }
 

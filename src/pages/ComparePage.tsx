@@ -16,6 +16,12 @@ import {
 } from '@/utils/playerCompare';
 import { currentWeekEstimate, matchupDataWeeks } from '@/utils/matchupRating';
 import { vorConfigFor } from '@/utils/projectionValues';
+import {
+  loadWatchlist,
+  saveWatchlist,
+  toggleWatchlistId,
+  WATCHLIST_MAX,
+} from '@/utils/watchlist';
 import { DEFAULT_MANUAL_SHAPE, valueLeagueFor } from '@/utils/tradeAnalysis';
 import styles from './ComparePage.module.css';
 
@@ -59,6 +65,8 @@ function PlayerPicker({
   excludeId,
   onPick,
   onClear,
+  watchedIds,
+  onToggleWatch,
 }: {
   idPrefix: string;
   title: string;
@@ -66,6 +74,8 @@ function PlayerPicker({
   excludeId: string | null;
   onPick: (p: PoolPlayer) => void;
   onClear: () => void;
+  watchedIds: string[];
+  onToggleWatch: (p: PoolPlayer) => void;
 }) {
   const [query, setQuery] = useState('');
   const exclude = useMemo(() => new Set(excludeId ? [excludeId] : []), [excludeId]);
@@ -82,9 +92,25 @@ function PlayerPicker({
             {picked.name} <PosBadge pos={picked.pos} />{' '}
             <span className={styles.pickedTeam}>{picked.team}</span>
           </span>
-          <button type="button" className={styles.removeButton} onClick={onClear} aria-label={`Clear ${title} selection`}>
-            Change
-          </button>
+          <span className={styles.pickedActions}>
+            <button
+              type="button"
+              className={styles.watchButton}
+              aria-pressed={watchedIds.includes(picked.id)}
+              aria-label={
+                watchedIds.includes(picked.id)
+                  ? `Remove ${picked.name} from watchlist`
+                  : `Add ${picked.name} to watchlist`
+              }
+              title={watchedIds.includes(picked.id) ? 'On your watchlist — tap to remove' : 'Tap to add to your watchlist'}
+              onClick={() => onToggleWatch(picked)}
+            >
+              <span aria-hidden="true">{watchedIds.includes(picked.id) ? '★' : '☆'}</span>
+            </button>
+            <button type="button" className={styles.removeButton} onClick={onClear} aria-label={`Clear ${title} selection`}>
+              Change
+            </button>
+          </span>
         </div>
       ) : (
         <>
@@ -107,7 +133,7 @@ function PlayerPicker({
           {results.length > 0 && (
             <ul className={styles.searchResults} aria-label={`Matching players for ${title}`}>
               {results.map(p => (
-                <li key={p.id}>
+                <li key={p.id} className={styles.searchResultRow}>
                   <button
                     type="button"
                     className={styles.searchResult}
@@ -119,6 +145,26 @@ function PlayerPicker({
                   >
                     {p.name} <PosBadge pos={p.pos} />{' '}
                     <span className={styles.resultTeam}>{p.team}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.watchButton}
+                    aria-pressed={watchedIds.includes(p.id)}
+                    aria-label={
+                      watchedIds.includes(p.id)
+                        ? `Remove ${p.name} from watchlist`
+                        : `Add ${p.name} to watchlist`
+                    }
+                    title={
+                      watchedIds.includes(p.id)
+                        ? 'On your watchlist — tap to remove'
+                        : 'Tap to add to your watchlist'
+                    }
+                    onClick={() => onToggleWatch(p)}
+                  >
+                    <span aria-hidden="true">
+                      {watchedIds.includes(p.id) ? '★' : '☆'}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -141,6 +187,34 @@ export function ComparePage({ league }: { league: League }) {
     Record<string, number> | undefined
   >(undefined);
   const [sleeperState, setSleeperState] = useState<WeeklyState>('loading');
+  // Item-140 watchlist toggles: the same localStorage list the /watchlist
+  // page reads (pool ids), so a toggle here shows up there immediately.
+  // Mirrors the Rankings / Weekly Rankings board columns.
+  const [watchedIds, setWatchedIds] = useState<string[]>([]);
+  const [watchAnnouncement, setWatchAnnouncement] = useState('');
+
+  useEffect(() => {
+    const valid = new Set(POOL.players.map(p => p.id));
+    setWatchedIds(loadWatchlist(id => valid.has(id)));
+  }, []);
+
+  const toggleWatch = (player: PoolPlayer) => {
+    const watched = watchedIds.includes(player.id);
+    const next = toggleWatchlistId(watchedIds, player.id);
+    if (next === watchedIds && !watched) {
+      setWatchAnnouncement(
+        `Watchlist is full (${WATCHLIST_MAX} players) — remove one from the Watchlist page first.`,
+      );
+      return;
+    }
+    saveWatchlist(next);
+    setWatchedIds(next);
+    setWatchAnnouncement(
+      watched
+        ? `Removed ${player.name} from your watchlist.`
+        : `Added ${player.name} to your watchlist.`,
+    );
+  };
 
   useEffect(() => {
     try {
@@ -227,6 +301,8 @@ export function ComparePage({ league }: { league: League }) {
             excludeId={idB}
             onPick={p => setIdA(p.id)}
             onClear={() => setIdA(null)}
+            watchedIds={watchedIds}
+            onToggleWatch={toggleWatch}
           />
           <PlayerPicker
             idPrefix="compare-b"
@@ -235,8 +311,20 @@ export function ComparePage({ league }: { league: League }) {
             excludeId={idA}
             onPick={p => setIdB(p.id)}
             onClear={() => setIdB(null)}
+            watchedIds={watchedIds}
+            onToggleWatch={toggleWatch}
           />
         </div>
+        {watchAnnouncement && (
+          <p className={styles.watchStatus} role="status" aria-live="polite">
+            {watchAnnouncement}
+          </p>
+        )}
+        <p className={styles.watchNote}>
+          Star a picked player — or a player in either search list — to add
+          them to your watchlist (same list as the Watchlist page, which
+          reflects the toggle immediately); tap again to remove.
+        </p>
 
         {weeklyState === 'loading' && (
           <p className={styles.status} role="status">
