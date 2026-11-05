@@ -7,8 +7,10 @@
 // order (positional-rank fallback); projections are Sleeper full-PPR
 // season projections. Guidance only: nothing here moves a roster.
 import { useEffect, useMemo, useState } from 'react';
+import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { POOL } from '@/data/draftPool';
 import { nflTeamInfo } from '@/data/nflTeams';
+import { currentWeekEstimate } from '@/utils/matchupRating';
 import type { League } from '@/types';
 import type { DraftPoolFile } from '@/types/draft';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
@@ -53,6 +55,44 @@ function projPts(player: DepthTeam['positions']['QB'][number]['player']): string
     : '—';
 }
 
+// Item-143 Sleeper projection cell: Sleeper's own week-N projection next to
+// the season figure, so a ladder row can be checked against this week's
+// market number. A pending or failed fetch just leaves dashes — the
+// ladders never wait on it.
+function SleeperCell({
+  player,
+  projections,
+  ready,
+  week,
+}: {
+  player: DepthTeam['positions']['QB'][number]['player'];
+  projections: Record<string, number> | undefined;
+  ready: boolean;
+  week: number;
+}) {
+  const sid = player.sleeperId;
+  const value = ready && sid ? projections?.[sid] : undefined;
+  if (value === undefined) {
+    return (
+      <td
+        aria-label={
+          ready
+            ? 'No Sleeper projection for this player'
+            : 'Sleeper projection not loaded'
+        }
+      >
+        —
+      </td>
+    );
+  }
+  const label = `Sleeper projection ${value.toFixed(1)} for week ${week}`;
+  return (
+    <td title={label} aria-label={label}>
+      {value.toFixed(1)}
+    </td>
+  );
+}
+
 export function DepthChartsPage({ league, pool = POOL }: DepthChartsPageProps) {
   useEffect(() => {
     document.title = 'Depth Charts · TraderApe';
@@ -65,6 +105,31 @@ export function DepthChartsPage({ league, pool = POOL }: DepthChartsPageProps) {
   const [owners] = useState(() =>
     isLeague ? leagueOwners(league, pool) : new Map<string, string>(),
   );
+
+  // Sleeper projection column (backlog item 143): one no-auth request
+  // shared across all team tables; silent degrade to dashes on failure.
+  const season = league?.season ?? pool.season;
+  const week = league?.currentWeek ?? currentWeekEstimate();
+  const [sleeperProjections, setSleeperProjections] = useState<
+    Record<string, number> | undefined
+  >(undefined);
+  const [sleeperReady, setSleeperReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSleeperWeekProjections(season, week)
+      .then(data => {
+        if (!cancelled) {
+          setSleeperProjections(data);
+          setSleeperReady(true);
+        }
+      })
+      .catch(() => {
+        // Silent degrade: dashes, the ladders still show season figures.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [season, week]);
   const teams = useMemo(
     () => buildDepthChart({ pool, ownerByPoolId: owners }),
     [pool, owners],
@@ -127,7 +192,8 @@ export function DepthChartsPage({ league, pool = POOL }: DepthChartsPageProps) {
               <table className={styles.table}>
                 <caption className="visually-hidden">
                   {teamLabel(team.nflTeam)} depth chart: ladder order,
-                  full-PPR season projection, and fantasy owner
+                  full-PPR season projection, Sleeper week {week} projection,
+                  and fantasy owner
                 </caption>
                 <thead>
                   <tr>
@@ -135,6 +201,7 @@ export function DepthChartsPage({ league, pool = POOL }: DepthChartsPageProps) {
                     <th scope="col">Depth</th>
                     <th scope="col">Player</th>
                     <th scope="col">Proj PPR</th>
+                    <th scope="col">Sleeper</th>
                     {isLeague && <th scope="col">Owner</th>}
                   </tr>
                 </thead>
@@ -154,6 +221,12 @@ export function DepthChartsPage({ league, pool = POOL }: DepthChartsPageProps) {
                           ) : null}
                         </td>
                         <td>{projPts(d.player)}</td>
+                        <SleeperCell
+                          player={d.player}
+                          projections={sleeperProjections}
+                          ready={sleeperReady}
+                          week={week}
+                        />
                         {isLeague && <td>{d.owner ?? 'Free agent'}</td>}
                       </tr>
                     )),
@@ -167,9 +240,11 @@ export function DepthChartsPage({ league, pool = POOL }: DepthChartsPageProps) {
         <p className={styles.footnote}>
           Order is Sleeper&apos;s depth-chart order from the bundled pool,
           falling back to positional rank where no depth-chart data exists.
-          Proj PPR is the Sleeper full-PPR season projection. Ownership
-          resolves against the loaded league; in guest mode no owners are
-          shown. Guidance only — nothing here moves a roster.
+          Proj PPR is the Sleeper full-PPR season projection. The Sleeper
+          column shows Sleeper&apos;s own week {week} projection where
+          published; a dash means no Sleeper line for that player.
+          Ownership resolves against the loaded league; in guest mode no
+          owners are shown. Guidance only — nothing here moves a roster.
         </p>
       </div>
     </div>
