@@ -526,6 +526,14 @@ export function Header({
                   First Downs
                 </Link>
                 <Link
+                  to="/touches"
+                  className={`${styles.navLink} ${location.pathname === '/touches' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/touches' ? 'page' : undefined}
+                >
+                  Touches
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -874,6 +882,14 @@ export function Header({
               aria-current={location.pathname === '/first-downs' ? 'page' : undefined}
             >
               First Downs
+            </Link>
+            <Link
+              to="/touches"
+              className={`${styles.navLink} ${location.pathname === '/touches' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/touches' ? 'page' : undefined}
+            >
+              Touches
             </Link>
             <Link
               to="/watchlist"
