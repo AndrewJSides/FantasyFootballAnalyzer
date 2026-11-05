@@ -77,6 +77,7 @@ const TouchesLeadersPage = lazyPage(() => import('@/pages/TouchesLeadersPage'), 
 const FantasyPointsLeadersPage = lazyPage(() => import('@/pages/FantasyPointsLeadersPage'), 'FantasyPointsLeadersPage');
 const SnapCountLeadersPage = lazyPage(() => import('@/pages/SnapCountLeadersPage'), 'SnapCountLeadersPage');
 const YardsPerTargetLeadersPage = lazyPage(() => import('@/pages/YardsPerTargetLeadersPage'), 'YardsPerTargetLeadersPage');
+const ReceivingYardsLeadersPage = lazyPage(() => import('@/pages/ReceivingYardsLeadersPage'), 'ReceivingYardsLeadersPage');
 const DepthChartsPage = lazyPage(() => import('@/pages/DepthChartsPage'), 'DepthChartsPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
@@ -191,6 +192,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/fantasy-points': 'Fantasy Points Leaders',
   '/snap-counts': 'Snap Count Leaders',
   '/yards-per-target': 'Yards / Target Leaders',
+  '/receiving-yards': 'Receiving Yards Leaders',
   '/depth-charts': 'Depth Charts',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
@@ -1104,6 +1106,7 @@ function App() {
           <Route path="/fantasy-points" element={<FantasyPointsLeadersPage />} />
           <Route path="/snap-counts" element={<SnapCountLeadersPage />} />
           <Route path="/yards-per-target" element={<YardsPerTargetLeadersPage />} />
+          <Route path="/receiving-yards" element={<ReceivingYardsLeadersPage />} />
           {/* NFL depth charts are league-independent: the bundled pool's
               depth order, no auth — the same page for league and guest
               visitors. The page takes the league when one is loaded so it
