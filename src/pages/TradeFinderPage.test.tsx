@@ -294,6 +294,40 @@ describe('TradeFinderPage', () => {
     expect(decodeURIComponent(href)).toContain('"tb":"b"');
   });
 
+  it('proposes a three-team cycle where no two-team fix closes the circle', () => {
+    renderPage(
+      league([
+        team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'WR40', 'TE20']),
+        team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+        team('c', 'Team C', ['QB3', 'RB45', 'WR41', 'WR46', 'TE1', 'TE2', 'TE3']),
+        team('d', 'Team D', ['QB4', 'RB5', 'RB6', 'WR7', 'WR8', 'TE5']),
+      ]),
+    );
+    const list = screen.getByRole('list', { name: 'Proposed three-team trades' });
+    expect(list).toBeInTheDocument();
+    // The RB -> WR -> TE circle renders both flow directions of the same
+    // three players — each team gives depth and gains a starter either way.
+    const articles = screen.getAllByRole('article', { name: /Three-team trade: Team A/ });
+    expect(articles.length).toBe(2);
+    expect(screen.getByText('Team A sends RB2 to Team B')).toBeInTheDocument();
+    expect(screen.getByText('Team B sends WR2 to Team C')).toBeInTheDocument();
+    expect(screen.getByText('Team C sends TE2 to Team A')).toBeInTheDocument();
+    expect(screen.getAllByText(/Total starter gain \+100 VOR/).length).toBe(2);
+  });
+
+  it('shows an honest empty state for three-team trades when no circle lines up', () => {
+    renderPage(
+      league([
+        team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'WR1', 'WR2', 'WR3', 'TE1']),
+        team('b', 'Team B', ['QB2', 'RB4', 'RB5', 'RB6', 'WR4', 'WR5', 'WR6', 'TE2']),
+        team('c', 'Team C', ['QB3', 'RB7', 'RB8', 'RB9', 'WR7', 'WR8', 'WR9', 'TE3']),
+        team('d', 'Team D', ['QB4', 'RB10', 'RB11', 'RB12', 'WR10', 'WR11', 'WR12', 'TE4']),
+      ]),
+    );
+    expect(screen.queryByRole('list', { name: 'Proposed three-team trades' })).not.toBeInTheDocument();
+    expect(screen.getByText(/No three-team fits right now/)).toBeInTheDocument();
+  });
+
   it('renders the empty state when no pair lines up', () => {
     renderPage(
       league([

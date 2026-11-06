@@ -13,6 +13,11 @@ import {
   teamProfiles,
   type TradeCandidate,
 } from '@/utils/tradeFinder';
+import {
+  cycleFlowLabel,
+  findThreeTeamCycles,
+  type ThreeTeamCycle,
+} from '@/utils/threeTeamTrades';
 import { shopOffers } from '@/utils/shopPlayer';
 import { partnerDealLine, rankTradePartners } from '@/utils/tradePartners';
 import { tradeLink } from '@/utils/tradeLinks';
@@ -44,6 +49,9 @@ interface TradeFinderPageProps {
 // are fair on paper (within 25% on VOR) AND leave neither team's starting
 // value worse are proposed. Each card deep-links into the Trade Analyzer
 // with the pairing pre-filled for a full breakdown.
+//
+// Three-team trades (backlog item 172) sit below the pair swaps: cycles
+// where no two teams match up directly, ranked on total starter gain.
 //
 // Guest mode (backlog item 3 remainder): visitors with no connected league
 // enter their own roster plus one trade partner's roster, and the same scan
@@ -191,6 +199,105 @@ function CandidateList({
         </ul>
       )}
     </>
+  );
+}
+
+// Three-team trades (backlog item 172): deals no two teams can close on
+// their own — each team gives bench depth it can spare and gets a better
+// starter at a position it needs, around a three-way circle. League mode
+// only: cycles need 3+ teams, so guest mode (two synthetic teams) has none
+// and this section never renders there. A three-team deal can't deep-link
+// into the two-team Trade Analyzer, so each card states the exact split to
+// propose in the league's trade talks.
+function ThreeTeamCycles({
+  cycles,
+  sleeperProjections,
+  sleeperReady,
+  week,
+}: {
+  cycles: ThreeTeamCycle[];
+  sleeperProjections: Record<string, number> | undefined;
+  sleeperReady: boolean;
+  week: number;
+}) {
+  return (
+    <section className={styles.shop} aria-label="Three-team trades">
+      <h2 className={styles.shopTitle}>Three-team trades</h2>
+      <p className={styles.shopIntro}>
+        When no two teams match up directly, a third team can close the
+        circle: each team gives bench depth it can spare and gets a better
+        starter at a position it needs.
+      </p>
+
+      {cycles.length === 0 ? (
+        <p className={styles.partnerEmpty}>
+          No three-team fits right now — no three-way circle of needs and
+          depth lines up.
+        </p>
+      ) : (
+        <>
+          <p className={styles.intro} aria-live="polite">
+            {cycles.length} three-team deal{cycles.length === 1 ? '' : 's'}:
+            each team gives from a position it can spare and receives at a
+            position it needs.
+          </p>
+
+          <ul className={styles.cards} aria-label="Proposed three-team trades">
+            {cycles.map((cycle, i) => (
+              <li key={cycleFlowLabel(cycle) + i} className={styles.card}>
+                <article
+                  aria-label={`Three-team trade: ${cycleFlowLabel(cycle)}`}
+                >
+                  <h3 className={styles.pairing}>{cycleFlowLabel(cycle)}</h3>
+
+                  <ol
+                    className={styles.cycleLegs}
+                    aria-label="How the players move"
+                  >
+                    {cycle.legs.map(leg => (
+                      <li
+                        key={`${leg.giver.id}-${leg.player.id}`}
+                        className={styles.player}
+                      >
+                        <PosBadge pos={leg.player.pos} />
+                        <span className={styles.playerName}>
+                          {leg.giver.name} sends {leg.player.name} to{' '}
+                          {leg.receiver.name}
+                        </span>
+                        <span className={styles.vor}>
+                          {round1(leg.playerVor)} VOR
+                        </span>
+                        <SleeperValue
+                          player={leg.player}
+                          projections={sleeperProjections}
+                          ready={sleeperReady}
+                          week={week}
+                        />
+                      </li>
+                    ))}
+                  </ol>
+
+                  <ul
+                    className={styles.reasons}
+                    aria-label="Why this three-team deal works"
+                  >
+                    {cycle.reasons.map((r, ri) => (
+                      <li key={ri}>{r}</li>
+                    ))}
+                  </ul>
+
+                  <p className={styles.cycleNote}>
+                    A three-team deal can&apos;t open in the two-team Trade
+                    Analyzer — propose this exact split in your league&apos;s
+                    trade talks.
+                  </p>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -693,6 +800,10 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
     () => (league && !league.isGuest ? findTradeCandidates(league) : []),
     [league],
   );
+  const cycles = useMemo(
+    () => (league && !league.isGuest ? findThreeTeamCycles(league) : []),
+    [league],
+  );
   const currentWeek = useMemo(
     () =>
       league && !league.isGuest
@@ -841,6 +952,13 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           week={currentWeek}
         />
 
+        <ThreeTeamCycles
+          cycles={cycles}
+          sleeperProjections={sleeperProjections}
+          sleeperReady={sleeperReady}
+          week={currentWeek}
+        />
+
         <TeamNeedsMatrix profiles={profiles} />
 
         <section className={styles.shop} aria-label="Shop a player">
@@ -973,6 +1091,10 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           every starter untouched, while star-for-star swaps are allowed only
           when each team nets an upgrade at its starting lineup. Needs and
           surplus are priced against the league median at each position.
+          Three-team deals use the same need/surplus gates but rank on total
+          starter gain instead of a VOR band — in a three-way circle there is
+          no pairwise price to balance, since the same three players
+          circulate and each side trades a bench piece for a better starter.
           The dim number beside each VOR is Sleeper's own week-{currentWeek}
           projection where published; a dash means no Sleeper line for that
           player, and the proposal counts VOR rows only.

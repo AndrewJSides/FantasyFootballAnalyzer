@@ -138,6 +138,25 @@
 }
 .analyze:hover { text-decoration: underline; }
 
+/* Three-team trades (backlog item 172): the legs flow in a circle, one
+   player per leg, so each row reads as giver -> receiver. */
+.cycleLegs {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.cycleLegs li { border-bottom: 1px dashed var(--bone-dim); }
+.cycleLegs li:last-child { border-bottom: none; }
+
+.cycleNote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--bone-dim);
+  margin: 0;
+}
+
 /* Shop a player (backlog item 90): the reverse trade lookup. */
 .shop {
   margin: 3rem 0 2.5rem;
