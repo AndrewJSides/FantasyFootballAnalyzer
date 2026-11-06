@@ -80,6 +80,7 @@ const YardsPerTargetLeadersPage = lazyPage(() => import('@/pages/YardsPerTargetL
 const ReceivingYardsLeadersPage = lazyPage(() => import('@/pages/ReceivingYardsLeadersPage'), 'ReceivingYardsLeadersPage');
 const RushingYardsLeadersPage = lazyPage(() => import('@/pages/RushingYardsLeadersPage'), 'RushingYardsLeadersPage');
 const ReceptionsLeadersPage = lazyPage(() => import('@/pages/ReceptionsLeadersPage'), 'ReceptionsLeadersPage');
+const PassingTdLeadersPage = lazyPage(() => import('@/pages/PassingTdLeadersPage'), 'PassingTdLeadersPage');
 const DepthChartsPage = lazyPage(() => import('@/pages/DepthChartsPage'), 'DepthChartsPage');
 const WatchlistPage = lazyPage(() => import('@/pages/WatchlistPage'), 'WatchlistPage');
 import { useLeague } from '@/hooks/useLeague';
@@ -197,6 +198,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/receiving-yards': 'Receiving Yards Leaders',
   '/rushing-yards': 'Rushing Yards Leaders',
   '/receptions': 'Receptions Leaders',
+  '/passing-touchdowns': 'Passing Touchdowns Leaders',
   '/depth-charts': 'Depth Charts',
   '/watchlist': 'Watchlist',
   '/trade-analyzer': 'Trade Analyzer',
@@ -1113,6 +1115,7 @@ function App() {
           <Route path="/receiving-yards" element={<ReceivingYardsLeadersPage />} />
           <Route path="/rushing-yards" element={<RushingYardsLeadersPage />} />
           <Route path="/receptions" element={<ReceptionsLeadersPage />} />
+          <Route path="/passing-touchdowns" element={<PassingTdLeadersPage />} />
           {/* NFL depth charts are league-independent: the bundled pool's
               depth order, no auth — the same page for league and guest
               visitors. The page takes the league when one is loaded so it

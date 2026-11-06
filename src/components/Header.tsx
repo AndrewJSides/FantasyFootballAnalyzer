@@ -582,6 +582,14 @@ export function Header({
                   Receptions
                 </Link>
                 <Link
+                  to="/passing-touchdowns"
+                  className={`${styles.navLink} ${location.pathname === '/passing-touchdowns' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/passing-touchdowns' ? 'page' : undefined}
+                >
+                  Passing TDs
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -986,6 +994,14 @@ export function Header({
               aria-current={location.pathname === '/receptions' ? 'page' : undefined}
             >
               Receptions
+            </Link>
+            <Link
+              to="/passing-touchdowns"
+              className={`${styles.navLink} ${location.pathname === '/passing-touchdowns' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/passing-touchdowns' ? 'page' : undefined}
+            >
+              Passing TDs
             </Link>
             <Link
               to="/watchlist"
