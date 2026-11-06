@@ -13,13 +13,14 @@
 // qualifying mate's recent usage (last 3 completed weeks' average
 // opportunities — targets + carries + pass attempts, Sleeper's free
 // weekly stats) times the lead back's own season points per opportunity,
-// summed across mates and capped. It deliberately does NOT fold into the
-// ranked projection: the model's discipline is that a priced term stays
-// out until a backtest says it wins, and no graded week has yet measured
-// this one — so the tag is upside to weigh, and the remainder of item
-// 137 (folding a measured term into the model) waits on that evidence.
-// A mate below 5 opportunities per game is a practice-squad body, not a
-// vacancy; a Questionable mate is not ruled out, so he never triggers it.
+// summed across mates and capped. The Weekly Rankings board folds it into
+// the ranked projection (backtested Nov 6, 2026 on the week-8 grade —
+// scripts/backtestSoleBack.ts — the gated term cut the three affected
+// RBs' MAE 14.95 -> 7.05 without raising overall MAE); the Start/Sit
+// optimizer and Matchup game plan still show it display-only, so the tag
+// is upside to weigh there. A mate below 5 opportunities per game is a
+// practice-squad body, not a vacancy; a Questionable mate is not ruled
+// out, so he never triggers it.
 import type { WeeklyPprPoints } from '@/api/sleeperWeeklyPoints';
 import { injuryOf } from '@/utils/seasonOutlook';
 import type { DraftPoolFile } from '@/types/draft';

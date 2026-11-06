@@ -18,6 +18,7 @@
     "fetch:matchups": "tsx scripts/buildMatchupRatings.ts",
     "fetch:gametimes": "tsx scripts/buildGameTimes.ts",
     "backtest:projections": "tsx scripts/backtestProjections.ts",
+    "backtest:sole-back": "tsx scripts/backtestSoleBack.ts",
     "grade:predictions": "tsx scripts/gradePredictions.ts",
     "update:rankings": "npm run fetch:rankings && npm run build:draft-data && npm run build:weekly-shape",
     "lint": "eslint .",

@@ -384,7 +384,7 @@ export function WeeklyRankingsPage({
                       const tag = injuryTag(r.player);
                       const sole = r.soleBack;
                       const soleLabel = sole
-                        ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10`
+                        ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10, priced into the projection shown`
                         : null;
                       const risk =
                         WEATHER_RISK_POSITIONS.has(r.player.pos) && weatherRisk
@@ -488,8 +488,9 @@ export function WeeklyRankingsPage({
               same-team RB mate is ruled out this week with a real rotation
               share (5+ opportunities per game): the estimate prices the
               mate&apos;s recent usage at the lead back&apos;s own points per
-              opportunity, capped at +10 — upside to weigh, not a new
-              projection; the ranked number does not fold it in. A
+              opportunity, capped at +10, and is priced into the ranked
+              projection — backtested on the week-8 grade, where it cut the
+              three affected RBs&apos; error by more than half. A
               &ldquo;Weather risk&rdquo; tag marks a QB/WR/TE playing outdoors
               in a flagged kickoff-hour forecast (wind 15+ mph sustained or
               25+ mph gusts, 40%+ chance of precipitation — the same

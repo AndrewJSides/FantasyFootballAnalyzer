@@ -252,7 +252,7 @@ describe('buildWeeklyRankings', () => {
     expect(rows.map(r => r.player.id)).toEqual(['a']);
   });
 
-  it('attaches sole-back info when a same-team RB mate is ruled out (item 137)', () => {
+  it('folds the sole-back upside into the ranked projection (item 137)', () => {
     const pool = {
       players: [
         player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB', team: 'TEN' }),
@@ -277,12 +277,63 @@ describe('buildWeeklyRankings', () => {
         's-b': { 1: 6, 2: 6, 3: 6, 4: 6 },
       },
     } as WeeklyPprPoints;
-    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    // Control: Beta healthy, so no vacancy — Alpha's base projection.
+    const healthyPool = {
+      players: pool.players.map(p =>
+        p.id === 'b' ? player({ ...p, injuryStatus: undefined }) : p,
+      ),
+      season: SEASON,
+    } as DraftPoolFile;
+    const base = buildWeeklyRankings({ pool: healthyPool, weekly: wk, currentWeek: 5 }).find(
+      r => r.player.id === 'a',
+    )!;
     // Ruled-out Beta is excluded; Alpha carries the vacancy, and the
-    // ranked projection is untouched by it.
+    // ranked projection prices it in (base + 4.8).
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
     expect(rows.map(r => r.player.id)).toEqual(['a']);
     expect(rows[0].soleBack).toEqual({ mates: ['Beta'], upside: 4.8 });
-    expect(rows[0].projection).toBeGreaterThan(0);
+    expect(rows[0].projection).toBe(
+      Math.round((base.projection! + 4.8) * 10) / 10,
+    );
+  });
+
+  it('ranks on the folded projection, so a sole back can outrank a higher base (item 137)', () => {
+    const pool = {
+      players: [
+        player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB', team: 'TEN' }),
+        player({
+          id: 'b',
+          name: 'Beta',
+          sleeperId: 's-b',
+          pos: 'RB',
+          team: 'TEN',
+          injuryStatus: 'Out',
+        }),
+        // Gamma scores ~1 pt/week more than Alpha on base form, on a team
+        // with no vacancy — so he leads on base, and trails once the
+        // +4.8 sole-back term is priced in.
+        player({ id: 'g', name: 'Gamma', sleeperId: 's-g', pos: 'RB', team: 'KC' }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = {
+      ...weekly(
+        {
+          's-a': { 1: 8, 2: 16, 3: 8, 4: 16 },
+          's-b': { 1: 5, 2: 5, 3: 5, 4: 5 },
+          's-g': { 1: 9, 2: 17, 3: 9, 4: 17 },
+        },
+        { 's-a': [1, 2, 3, 4], 's-b': [1, 2, 3, 4], 's-g': [1, 2, 3, 4] },
+      ),
+      usageBySleeperId: {
+        's-a': { 1: 10, 2: 20, 3: 10, 4: 20 },
+        's-b': { 1: 6, 2: 6, 3: 6, 4: 6 },
+      },
+    } as WeeklyPprPoints;
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    expect(rows.map(r => r.player.id)).toEqual(['a', 'g']);
+    expect(rows[0].posRank).toBe(1);
+    expect(rows[0].projection).toBeGreaterThan(rows[1].projection!);
   });
 
   it('excludes the in-progress week from the consistency verdict', () => {

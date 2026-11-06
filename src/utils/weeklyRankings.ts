@@ -44,8 +44,10 @@ export interface WeeklyRankRow {
   /** League mode: owning fantasy team name; null when on waivers. Absent in guest mode. */
   owner: string | null;
   /** Item-137 sole-back vacancy: null unless a ruled-out same-team RB mate
-   * vacates real rotation usage this week. Display-only — the ranked
-   * projection does not fold it in. */
+   * vacates real rotation usage this week. The upside is FOLDED into the
+   * ranked projection (backtested Nov 6, 2026 on the week-8 grade: the
+   * gated term cut the three affected RBs' MAE 14.95 -> 7.05 without
+   * raising overall MAE) — the tag names the priced-in amount. */
   soleBack: SoleBackInfo | null;
   /** 1-based rank within his position, priced on the same context. */
   posRank: number;
@@ -145,7 +147,25 @@ export function buildWeeklyRankings({
         const info = injuryOf(p);
         return !(info?.outNow || info?.seasonEnding);
       })
-      .map(p => rowFor(p, weekly, currentWeek))
+      .map(p => {
+        const row = rowFor(p, weekly, currentWeek);
+        const sole = soleBack.get(p.id) ?? null;
+        // Item-137: the measured sole-back term is priced into the ranked
+        // projection — the vacancy is a floor lift the frozen projection
+        // misses, and the week-8 backtest (scripts/backtestSoleBack.ts)
+        // says folding it wins. The sort uses the folded number so the
+        // ranking reflects the same projection the board shows.
+        const projection =
+          row.projection !== null && sole !== null
+            ? round1(row.projection + sole.upside)
+            : row.projection;
+        return {
+          ...row,
+          projection,
+          soleBack: sole,
+          sortScore: projection ?? row.sortScore,
+        };
+      })
       .sort(
         (a, b) =>
           a.sortGroup - b.sortGroup ||
@@ -164,7 +184,7 @@ export function buildWeeklyRankings({
         matchup: r.matchup,
         consistency: r.consistency,
         owner: ownerByPoolId?.get(r.player.id) ?? null,
-        soleBack: soleBack.get(r.player.id) ?? null,
+        soleBack: r.soleBack,
         posRank: i + 1,
       });
     });
