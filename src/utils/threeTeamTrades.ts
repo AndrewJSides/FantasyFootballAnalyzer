@@ -5,21 +5,32 @@
 // three-team finder; this is TraderApe's edge, built from its own VOR
 // model + team profiles, no copied content.
 //
-// A cycle is three directed legs A -> B -> C -> A, one player per leg. Each
+// A cycle is three directed legs A -> B -> C -> A, one player per leg —
+// except a 'package' leg, which moves TWO depth pieces (see below). Each
 // leg reuses the pair finder's gates: the giver is deep (surplus) at the
 // position and the receiver genuinely needs that position (best below the
 // league median) and gets a better starter out of it (starter gain > 0).
 // A leg moves either the giver's second-best depth piece (kind 'depth',
 // the v1 shape) or its positional STAR (kind 'star'): a star leg only fires
 // when the star beats the receiver's best — the classic "my RB1 for your
-// WR1" need swap, folded into the circle. The giver keeps starter cover
-// either way: the `surplus` flag guarantees giving the second-best leaves
-// demand covered, and giving the star leaves the second-best (positive VOR)
-// as the new best with startable-1 still >= demand. Star legs are named in
-// the reasons with the fallback, so the cost is visible, and cycles are
+// WR1" need swap, folded into the circle. A 'package' leg (the 2-for-1
+// remainder) moves the giver's second- AND third-best at the position: it
+// only fires when BOTH pieces beat the receiver's current best, so the
+// receiver gains a better starter AND a better second-best (depth gain =
+// third-best VOR minus the receiver's best, strictly positive by the gate).
+// The giver keeps starter cover either way: the `surplus` flag guarantees
+// giving the second-best leaves demand covered, giving the star leaves the
+// second-best (positive VOR) as the new best with startable-1 still >=
+// demand, and a package leg requires startable > demand + 1, so giving two
+// still leaves demand covered with the star in place. Star legs are named
+// in the reasons with the fallback, package legs with the extra piece and
+// the freed bench spot, so the cost is visible, and cycles are
 // de-duplicated by deal shape (giver/receiver/position per leg) keeping the
-// best star/depth variant — four near-identical micro-variants of one deal
-// never crowd the list.
+// best star/depth/package variant — four near-identical micro-variants of
+// one deal never crowd the list. Ranking is by score = total starter gain
+// + total depth gain, so a package variant only beats the 1-for-1 of the
+// same shape when its extra piece genuinely deepens the receiver's bench;
+// totalGain stays the sum of starter gains, the headline number.
 //
 // Fairness is deliberately NOT the pair finder's +/-25% VOR band: in a
 // three-way deal there is no pairwise price to balance — the same three
@@ -45,7 +56,7 @@ import {
   type ValueLeague,
   type VorConfig,
 } from './projectionValues';
-import { teamProfiles } from './tradeFinder';
+import { demandFor, teamProfiles } from './tradeFinder';
 import { valueLeagueFor, type PositionKey } from './tradeAnalysis';
 
 const POSITIONS: PositionKey[] = ['QB', 'RB', 'WR', 'TE'];
@@ -61,8 +72,11 @@ export interface CycleLeg {
   /** The player moving along this leg: a surplus depth piece or a star. */
   player: PoolPlayer;
   position: PositionKey;
-  /** 'depth' moves the giver's second-best; 'star' moves its positional best. */
-  kind: 'depth' | 'star';
+  /**
+   * 'depth' moves the giver's second-best; 'star' moves its positional
+   * best; 'package' moves its second- AND third-best (extraPlayer).
+   */
+  kind: 'depth' | 'star' | 'package';
   playerVor: number;
   /** Receiver's best VOR at the position before the trade. */
   receiverBestBefore: number;
@@ -71,13 +85,25 @@ export interface CycleLeg {
   /** Star legs only: who the giver falls back to at the position. */
   fallbackName?: string;
   fallbackVor?: number;
+  /** Package legs only: the second depth piece moving on this leg. */
+  extraPlayer?: PoolPlayer;
+  extraPlayerVor?: number;
+  /**
+   * Package legs only: extraPlayerVor - receiverBestBefore — how much
+   * the extra piece lifts the receiver's second-best over the 1-for-1
+   * variant. Strictly positive by the firing gate.
+   */
+  depthGain?: number;
 }
 
 export interface ThreeTeamCycle {
   /** Legs in flow order: legs[0] A -> B, legs[1] B -> C, legs[2] C -> A. */
   legs: [CycleLeg, CycleLeg, CycleLeg];
-  /** Sum of the three starter gains — the cycle's ranking score. */
+  /** Sum of the three starter gains — the cycle's headline number. */
   totalGain: number;
+  /** Sum of the package legs' depth gains (0 when no leg is a package). */
+  totalDepthGain: number;
+  /** Ranking score: totalGain + totalDepthGain. */
   score: number;
   reasons: string[];
 }
@@ -105,10 +131,11 @@ export function findThreeTeamCycles(
 
   // Directed edges: giver -> receiver at one position, priced on the
   // giver's surplus depth at a position the receiver needs, where the
-  // piece beats the receiver's current best. Two variants per
-  // giver/receiver/position: the second-best depth piece, and the star —
-  // the star only fires when it beats the receiver's best too, and the
-  // giver keeps cover either way (see the header note).
+  // piece beats the receiver's current best. Three variants per
+  // giver/receiver/position: the second-best depth piece, the star, and
+  // the 2-for-1 package (second- + third-best) — the star only fires when
+  // it beats the receiver's best too, and the giver keeps cover either
+  // way (see the header note).
   const edges: Edge[] = [];
   for (const giver of profiles) {
     for (const receiver of profiles) {
@@ -147,6 +174,48 @@ export function findThreeTeamCycles(
             },
           });
         }
+        // 2-for-1 package leg: the giver sends its second- AND third-best
+        // at p, so the receiver gains a better starter and a better
+        // second-best. Both pieces must beat the receiver's current best
+        // (otherwise the extra piece adds nothing over the 1-for-1), and
+        // the giver must keep starter cover after losing TWO pieces
+        // (startable > demand + 1 — the surplus flag only covers one).
+        // The star never moves on a package leg, mirroring the pair
+        // finder's 2-for-1 rule.
+        const second = chart[1];
+        const third = chart[2];
+        if (second && third) {
+          const secondVor = round1(vor.get(second.id) ?? 0);
+          const thirdVor = round1(vor.get(third.id) ?? 0);
+          const starterGain = round1(secondVor - receiverBestBefore);
+          const depthGain = round1(thirdVor - receiverBestBefore);
+          if (
+            secondVor > 0 &&
+            thirdVor > 0 &&
+            starterGain > 0 &&
+            depthGain > 0 &&
+            giver.positions[p].startable >
+              demandFor(p, valueLeague.rosterSlots) + 1
+          ) {
+            edges.push({
+              giverId: giver.team.id,
+              receiverId: receiver.team.id,
+              leg: {
+                giver: giver.team,
+                receiver: receiver.team,
+                player: second,
+                position: p,
+                kind: 'package',
+                playerVor: secondVor,
+                receiverBestBefore,
+                starterGain,
+                extraPlayer: third,
+                extraPlayerVor: thirdVor,
+                depthGain,
+              },
+            });
+          }
+        }
       }
     }
   }
@@ -161,8 +230,8 @@ export function findThreeTeamCycles(
   }
 
   // One cycle per deal shape (giver/receiver/position per leg), keeping
-  // the best star/depth variant: the same three teams trading the same
-  // three positions is one deal, not four micro-variants.
+  // the best star/depth/package variant: the same three teams trading the
+  // same three positions is one deal, not four micro-variants.
   const bestByShape = new Map<string, ThreeTeamCycle>();
   const ids = profiles.map(p => p.team.id);
   for (let i = 0; i < ids.length; i++) {
@@ -194,18 +263,25 @@ export function findThreeTeamCycles(
               const totalGain = round1(
                 legs.reduce((sum, l) => sum + l.starterGain, 0),
               );
+              const totalDepthGain = round1(
+                legs.reduce((sum, l) => sum + (l.depthGain ?? 0), 0),
+              );
               const reasons = legs.map(l =>
                 l.kind === 'star'
                   ? `${l.giver.name} sends its ${l.position} star ${l.player.name} (${l.playerVor} VOR) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} VOR — ${l.giver.name} falls back to ${l.fallbackName} (${l.fallbackVor} VOR) at ${l.position}.`
-                  : `${l.giver.name} sends ${l.player.name} (${l.position}, ${l.playerVor} VOR) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} VOR.`,
+                  : l.kind === 'package'
+                    ? `${l.giver.name} sends ${l.player.name} (${l.playerVor} VOR) and ${l.extraPlayer?.name} (${l.extraPlayerVor} VOR) to ${l.receiver.name} — a 2-for-1 at ${l.position}: the starter upgrades from ${l.receiverBestBefore} to ${l.playerVor} VOR and the bench deepens by +${l.depthGain} VOR, while ${l.giver.name} frees a bench spot.`
+                    : `${l.giver.name} sends ${l.player.name} (${l.position}, ${l.playerVor} VOR) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} VOR.`,
               );
+              const hasPackage = legs.some(l => l.kind === 'package');
               reasons.push(
-                `Total starter gain +${totalGain} VOR across the three teams — each side gives a player it can spare and gets a better starter.`,
+                `Total starter gain +${totalGain} VOR${totalDepthGain > 0 ? `, plus +${totalDepthGain} VOR of bench depth` : ''} across the three teams — each side gives ${hasPackage ? 'players it can spare' : 'a player it can spare'} and gets a better starter.`,
               );
               const cycle: ThreeTeamCycle = {
                 legs,
                 totalGain,
-                score: totalGain,
+                totalDepthGain,
+                score: round1(totalGain + totalDepthGain),
                 reasons,
               };
               const prev = bestByShape.get(shape);

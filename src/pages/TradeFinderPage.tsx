@@ -226,9 +226,9 @@ function ThreeTeamCycles({
       <h2 className={styles.shopTitle}>Three-team trades</h2>
       <p className={styles.shopIntro}>
         When no two teams match up directly, a third team can close the
-        circle: each team gives a player it can spare — bench depth, or a
-        star at a position it can cover — and gets a better starter at a
-        position it needs.
+        circle: each team gives a player it can spare — bench depth, a
+        two-player package, or a star at a position it can cover — and
+        gets a better starter at a position it needs.
       </p>
 
       {cycles.length === 0 ? (
@@ -263,8 +263,11 @@ function ThreeTeamCycles({
                       >
                         <PosBadge pos={leg.player.pos} />
                         <span className={styles.playerName}>
-                          {leg.giver.name} sends {leg.player.name} to{' '}
-                          {leg.receiver.name}
+                          {leg.giver.name} sends {leg.player.name}
+                          {leg.kind === 'package' && leg.extraPlayer
+                            ? ` and ${leg.extraPlayer.name}`
+                            : ''}{' '}
+                          to {leg.receiver.name}
                         </span>
                         {leg.kind === 'star' ? (
                           <span
@@ -274,8 +277,18 @@ function ThreeTeamCycles({
                             Star
                           </span>
                         ) : null}
+                        {leg.kind === 'package' && leg.extraPlayer ? (
+                          <span
+                            className={styles.packageBadge}
+                            title={`${leg.giver.name} sends two ${leg.position} depth pieces — ${leg.player.name} and ${leg.extraPlayer.name} — and frees a bench spot`}
+                          >
+                            2-for-1
+                          </span>
+                        ) : null}
                         <span className={styles.vor}>
-                          {round1(leg.playerVor)} VOR
+                          {leg.kind === 'package' && leg.extraPlayerVor !== undefined
+                            ? `${round1(leg.playerVor)} + ${round1(leg.extraPlayerVor)} VOR`
+                            : `${round1(leg.playerVor)} VOR`}
                         </span>
                         <SleeperValue
                           player={leg.player}
@@ -283,6 +296,14 @@ function ThreeTeamCycles({
                           ready={sleeperReady}
                           week={week}
                         />
+                        {leg.kind === 'package' && leg.extraPlayer ? (
+                          <SleeperValue
+                            player={leg.extraPlayer}
+                            projections={sleeperProjections}
+                            ready={sleeperReady}
+                            week={week}
+                          />
+                        ) : null}
                       </li>
                     ))}
                   </ol>

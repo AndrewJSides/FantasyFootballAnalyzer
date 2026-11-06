@@ -320,6 +320,22 @@ describe('TradeFinderPage', () => {
     expect(badges[0].getAttribute('title')).toMatch(/falls back to RB2/);
   });
 
+  it('flags a 2-for-1 package leg in a three-team cycle', () => {
+    renderPage(
+      league([
+        team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'RB7', 'WR40', 'TE20']),
+        team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+        team('c', 'Team C', ['QB3', 'RB45', 'WR41', 'WR46', 'TE1', 'TE2', 'TE3']),
+        team('d', 'Team D', ['QB4', 'RB5', 'RB6', 'WR7', 'WR8', 'TE5']),
+      ]),
+    );
+    // A is five-deep at RB, so the A -> B leg moves RB2 and RB3 together.
+    expect(screen.getByText('Team A sends RB2 and RB3 to Team B')).toBeInTheDocument();
+    const badges = screen.getAllByText('2-for-1');
+    expect(badges.length).toBeGreaterThan(0);
+    expect(badges[0].getAttribute('title')).toMatch(/frees a bench spot/);
+  });
+
   it('shows an honest empty state for three-team trades when no circle lines up', () => {
     renderPage(
       league([

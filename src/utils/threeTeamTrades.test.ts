@@ -165,6 +165,97 @@ describe('findThreeTeamCycles', () => {
     expect(vor.get(aRb.depthChart[1].id) ?? 0).toBeLessThanOrEqual(bRb.best);
   });
 
+  it('finds 2-for-1 package legs when a team is deep enough to give two pieces and keep cover', () => {
+    const pool = makePool();
+    // A is five-deep at RB (RB7 is the fifth startable piece): giving its
+    // second- and third-best still leaves RB1 + RB4 + RB7 covering RB2 +
+    // FLEX demand, so the A -> B leg can move two pieces.
+    const deep = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'RB7', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB45', 'WR41', 'WR46', 'TE1', 'TE2', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RB5', 'RB6', 'WR7', 'WR8', 'TE5']),
+    ]);
+    const cycles = findThreeTeamCycles(deep, pool, DEFAULT_VOR_CONFIG);
+    expect(cycles.length).toBeGreaterThan(0);
+    const top = cycles[0];
+    const rbLeg = top.legs.find(l => l.position === 'RB');
+    expect(rbLeg?.kind).toBe('package');
+    expect(rbLeg?.player.id).toBe('RB2');
+    expect(rbLeg?.extraPlayer?.id).toBe('RB3');
+    // Both pieces beat B's best RB (0 VOR): starter gain 40, depth gain 36.
+    expect(rbLeg?.starterGain).toBe(40);
+    expect(rbLeg?.depthGain).toBe(36);
+    // totalGain stays starter-only; the depth gain only lifts the score,
+    // so the package variant beats the 1-for-1 of the same shape.
+    expect(top.totalGain).toBe(109);
+    expect(top.totalDepthGain).toBe(36);
+    expect(top.score).toBe(145);
+    expect(top.reasons.join(' ')).toMatch(
+      /RB2.*RB3.*2-for-1.*frees a bench spot/,
+    );
+    expect(top.reasons[top.reasons.length - 1]).toMatch(
+      /Total starter gain \+109 VOR, plus \+36 VOR of bench depth/,
+    );
+  });
+
+  it('never forms a package leg when giving two pieces would break starter cover', () => {
+    const pool = makePool();
+    // cycleLeague: A is four-deep at RB against demand 3 — giving RB2 +
+    // RB3 would leave only RB1 + RB4 for RB2 + FLEX, so no package leg
+    // fires anywhere in the circle (and the all-star top cycle is intact).
+    const cycles = findThreeTeamCycles(cycleLeague(), pool, DEFAULT_VOR_CONFIG);
+    expect(cycles.length).toBeGreaterThan(0);
+    for (const cycle of cycles) {
+      expect(cycle.legs.every(l => l.kind !== 'package')).toBe(true);
+      expect(cycle.totalDepthGain).toBe(0);
+      expect(cycle.score).toBe(cycle.totalGain);
+    }
+    expect(cycles[0].totalGain).toBe(113);
+  });
+
+  it('does not form a package leg when the extra piece only ties the receiver best', () => {
+    const pool = makePool();
+    // Duplicate-projection players: RBz ties A's third-best RB3 (same 292
+    // pts, so the same VOR once the replacement level shifts), and RBy
+    // lifts D's best so B still counts as needing RB. The depth leg still
+    // fires (RB2 beats RBz), but the extra piece adds no bench depth
+    // (depth gain 0), so the package variant never forms.
+    for (const extra of [
+      { id: 'RBz', pos: 'RB', projPts: 292 },
+      { id: 'RBy', pos: 'RB', projPts: 296 },
+    ]) {
+      pool.players.push(
+        player({ ...extra, projPtsPpr: extra.projPts, projPtsStd: extra.projPts }),
+      );
+    }
+    const tied = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'RB7', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RBz', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB45', 'WR41', 'WR46', 'TE1', 'TE2', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RBy', 'RB6', 'WR7', 'WR8', 'TE5']),
+    ]);
+    const cycles = findThreeTeamCycles(tied, pool, DEFAULT_VOR_CONFIG);
+    expect(cycles.length).toBeGreaterThan(0);
+    // The tie blocks the package only where the extra piece ties: the A -> B
+    // leg (B's best RB is RBz, worth exactly RB3) never moves two pieces —
+    // while the same giver's A -> C leg (C's best RB is worthless) does,
+    // proving the gate is per-receiver, not a global block.
+    const toB = cycles.flatMap(c => c.legs).filter(l => l.giver.id === 'a' && l.receiver.id === 'b');
+    expect(toB.length).toBeGreaterThan(0);
+    expect(toB.every(l => l.kind !== 'package')).toBe(true);
+    const toC = cycles.flatMap(c => c.legs).filter(l => l.giver.id === 'a' && l.receiver.id === 'c');
+    expect(toC.some(l => l.kind === 'package')).toBe(true);
+    // Direct proof the gate is the tie, not cover: A is five-deep, and
+    // its third-best RB is worth exactly B's best RB.
+    const profiles = teamProfiles(tied, pool, DEFAULT_VOR_CONFIG);
+    const vor = vorPoints(pool.players, valueLeagueFor(tied), DEFAULT_VOR_CONFIG);
+    const aRb = profiles.find(p => p.team.id === 'a')!.positions.RB;
+    const bRb = profiles.find(p => p.team.id === 'b')!.positions.RB;
+    expect(aRb.startable).toBeGreaterThan(4);
+    expect(vor.get(aRb.depthChart[2].id) ?? 0).toBe(bRb.best);
+  });
+
   it('returns no cycles when no three-way circle of need and depth exists', () => {
     const pool = makePool();
     // Every team is balanced at every position: nobody needs anything, so

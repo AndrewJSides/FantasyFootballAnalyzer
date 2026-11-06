@@ -84,7 +84,9 @@ function resolveTeamRoster(team: Team, pool: DraftPoolFile): PoolPlayer[] {
 
 // Starter demand per position, counting each FLEX slot as one more slot
 // split across RB/WR/TE (coarse, same convention as tradeAnalysis.ts).
-function demandFor(
+// Exported for the three-team finder (backlog item 172): a 2-for-1 leg
+// gives two depth pieces, so the giver must keep cover after losing two.
+export function demandFor(
   position: PositionKey,
   slots: NonNullable<League['rosterSlots']>,
 ): number {
