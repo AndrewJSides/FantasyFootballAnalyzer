@@ -382,6 +382,14 @@ export function Header({
                   Scores
                 </Link>
                 <Link
+                  to="/game-day"
+                  className={`${styles.navLink} ${location.pathname === '/game-day' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/game-day' ? 'page' : undefined}
+                >
+                  Game Day
+                </Link>
+                <Link
                   to="/points-allowed"
                   className={`${styles.navLink} ${location.pathname === '/points-allowed' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -750,6 +758,14 @@ export function Header({
               aria-current={location.pathname === '/matchup' ? 'page' : undefined}
             >
               Matchup
+            </Link>
+            <Link
+              to="/game-day"
+              className={`${styles.navLink} ${location.pathname === '/game-day' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/game-day' ? 'page' : undefined}
+            >
+              Game Day
             </Link>
             <Link
               to="/compare-teams"
