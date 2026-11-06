@@ -263,3 +263,77 @@ describe('WeeklyRankingsPage', () => {
     expect(projectionCalls).toHaveLength(1);
   });
 });
+
+describe('WeeklyRankingsPage free agents only (backlog item 176)', () => {
+  const liveLeague: League = {
+    ...league,
+    status: 'live',
+    teams: [
+      {
+        id: 't1',
+        name: 'Alpha Team',
+        roster: [{ id: 'a1', name: 'Alpha Aardvark', position: 'RB', team: 'FA' }],
+      },
+    ],
+  } as League;
+
+  function renderLivePage() {
+    return render(
+      <MemoryRouter>
+        <WeeklyRankingsPage league={liveLeague} />
+      </MemoryRouter>,
+    );
+  }
+
+  async function rankingsTable() {
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
+    });
+    return screen.getByRole('table', { name: /week \d+ rankings/i });
+  }
+
+  function rowNames(table: HTMLElement) {
+    return within(table)
+      .getAllByRole('rowheader')
+      .map(el => el.textContent);
+  }
+
+  it('hides rostered players when checked and restores them when unchecked', async () => {
+    renderLivePage();
+    let table = await rankingsTable();
+    expect(rowNames(table)).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Delta Dolphin']);
+    const toggle = screen.getByRole('checkbox', { name: /free agents only/i });
+    fireEvent.click(toggle);
+    table = screen.getByRole('table', { name: /week \d+ rankings/i });
+    expect(rowNames(table)).toEqual(['Charlie Cheetah', 'Delta Dolphin']);
+    expect(
+      screen.getByRole('table', { name: /free agents only/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(toggle);
+    table = screen.getByRole('table', { name: /week \d+ rankings/i });
+    expect(rowNames(table)).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Delta Dolphin']);
+  });
+
+  it('shows a free-agents empty state when every player at the position is rostered', async () => {
+    renderLivePage();
+    await rankingsTable();
+    // Beta is on bye in week 8, so Alpha is the only RB on the board — and
+    // he is rostered, so the toggle empties the position. Scope to the
+    // board's own filter bar: League Leaders below has its own RB tab.
+    fireEvent.click(
+      within(screen.getByRole('group', { name: /filter by position/i })).getByRole('button', {
+        name: 'RB',
+      }),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: /free agents only/i }));
+    expect(screen.getByText('No free agents at RB for week 8.')).toBeInTheDocument();
+  });
+
+  it('hides the toggle in guest mode', async () => {
+    renderPage();
+    await rankingsTable();
+    expect(
+      screen.queryByRole('checkbox', { name: /free agents only/i }),
+    ).not.toBeInTheDocument();
+  });
+});

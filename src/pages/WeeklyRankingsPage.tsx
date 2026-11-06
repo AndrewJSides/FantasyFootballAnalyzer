@@ -162,6 +162,9 @@ export function WeeklyRankingsPage({
   pool?: DraftPoolFile;
 }) {
   const [pos, setPos] = useState<PosFilter>('ALL');
+  // Item-176 free-agents-only toggle: league mode only — guest mode has no
+  // ownership data, so the toggle hides there.
+  const [freeAgentsOnly, setFreeAgentsOnly] = useState(false);
   const [pool] = useState(() => poolOverride ?? POOL);
   const [weekly, setWeekly] = useState<WeeklyPprPoints | undefined>(undefined);
   const [weeklyState, setWeeklyState] = useState<WeeklyState>('loading');
@@ -271,20 +274,23 @@ export function WeeklyRankingsPage({
   );
 
   const filtered = useMemo(() => {
-    if (pos === 'ALL') {
-      // Flex-style board: interleave all positions by this week's projection,
-      // unprojected players sinking to the bottom (same convention as the
-      // engine's within-position order).
-      return [...rows].sort(
-        (a, b) =>
-          (a.projection === null ? 1 : 0) - (b.projection === null ? 1 : 0) ||
-          (b.projection ?? -1) - (a.projection ?? -1) ||
-          (b.ppg ?? -1) - (a.ppg ?? -1) ||
-          (a.player.overallRank ?? 9999) - (b.player.overallRank ?? 9999),
-      );
-    }
-    return rows.filter(r => r.player.pos === pos);
-  }, [rows, pos]);
+    const byPos =
+      pos === 'ALL'
+        ? // Flex-style board: interleave all positions by this week's projection,
+          // unprojected players sinking to the bottom (same convention as the
+          // engine's within-position order).
+          [...rows].sort(
+            (a, b) =>
+              (a.projection === null ? 1 : 0) - (b.projection === null ? 1 : 0) ||
+              (b.projection ?? -1) - (a.projection ?? -1) ||
+              (b.ppg ?? -1) - (a.ppg ?? -1) ||
+              (a.player.overallRank ?? 9999) - (b.player.overallRank ?? 9999),
+          )
+        : rows.filter(r => r.player.pos === pos);
+    // Item 176: league mode only — rows carry an owner only when the league
+    // is live; in guest mode the toggle hides, so this never runs there.
+    return freeAgentsOnly && live ? byPos.filter(r => r.owner == null) : byPos;
+  }, [rows, pos, freeAgentsOnly, live]);
 
   const [dataStart, dataEnd] = matchupDataWeeks();
 
@@ -313,6 +319,17 @@ export function WeeklyRankingsPage({
           ))}
         </div>
 
+        {live && (
+          <label className={styles.freeAgentsToggle}>
+            <input
+              type="checkbox"
+              checked={freeAgentsOnly}
+              onChange={e => setFreeAgentsOnly(e.target.checked)}
+            />
+            Free agents only
+          </label>
+        )}
+
         {weeklyState === 'loading' && (
           <p className={styles.status} role="status">
             Loading weekly stats…
@@ -337,13 +354,18 @@ export function WeeklyRankingsPage({
             <div className={styles.tableWrap} aria-live="polite">
               {filtered.length === 0 ? (
                 <p className={styles.status} role="status">
-                  No weekly projection data for this filter.
+                  {freeAgentsOnly && rows.length > 0
+                    ? pos === 'ALL'
+                      ? `No free agents on the board for week ${week}.`
+                      : `No free agents at ${pos} for week ${week}.`
+                    : 'No weekly projection data for this filter.'}
                 </p>
               ) : (
                 <table className={styles.table}>
                   <caption className={styles.caption}>
                     Week {week} rankings
                     {pos === 'ALL' ? ' — all positions, top 40 each' : ` — ${pos}, top 40`}
+                    {freeAgentsOnly ? ', free agents only' : ''}
                   </caption>
                   <thead>
                     <tr>
@@ -503,7 +525,9 @@ export function WeeklyRankingsPage({
               the toggle immediately) — tap again to remove. The Sleeper column shows
               Sleeper&apos;s own week {week} projection for the same player —
               the market read next to TraderApe&apos;s number; a dash means
-              Sleeper published no line. Trade research only — nothing here
+              Sleeper published no line. The &ldquo;Free agents only&rdquo;
+              toggle (league mode) hides rostered players so the board shows
+              only players you can actually add. Trade research only — nothing here
               moves a roster.
             </p>
           </section>
