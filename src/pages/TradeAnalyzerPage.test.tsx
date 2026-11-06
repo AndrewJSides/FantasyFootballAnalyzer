@@ -130,3 +130,71 @@ describe('TradeAnalyzerPage Sleeper values (item 129)', () => {
     expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument();
   });
 });
+
+describe('TradeAnalyzerPage draft picks (item 175)', () => {
+  function addPick(side: 'A' | 'B') {
+    fireEvent.click(
+      screen.getByLabelText(
+        `Add 2027 Round 1 pick to Side ${side === 'A' ? 'A gives' : 'B gives'}`,
+      ),
+    );
+  }
+
+  it('enables Analyze with a pick alone and renders the pick row in the verdict', async () => {
+    mockSleeper.mockResolvedValue({});
+    render(
+      <MemoryRouter>
+        <TradeAnalyzerPage league={null} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: 'Analyze trade' })).toBeDisabled();
+    addPick('A');
+    // The pick lists on the builder side, and the trade can run on picks
+    // alone — a pick-for-player deal is analyzable.
+    expect(screen.getByLabelText('Side A gives draft picks')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Analyze trade' })).toBeEnabled();
+    analyze();
+    await waitFor(() =>
+      expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument(),
+    );
+    // The mocked pool is tiny, so the pick's expected VOR reads 0.0 — the
+    // pricing itself is covered by the util tests; here the row must exist
+    // with its label and value, and the totals must carry it.
+    expect(
+      screen.getByLabelText('2027 Round 1 pick, expected value 0.0 VOR'),
+    ).toBeInTheDocument();
+    // The pick rides the shareable link, so a recipient grades the same deal.
+    expect(window.location.hash).toContain('pa');
+  });
+
+  it('removes a pick from the builder', () => {
+    render(
+      <MemoryRouter>
+        <TradeAnalyzerPage league={null} />
+      </MemoryRouter>,
+    );
+    addPick('B');
+    expect(screen.getByLabelText('Side B gives draft picks')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Remove 2027 Round 1 pick'));
+    expect(screen.queryByLabelText('Side B gives draft picks')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Analyze trade' })).toBeDisabled();
+  });
+
+  it('restores picks from a shared link and auto-runs the verdict', async () => {
+    mockSleeper.mockResolvedValue({});
+    window.location.hash = `#trade=${encodeURIComponent(
+      JSON.stringify({ a: [], b: [], pa: [{ s: 2027, r: 1 }] }),
+    )}`;
+    render(
+      <MemoryRouter>
+        <TradeAnalyzerPage league={null} />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('2027 Round 1 pick, expected value 0.0 VOR'),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument();
+  });
+});

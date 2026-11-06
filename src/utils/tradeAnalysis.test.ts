@@ -9,6 +9,7 @@ import {
   resolveTradeSide,
   valueLeagueFor,
 } from './tradeAnalysis';
+import { pickTradeValue } from './pickValueCurve';
 import type { ValueLeague } from './projectionValues';
 
 const SLOTS: RosterSlots = { ...DEFAULT_MANUAL_SHAPE };
@@ -133,6 +134,70 @@ describe('analyzeTradeValue', () => {
     const a = analyzeTradeValue([], [pool.players.find(p => p.id === 'RB1')!], vl, pool);
     expect(a.sideATotal).toBe(0);
     expect(a.winner).toBe('B');
+  });
+
+  it('carries no picks by default', () => {
+    const a = analyzeTradeValue(
+      [pool.players.find(p => p.id === 'RB1')!],
+      [pool.players.find(p => p.id === 'RB30')!],
+      vl,
+      pool,
+    );
+    expect(a.picksA).toEqual([]);
+    expect(a.picksB).toEqual([]);
+  });
+
+  it('adds pick value to the side totals', () => {
+    // A 2027 1st alone beats an empty side, and the pick row carries its
+    // label and VOR for the breakdown.
+    const dated = { ...pool, season: 2026 } as DraftPoolFile;
+    const a = analyzeTradeValue([], [], vl, dated, undefined, {
+      picksA: [{ season: 2027, round: 1 }],
+    });
+    expect(a.sideATotal).toBeGreaterThan(0);
+    expect(a.sideBTotal).toBe(0);
+    expect(a.winner).toBe('A');
+    expect(a.picksA).toHaveLength(1);
+    expect(a.picksA[0].label).toBe('2027 Round 1 pick');
+    expect(a.picksA[0].vor).toBe(a.sideATotal);
+    expect(a.picksB).toEqual([]);
+  });
+
+  it('lets a 1st-round pick break an even player deal', () => {
+    // RB10 vs RB11 is even on players alone (a 4-pt VOR gap inside the
+    // 15% band); a 2027 1st on the RB11 side outweighs the gap by far.
+    const dated = { ...pool, season: 2026 } as DraftPoolFile;
+    const without = analyzeTradeValue(
+      [pool.players.find(p => p.id === 'RB11')!],
+      [pool.players.find(p => p.id === 'RB10')!],
+      vl,
+      dated,
+    );
+    expect(without.winner).toBe('even');
+    const withPick = analyzeTradeValue(
+      [pool.players.find(p => p.id === 'RB11')!],
+      [pool.players.find(p => p.id === 'RB10')!],
+      vl,
+      dated,
+      undefined,
+      { picksA: [{ season: 2027, round: 1 }] },
+    );
+    expect(withPick.winner).toBe('A');
+    expect(withPick.sideATotal).toBeGreaterThan(without.sideATotal);
+  });
+
+  it('prices picks in the same VOR currency as the players', () => {
+    const dated = { ...pool, season: 2026 } as DraftPoolFile;
+    const rb1 = pool.players.find(p => p.id === 'RB1')!;
+    const noPicks = analyzeTradeValue([rb1], [], vl, dated);
+    const withPick = analyzeTradeValue([rb1], [], vl, dated, undefined, {
+      picksB: [{ season: 2027, round: 1 }],
+    });
+    expect(withPick.sideATotal).toBe(noPicks.sideATotal);
+    expect(withPick.sideBTotal).toBe(
+      pickTradeValue({ season: 2027, round: 1 }, vl, dated),
+    );
+    expect(withPick.picksB[0].label).toBe('2027 Round 1 pick');
   });
 });
 

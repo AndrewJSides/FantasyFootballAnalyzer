@@ -19,6 +19,7 @@ import {
   type ValueLeague,
   type VorConfig,
 } from './projectionValues';
+import { pickLabel, pickTradeValue, type TradePick } from './pickValueCurve';
 import { indexPool, resolvePoolPlayer } from './consensusGrade';
 
 // ---------------------------------------------------------------------------
@@ -113,9 +114,21 @@ export interface ValuedPlayer {
   vor: number;
 }
 
+// A future draft pick on one side of the deal, priced in the same VOR
+// points as the players (backlog item 175). A pick never touches the
+// roster-impact half — it helps no starting lineup this week — so it only
+// ever appears in the value totals and the breakdown rows.
+export interface ValuedPick {
+  pick: TradePick;
+  vor: number;
+  label: string;
+}
+
 export interface TradeAnalysis {
   sideA: ValuedPlayer[];
   sideB: ValuedPlayer[];
+  picksA: ValuedPick[];
+  picksB: ValuedPick[];
   sideATotal: number;
   sideBTotal: number;
   // 'A' | 'B' | 'even', from Team A's perspective naming.
@@ -135,14 +148,30 @@ export function analyzeTradeValue(
   valueLeague: ValueLeague,
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
+  // Future draft picks per side (backlog item 175). Priced in the same VOR
+  // points as the players, so the totals — and the winner — include them.
+  picks?: { picksA?: TradePick[]; picksB?: TradePick[] },
 ): TradeAnalysis {
   const vor = vorPoints(pool.players, valueLeague, cfg);
   const value = (players: PoolPlayer[]): ValuedPlayer[] =>
     players.map(player => ({ player, vor: vor.get(player.id) ?? 0 }));
   const sideAValued = value(sideA);
   const sideBValued = value(sideB);
-  const sideATotal = round1(sideAValued.reduce((s, v) => s + v.vor, 0));
-  const sideBTotal = round1(sideBValued.reduce((s, v) => s + v.vor, 0));
+  const valuePick = (pick: TradePick): ValuedPick => ({
+    pick,
+    vor: pickTradeValue(pick, valueLeague, pool, cfg),
+    label: pickLabel(pick),
+  });
+  const picksAValued = (picks?.picksA ?? []).map(valuePick);
+  const picksBValued = (picks?.picksB ?? []).map(valuePick);
+  const sideATotal = round1(
+    sideAValued.reduce((s, v) => s + v.vor, 0) +
+      picksAValued.reduce((s, v) => s + v.vor, 0),
+  );
+  const sideBTotal = round1(
+    sideBValued.reduce((s, v) => s + v.vor, 0) +
+      picksBValued.reduce((s, v) => s + v.vor, 0),
+  );
   const margin = round1(Math.abs(sideATotal - sideBTotal));
   const larger = Math.max(sideATotal, sideBTotal);
   const marginShare = larger > 0 ? margin / larger : 0;
@@ -153,6 +182,8 @@ export function analyzeTradeValue(
   return {
     sideA: sideAValued,
     sideB: sideBValued,
+    picksA: picksAValued,
+    picksB: picksBValued,
     sideATotal,
     sideBTotal,
     winner,
@@ -300,11 +331,16 @@ export function analyzeTrade(
     teamB?: Team;
     pool?: DraftPoolFile;
     cfg?: VorConfig;
+    picksA?: TradePick[];
+    picksB?: TradePick[];
   },
 ): FullTradeAnalysis {
   const pool = opts.pool ?? POOL;
   const cfg = opts.cfg ?? DEFAULT_VOR_CONFIG;
-  const value = analyzeTradeValue(sideA, sideB, opts.valueLeague, pool, cfg);
+  const value = analyzeTradeValue(sideA, sideB, opts.valueLeague, pool, cfg, {
+    picksA: opts.picksA,
+    picksB: opts.picksB,
+  });
   const teamAImpact = opts.teamA
     ? analyzeTeamImpact(opts.teamA, sideA, sideB, opts.valueLeague, pool, cfg)
     : undefined;

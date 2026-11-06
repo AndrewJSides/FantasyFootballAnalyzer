@@ -22,6 +22,7 @@ import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import {
   DEFAULT_VOR_CONFIG,
   draftValues,
+  vorPoints,
   type ValueLeague,
   type VorConfig,
 } from './projectionValues';
@@ -29,8 +30,51 @@ import {
 // Half-width of the averaging window, in board slots.
 const SMOOTHING_WINDOW = 7;
 
+// A future draft pick offered in a trade: the season it belongs to and the
+// round. A traded pick's exact slot is unknown until the season ends, so it
+// prices at the mid-round slot for the league size (backlog item 175).
+export interface TradePick {
+  season: number;
+  round: number;
+}
+
+// The smoothing half of a pick curve, shared by the dollar curve (keepers)
+// and the VOR-points curve (trade pricing): a centred window that shrinks
+// symmetrically at the edges, then a non-increasing pass so a later pick is
+// never worth more than an earlier one. See the comment inside
+// buildPickValueCurve for why the window shrinks instead of truncating.
+function smoothValueCurve(raw: number[]): number[] {
+  const last = raw.length - 1;
+  const smoothed = raw.map((_, i) => {
+    const w = Math.min(SMOOTHING_WINDOW, i, last - i);
+    let sum = 0;
+    for (let j = i - w; j <= i + w; j++) sum += raw[j];
+    return sum / (w * 2 + 1);
+  });
+  for (let i = 1; i < smoothed.length; i++) {
+    smoothed[i] = Math.min(smoothed[i], smoothed[i - 1]);
+  }
+  return smoothed;
+}
+
+// The curve's reader, shared by both currencies: clamped at both ends, and
+// a non-finite slot reads the top of the curve rather than `undefined`
+// through a NaN index.
+function curveReader(smoothed: number[]): PickValueCurve {
+  return {
+    size: smoothed.length,
+    at(n: number) {
+      if (smoothed.length === 0) return 0;
+      if (!Number.isFinite(n)) return smoothed[0];
+      const idx = Math.min(Math.max(Math.round(n), 1), smoothed.length) - 1;
+      return smoothed[idx];
+    },
+  };
+}
+
 export interface PickValueCurve {
-  /** Dollar value of the pick at 1-based slot `n`, clamped at both ends. */
+  /** Value of the pick at 1-based slot `n`, clamped at both ends — auction
+      dollars from buildPickValueCurve, VOR points from buildPickVorCurve. */
   at(n: number): number;
   /** How many slots the curve covers (the ranked pool's size). */
   size: number;
@@ -60,27 +104,58 @@ export function buildPickValueCurve(
   // 1 at $52. The head samples are few, but they are not noise — there is no
   // uncertainty about which player the 1.01 buys, which is precisely where the
   // averaging rationale stops applying.
-  const last = raw.length - 1;
-  const smoothed = raw.map((_, i) => {
-    const w = Math.min(SMOOTHING_WINDOW, i, last - i);
-    let sum = 0;
-    for (let j = i - w; j <= i + w; j++) sum += raw[j];
-    return sum / (w * 2 + 1);
-  });
-  // A later pick is never worth more than an earlier one.
-  for (let i = 1; i < smoothed.length; i++) {
-    smoothed[i] = Math.min(smoothed[i], smoothed[i - 1]);
-  }
+  return curveReader(smoothValueCurve(raw));
+}
 
-  return {
-    size: smoothed.length,
-    at(n: number) {
-      if (smoothed.length === 0) return 0;
-      // A caller with no usable slot (an adapter that never set a pick number)
-      // gets the top of the curve rather than `undefined` through a NaN index.
-      if (!Number.isFinite(n)) return smoothed[0];
-      const idx = Math.min(Math.max(Math.round(n), 1), smoothed.length) - 1;
-      return smoothed[idx];
-    },
-  };
+// The same curve in the Trade Analyzer's own currency — expected VOR points
+// for the player taken at each draft slot — so a future pick can join a
+// player-for-player verdict without converting currencies (backlog item
+// 175). Same smoothing, same non-increasing pass, same board order; only
+// the per-slot value changes from auction dollars to VOR points.
+export function buildPickVorCurve(
+  pool: DraftPoolFile,
+  league: ValueLeague,
+  cfg: VorConfig = DEFAULT_VOR_CONFIG,
+): PickValueCurve {
+  const vor = vorPoints(pool.players, league, cfg);
+  const board: PoolPlayer[] = pool.players
+    .filter(p => p.overallRank != null)
+    .sort((a, b) => a.overallRank! - b.overallRank!);
+
+  const raw = board.map(p => vor.get(p.id) ?? 0);
+  return curveReader(smoothValueCurve(raw));
+}
+
+// What a future draft pick is worth in a trade, in expected VOR points.
+// A traded pick's exact slot is unknown until the season ends, so it prices
+// at the mid-round slot for the league size — the honest expected value,
+// the same basis FantasyPros' trade-value chart uses for picks (top-3 /
+// top-6 / top-12 / early / late ranges). Picks beyond the next draft lose
+// one round of value per year out (a 2028 1st prices like a 2027 2nd), the
+// standard future-pick discount: a pick a year away is worth less than the
+// same pick this year. Rounds past the end of the board price 0, as do
+// invalid picks — never a guess.
+export function pickTradeValue(
+  pick: TradePick,
+  league: ValueLeague,
+  pool: DraftPoolFile,
+  cfg: VorConfig = DEFAULT_VOR_CONFIG,
+): number {
+  if (!Number.isInteger(pick.round) || pick.round < 1) return 0;
+  if (!Number.isInteger(pick.season)) return 0;
+  const nextDraftSeason = pool.season + 1;
+  const yearsOut = Math.max(0, pick.season - nextDraftSeason);
+  const effectiveRound = pick.round + yearsOut;
+  const teams = Math.max(1, league.teams || 1);
+  // Mid-round slot: round R in a T-team league covers slots
+  // (R-1)*T+1 .. R*T; the midpoint is the expected slot.
+  const slot = (effectiveRound - 1) * teams + Math.ceil(teams / 2);
+  const curve = buildPickVorCurve(pool, league, cfg);
+  if (slot > curve.size) return 0;
+  return Math.round(curve.at(slot) * 10) / 10;
+}
+
+// Human-readable label for a traded pick, e.g. "2027 Round 1 pick".
+export function pickLabel(pick: TradePick): string {
+  return `${pick.season} Round ${pick.round} pick`;
 }

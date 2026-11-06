@@ -269,6 +269,30 @@
   border-color: var(--blood-text);
 }
 
+/* Draft-pick adder (backlog item 175): season + round selects and an Add
+   button on one row, reusing the side's field/select/button styles. */
+.pickAdder {
+  margin-top: 1rem;
+}
+
+.pickRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.pickRow .field {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.pickRow .rosterBtn {
+  flex: 0 0 auto;
+  border: 1px solid var(--rule);
+  padding: 0.6rem 0.9rem;
+  justify-content: center;
+}
+
 /* Actions */
 
 .actions {

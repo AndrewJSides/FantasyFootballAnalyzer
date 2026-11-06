@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildPickValueCurve } from './pickValueCurve';
+import {
+  buildPickValueCurve,
+  buildPickVorCurve,
+  pickLabel,
+  pickTradeValue,
+} from './pickValueCurve';
 import { keeperValues } from './keeperValue';
 import { POOL } from '@/data/draftPool';
 import type { DraftPick, RosterSlots } from '@/types';
@@ -82,6 +87,67 @@ const keeperPick = (rank: number, costPick: number, teamId: string): DraftPick =
     isKeeper: true,
   };
 };
+
+describe('buildPickVorCurve', () => {
+  const vorCurve = buildPickVorCurve(POOL, LEAGUE);
+
+  it('never prices a later pick above an earlier one', () => {
+    for (let n = 2; n <= vorCurve.size; n++) {
+      expect(vorCurve.at(n)).toBeLessThanOrEqual(vorCurve.at(n - 1));
+    }
+  });
+
+  it('prices in VOR points: the top slot clears a mid-round slot', () => {
+    expect(vorCurve.at(1)).toBeGreaterThan(0);
+    expect(vorCurve.at(1)).toBeGreaterThan(vorCurve.at(60));
+  });
+
+  it('covers the same board as the dollar curve', () => {
+    expect(vorCurve.size).toBe(curve.size);
+  });
+});
+
+describe('pickTradeValue', () => {
+  const nextSeason = POOL.season + 1;
+
+  it('prices a 1st above a 2nd above a 3rd', () => {
+    const first = pickTradeValue({ season: nextSeason, round: 1 }, LEAGUE, POOL);
+    const second = pickTradeValue({ season: nextSeason, round: 2 }, LEAGUE, POOL);
+    const third = pickTradeValue({ season: nextSeason, round: 3 }, LEAGUE, POOL);
+    expect(first).toBeGreaterThan(second);
+    expect(second).toBeGreaterThan(third);
+    expect(first).toBeGreaterThan(0);
+  });
+
+  it('prices at the mid-round slot', () => {
+    // 12-team league: round 1 covers slots 1..12, midpoint 6.
+    const vorCurve = buildPickVorCurve(POOL, LEAGUE);
+    expect(pickTradeValue({ season: nextSeason, round: 1 }, LEAGUE, POOL)).toBe(
+      Math.round(vorCurve.at(6) * 10) / 10,
+    );
+  });
+
+  it('discounts a future-year pick by one round per year out', () => {
+    // A 2028 1st prices exactly like a 2027 2nd — same effective round,
+    // same mid-round slot.
+    expect(
+      pickTradeValue({ season: nextSeason + 1, round: 1 }, LEAGUE, POOL),
+    ).toBe(pickTradeValue({ season: nextSeason, round: 2 }, LEAGUE, POOL));
+    expect(
+      pickTradeValue({ season: nextSeason + 2, round: 1 }, LEAGUE, POOL),
+    ).toBe(pickTradeValue({ season: nextSeason, round: 3 }, LEAGUE, POOL));
+  });
+
+  it('returns 0 for invalid or beyond-board picks, never a guess', () => {
+    expect(pickTradeValue({ season: nextSeason, round: 0 }, LEAGUE, POOL)).toBe(0);
+    expect(pickTradeValue({ season: nextSeason, round: 100 }, LEAGUE, POOL)).toBe(0);
+    expect(pickTradeValue({ season: NaN, round: 1 }, LEAGUE, POOL)).toBe(0);
+  });
+
+  it('labels picks', () => {
+    expect(pickLabel({ season: 2027, round: 1 })).toBe('2027 Round 1 pick');
+  });
+});
 
 describe('keeperValues', () => {
   it('rates a cheap early-round asset above a bigger jump through cheap rounds', () => {

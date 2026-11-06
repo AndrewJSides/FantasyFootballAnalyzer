@@ -13,7 +13,9 @@ import {
   resolveTradeSide,
   valueLeagueFor,
   type FullTradeAnalysis,
+  type ValuedPick,
 } from '@/utils/tradeAnalysis';
+import { pickLabel, type TradePick } from '@/utils/pickValueCurve';
 import {
   fixBlurb,
   suggestFairnessFixes,
@@ -33,6 +35,18 @@ interface TradeAnalyzerPageProps {
 }
 
 type Entry = Player | PoolPlayer;
+
+// Draft picks in the Trade Analyzer (backlog item 175): a future pick's
+// exact slot is unknown until the season ends, so the adder only asks for
+// season + round and the engine prices the mid-round slot. Seasons run
+// three drafts out; rounds stop at 10 — a later pick's expected VOR is
+// already ~0, so offering it would be noise, not a choice.
+const PICK_SEASONS = [POOL_SEASON + 1, POOL_SEASON + 2, POOL_SEASON + 3];
+const PICK_ROUNDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+function samePick(a: TradePick, b: TradePick): boolean {
+  return a.season === b.season && a.round === b.round;
+}
 
 // ---------------------------------------------------------------------------
 // Player search (manual mode): match against the bundled pool by name.
@@ -113,11 +127,33 @@ function sameEntry(a: Entry, b: Entry): boolean {
 
 const TRADE_HASH_PREFIX = '#trade=';
 
+// A pick in the hash is a compact {s: season, r: round} pair, e.g.
+// "pa":[{"s":2027,"r":1}] — player names stay the readable part of the
+// payload, picks stay small. Old links without pa/pb still decode.
+interface TradeHashPick {
+  s: number;
+  r: number;
+}
+
+// The raw hash payload (what encode writes). The decoded form below swaps
+// the pick pairs for resolved TradePicks, so the page never has to convert
+// {s, r} back to {season, round} at every use site.
+interface TradeHashPayload {
+  a: string[];
+  b: string[];
+  ta?: string;
+  tb?: string;
+  pa?: TradeHashPick[];
+  pb?: TradeHashPick[];
+}
+
 interface TradeHashSides {
   a: string[];
   b: string[];
   ta?: string;
   tb?: string;
+  pa: TradePick[];
+  pb: TradePick[];
 }
 
 function encodeTradeHash(
@@ -125,14 +161,20 @@ function encodeTradeHash(
   sideB: Entry[],
   teamAId = '',
   teamBId = '',
+  picksA: TradePick[] = [],
+  picksB: TradePick[] = [],
 ): string {
-  const payload: TradeHashSides = {
+  const payload: TradeHashPayload = {
     a: sideA.map(entryLabel),
     b: sideB.map(entryLabel),
     // Team ids only exist with a loaded league; leaving them out in manual
     // mode keeps the hash short and identical to the pre-team-pick format.
     ...(teamAId ? { ta: teamAId } : {}),
     ...(teamBId ? { tb: teamBId } : {}),
+    // Picks only exist when the user added one; leaving them out keeps the
+    // hash identical to the pre-pick format.
+    ...(picksA.length > 0 ? { pa: picksA.map(p => ({ s: p.season, r: p.round })) } : {}),
+    ...(picksB.length > 0 ? { pb: picksB.map(p => ({ s: p.season, r: p.round })) } : {}),
   };
   return `${TRADE_HASH_PREFIX}${encodeURIComponent(JSON.stringify(payload))}`;
 }
@@ -146,18 +188,42 @@ function decodeTradeHash(hash: string): TradeHashSides | null {
     if (
       parsed &&
       typeof parsed === 'object' &&
-      Array.isArray((parsed as TradeHashSides).a) &&
-      Array.isArray((parsed as TradeHashSides).b)
+      Array.isArray((parsed as TradeHashPayload).a) &&
+      Array.isArray((parsed as TradeHashPayload).b)
     ) {
       const names = (arr: unknown[]): string[] =>
         arr.filter((n): n is string => typeof n === 'string');
       const id = (v: unknown): string | undefined =>
         typeof v === 'string' && v ? v : undefined;
+      // A hand-made link with a garbage pick (bad season/round, wrong
+      // shape) drops that pick, not the whole link — same discipline as
+      // unresolvable player names below.
+      const picks = (arr: unknown): TradePick[] => {
+        if (!Array.isArray(arr)) return [];
+        const out: TradePick[] = [];
+        for (const p of arr) {
+          if (
+            p &&
+            typeof p === 'object' &&
+            Number.isInteger((p as TradeHashPick).s) &&
+            Number.isInteger((p as TradeHashPick).r) &&
+            (p as TradeHashPick).s >= POOL_SEASON + 1 &&
+            (p as TradeHashPick).s <= POOL_SEASON + 5 &&
+            (p as TradeHashPick).r >= 1 &&
+            (p as TradeHashPick).r <= 16
+          ) {
+            out.push({ season: (p as TradeHashPick).s, round: (p as TradeHashPick).r });
+          }
+        }
+        return out;
+      };
       return {
-        a: names((parsed as TradeHashSides).a),
-        b: names((parsed as TradeHashSides).b),
-        ta: id((parsed as TradeHashSides).ta),
-        tb: id((parsed as TradeHashSides).tb),
+        a: names((parsed as TradeHashPayload).a),
+        b: names((parsed as TradeHashPayload).b),
+        ta: id((parsed as TradeHashPayload).ta),
+        tb: id((parsed as TradeHashPayload).tb),
+        pa: picks((parsed as TradeHashPayload).pa),
+        pb: picks((parsed as TradeHashPayload).pb),
       };
     }
   } catch {
@@ -191,8 +257,10 @@ function syncTradeHashToUrl(
   sideB: Entry[],
   teamAId = '',
   teamBId = '',
+  picksA: TradePick[] = [],
+  picksB: TradePick[] = [],
 ): void {
-  if (sideA.length === 0 && sideB.length === 0) {
+  if (sideA.length === 0 && sideB.length === 0 && picksA.length === 0 && picksB.length === 0) {
     // Analyzing an empty builder (only reachable from a hand-made empty
     // #trade= link) shouldn't leave a noise hash in the address bar.
     clearTradeHashFromUrl();
@@ -201,7 +269,7 @@ function syncTradeHashToUrl(
   window.history.replaceState(
     null,
     '',
-    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId)}`,
+    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId, picksA, picksB)}`,
   );
 }
 
@@ -267,11 +335,19 @@ function SideBuilder(props: {
   // The week the matchup chips price against: the league's current week,
   // or the estimate when no league is loaded (manual mode / shared links).
   week: number;
+  // Future draft picks on this side (backlog item 175): season + round,
+  // priced by the engine at the mid-round slot.
+  picks: TradePick[];
+  onAddPick: (p: TradePick) => void;
+  onRemovePick: (idx: number) => void;
 }) {
   const {
     title, entries, otherEntries, otherSideName, onRemove, teams, teamId,
     onTeamChange, searchQuery, onSearchChange, onAddSearch, leagueLoaded, week,
+    picks, onAddPick, onRemovePick,
   } = props;
+  const [pickSeason, setPickSeason] = useState(PICK_SEASONS[0]);
+  const [pickRound, setPickRound] = useState(1);
   const team = teams.find(t => t.id === teamId);
   const results = useMemo(() => searchPool(searchQuery), [searchQuery]);
 
@@ -471,6 +547,82 @@ function SideBuilder(props: {
           ))}
         </ul>
       )}
+
+      {/* Draft picks on this side (backlog item 175): season + round, priced
+          by the engine at the mid-round slot — a traded pick's exact slot is
+          unknown until the season ends, so the picker never asks for one.
+          Duplicates are disabled like already-added players: the same pick
+          twice would double-count one asset. */}
+      <div className={styles.pickAdder}>
+        <span className={styles.label}>Or add a draft pick</span>
+        <div className={styles.pickRow}>
+          <label className={styles.field}>
+            <span className="visually-hidden">{title}: pick season</span>
+            <select
+              className={styles.select}
+              value={pickSeason}
+              onChange={e => setPickSeason(Number(e.target.value))}
+              aria-label={`${title}: pick season`}
+              title={`${title}: pick season`}
+            >
+              {PICK_SEASONS.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            <span className="visually-hidden">{title}: pick round</span>
+            <select
+              className={styles.select}
+              value={pickRound}
+              onChange={e => setPickRound(Number(e.target.value))}
+              aria-label={`${title}: pick round`}
+              title={`${title}: pick round`}
+            >
+              {PICK_ROUNDS.map(r => (
+                <option key={r} value={r}>Round {r}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className={styles.rosterBtn}
+            disabled={picks.some(p => p.season === pickSeason && p.round === pickRound)}
+            onClick={() => onAddPick({ season: pickSeason, round: pickRound })}
+            aria-label={
+              picks.some(p => p.season === pickSeason && p.round === pickRound)
+                ? `${pickSeason} Round ${pickRound} pick (already added)`
+                : `Add ${pickSeason} Round ${pickRound} pick to ${title}`
+            }
+            title={
+              picks.some(p => p.season === pickSeason && p.round === pickRound)
+                ? `${pickSeason} Round ${pickRound} pick (already added)`
+                : `Add ${pickSeason} Round ${pickRound} pick to ${title}`
+            }
+          >
+            <span className={styles.pName}>Add pick</span>
+          </button>
+        </div>
+      </div>
+
+      {picks.length > 0 && (
+        <ul className={styles.picked} aria-label={`${title} draft picks`}>
+          {picks.map((p, i) => (
+            <li key={`${p.season}-${p.round}-${i}`} className={styles.pick}>
+              <span className={styles.pName}>{pickLabel(p)}</span>
+              <button
+                type="button"
+                className={styles.remove}
+                onClick={() => onRemovePick(i)}
+                aria-label={`Remove ${pickLabel(p)}`}
+                title={`Remove ${pickLabel(p)}`}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -518,6 +670,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const [teamBId, setTeamBId] = useState('');
   const [sideA, setSideA] = useState<Entry[]>([]);
   const [sideB, setSideB] = useState<Entry[]>([]);
+  // Future draft picks per side (backlog item 175): season + round, priced
+  // by the engine at the mid-round slot. They ride the same hash/state
+  // discipline as the players — a shared link that drops them would grade
+  // a different trade than the sender analyzed.
+  const [picksA, setPicksA] = useState<TradePick[]>([]);
+  const [picksB, setPicksB] = useState<TradePick[]>([]);
   const [queryA, setQueryA] = useState('');
   const [queryB, setQueryB] = useState('');
   const [result, setResult] = useState<FullTradeAnalysis | null>(null);
@@ -600,7 +758,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // below): a ref isn't enough because the league may still be loading when
   // the hash is applied, and the analysis must reprice once it arrives.
   const hashAppliedRef = useRef(false);
-  const [hashSides, setHashSides] = useState<{ a: Entry[]; b: Entry[] } | null>(null);
+  const [hashSides, setHashSides] = useState<{
+    a: Entry[];
+    b: Entry[];
+    pa: TradePick[];
+    pb: TradePick[];
+  } | null>(null);
   // A shared #trade= link's team picks (ta/tb) live in a ref, not hashSides:
   // the auto-run effect consumes hashSides as soon as the sides analyze,
   // which in the no-league-yet case is before the league arrives to resolve
@@ -636,9 +799,30 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     };
     const a = resolveSide(shared.a);
     const b = resolveSide(shared.b);
+    // Picks ride the same decode discipline as players: validated by
+    // decodeTradeHash (bad season/round dropped, not the whole link), and
+    // a duplicate pick across sides resolves once, Side A winning the tie.
+    const seenPicks = new Set<string>();
+    const resolvePicks = (ps: TradePick[] | undefined): TradePick[] => {
+      const out: TradePick[] = [];
+      for (const p of ps ?? []) {
+        const key = `${p.season}-${p.round}`;
+        if (!seenPicks.has(key)) {
+          seenPicks.add(key);
+          out.push(p);
+        }
+      }
+      return out;
+    };
+    const pa = resolvePicks(shared.pa);
+    const pb = resolvePicks(shared.pb);
     if (a.length > 0) setSideA(a);
     if (b.length > 0) setSideB(b);
-    if (a.length > 0 || b.length > 0) setHashSides({ a, b });
+    if (pa.length > 0) setPicksA(pa);
+    if (pb.length > 0) setPicksB(pb);
+    if (a.length > 0 || b.length > 0 || pa.length > 0 || pb.length > 0) {
+      setHashSides({ a, b, pa, pb });
+    }
     // Seed the team-apply ref whenever the link carries team picks — even
     // when every named player failed to resolve against the pool (all names
     // stale), the pairing the sender analyzed still matters.
@@ -702,6 +886,38 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         return [...prev, p as Entry];
       });
   const removeFrom = (setter: React.Dispatch<React.SetStateAction<Entry[]>>) =>
+    (idx: number) =>
+      setter(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        setResult(null);
+        setFixes([]);
+        setWarnings([]);
+        setSkippedShared(0);
+        clearCopyStatusTimer();
+        setCopyStatus('idle');
+        setFailedCopyUrl(null);
+        clearTradeHashFromUrl();
+        return prev.filter((_, i) => i !== idx);
+      });
+
+  // Pick edits invalidate the verdict exactly like player edits (same
+  // stale-result / stale-hash discipline). Duplicates are a no-op — the
+  // adder button already disables for them, this covers any other path.
+  const addPickTo = (setter: React.Dispatch<React.SetStateAction<TradePick[]>>) =>
+    (pick: TradePick) =>
+      setter(prev => {
+        if (prev.some(p => samePick(p, pick))) return prev;
+        setResult(null);
+        setFixes([]);
+        setWarnings([]);
+        setSkippedShared(0);
+        clearCopyStatusTimer();
+        setCopyStatus('idle');
+        setFailedCopyUrl(null);
+        clearTradeHashFromUrl();
+        return [...prev, pick];
+      });
+  const removePickFrom = (setter: React.Dispatch<React.SetStateAction<TradePick[]>>) =>
     (idx: number) =>
       setter(prev => {
         if (idx < 0 || idx >= prev.length) return prev;
@@ -783,6 +999,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     touchedTeamAForRef.current = leagueKey;
     setSideA(sideB);
     setSideB(sideA);
+    setPicksA(picksB);
+    setPicksB(picksA);
     setTeamAId(teamBId);
     setTeamBId(teamAId);
     setQueryA(queryB);
@@ -808,6 +1026,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setTeamBId('');
     setSideA([]);
     setSideB([]);
+    setPicksA([]);
+    setPicksB([]);
     setResult(null);
     setFixes([]);
     setWarnings([]);
@@ -837,16 +1057,19 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     }
     const teamA = teams.find(t => t.id === teamAId);
     const teamB = teams.find(t => t.id === teamBId);
-    setResult(
-      analyzeTrade(ra.players, rb.players, {
-        valueLeague,
-        teamA,
-        teamB,
-      }),
-    );
+    const analysis = analyzeTrade(ra.players, rb.players, {
+      valueLeague,
+      teamA,
+      teamB,
+      picksA,
+      picksB,
+    });
+    setResult(analysis);
     // "Make it fair" counter-offers (backlog item 53): priced on the
     // resolved sides at analysis time. Add candidates come from the losing
     // side's team roster in league mode, the bundled pool in manual mode.
+    // The pick VOR offsets keep the fixes honest when a pick is on a side:
+    // a trade that's even only because of a pick gets no spurious fix.
     setFixes(
       suggestFairnessFixes({
         sideA: ra.players,
@@ -854,10 +1077,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         valueLeague,
         rosterA: teamA?.roster,
         rosterB: teamB?.roster,
+        pickVorA: analysis.picksA.reduce((s, p) => s + p.vor, 0),
+        pickVorB: analysis.picksB.reduce((s, p) => s + p.vor, 0),
       }),
     );
     setWarnings(warns);
-    syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId);
+    syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId, picksA, picksB);
   };
 
   // One-tap "make it fair": apply a counter-offer suggestion to the
@@ -901,7 +1126,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       hashSides.a.length !== sideA.length ||
       hashSides.b.length !== sideB.length ||
       hashSides.a.some((e, i) => !sameEntry(e, sideA[i])) ||
-      hashSides.b.some((e, i) => !sameEntry(e, sideB[i]));
+      hashSides.b.some((e, i) => !sameEntry(e, sideB[i])) ||
+      hashSides.pa.length !== picksA.length ||
+      hashSides.pb.length !== picksB.length ||
+      hashSides.pa.some((p, i) => !samePick(p, picksA[i])) ||
+      hashSides.pb.some((p, i) => !samePick(p, picksB[i]));
     if (stale) {
       setHashSides(null);
       return;
@@ -914,12 +1143,14 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     // depending on it would re-analyze on every keystroke. The listed deps
     // are the only ones that should re-trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leagueLoaded, league, hashSides, sideA, sideB, teamAId, teamBId, myTeamId]);
+  }, [leagueLoaded, league, hashSides, sideA, sideB, picksA, picksB, teamAId, teamBId, myTeamId]);
 
   // A trade needs two different teams: trading with yourself grades
   // nothing real. The button disables and a note explains.
   const sameTeam = leagueLoaded && teamAId !== '' && teamAId === teamBId;
-  const canRun = (sideA.length > 0 || sideB.length > 0) && !sameTeam;
+  const canRun =
+    (sideA.length > 0 || sideB.length > 0 || picksA.length > 0 || picksB.length > 0) &&
+    !sameTeam;
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   // When the clipboard is unavailable (older browsers, non-secure context,
   // mobile webviews), the button can't copy — but the link still exists.
@@ -944,7 +1175,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const copyTradeLink = async () => {
     // Use the live location (not a hardcoded path) so the copied link keeps
     // the shared-league params (?league= / ?pin=) the trade was priced for.
-    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId)}`;
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId, picksA, picksB)}`;
     let ok = false;
     try {
       await navigator.clipboard.writeText(url);
@@ -984,8 +1215,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           <span className={styles.kicker}>▌ PROSPECTIVE TRADE ANALYZER</span>
           <h1 className={styles.heading}>Trade Analyzer</h1>
           <p className={styles.intro}>
-            Grade a trade <em>before</em> you make it. Pick the players changing
-            hands and get a value-over-replacement verdict
+            Grade a trade <em>before</em> you make it. Pick the players — and
+            any future draft picks — changing hands and get a
+            value-over-replacement verdict
             {leagueLoaded
               ? <> for your league's exact shape — {league.name} — with
                 roster-aware takes on how the deal hits each team's positional depth.</>
@@ -1016,6 +1248,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onAddSearch={addTo(setSideA, sideB)}
             leagueLoaded={leagueLoaded}
             week={week}
+            picks={picksA}
+            onAddPick={addPickTo(setPicksA)}
+            onRemovePick={removePickFrom(setPicksA)}
           />
           <button
             type="button"
@@ -1024,7 +1259,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             // Swap exchanges the team picks too, not just the players — so it
             // stays enabled when either side has a team picked (e.g. the Side A
             // preselect) even before any players are added.
-            disabled={sideA.length === 0 && sideB.length === 0 && teamAId === '' && teamBId === ''}
+            disabled={sideA.length === 0 && sideB.length === 0 && picksA.length === 0 && picksB.length === 0 && teamAId === '' && teamBId === ''}
             aria-label="Swap sides"
             title="Swap sides"
           >
@@ -1045,6 +1280,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             onAddSearch={addTo(setSideB, sideA)}
             leagueLoaded={leagueLoaded}
             week={week}
+            picks={picksB}
+            onAddPick={addPickTo(setPicksB)}
+            onRemovePick={removePickFrom(setPicksB)}
           />
         </div>
 
@@ -1056,12 +1294,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
             // The empty-builder hint below the button already says this in
             // visible text; the title keeps the reason attached to the
             // button itself for tooltips and assistive tech.
-            title={sideA.length === 0 && sideB.length === 0 ? 'Add players to either side first' : undefined}
+            title={sideA.length === 0 && sideB.length === 0 && picksA.length === 0 && picksB.length === 0 ? 'Add players or a draft pick to either side first' : undefined}
             onClick={() => runAnalysis()}
           >
             Analyze trade
           </button>
-          {(sideA.length > 0 || sideB.length > 0) && (
+          {(sideA.length > 0 || sideB.length > 0 || picksA.length > 0 || picksB.length > 0) && (
             <button
               type="button"
               className={styles.copy}
@@ -1070,12 +1308,12 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               // The URL already carries the #trade= hash, but nothing on the
               // button says what the link contains — keep the why attached
               // to the button itself for tooltips and assistive tech.
-              title="Copies a link with this trade's players and teams — league context stays in the URL"
+              title="Copies a link with this trade's players, draft picks, and teams — league context stays in the URL"
             >
               {copyStatus === 'copied' ? 'Copied ✓' : copyStatus === 'failed' ? 'Copy failed' : 'Copy trade link'}
             </button>
           )}
-          {(sideA.length > 0 || sideB.length > 0) && (
+          {(sideA.length > 0 || sideB.length > 0 || picksA.length > 0 || picksB.length > 0) && (
             <button
               type="button"
               className={styles.clear}
@@ -1083,7 +1321,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
               // The last of the action buttons to get one: Swap, Analyze, and
               // Copy trade link all carry title tooltips — keep the why
               // attached to this one too, for tooltips and assistive tech.
-              title="Clear all players, teams, and results"
+              title="Clear all players, draft picks, teams, and results"
             >
               Clear
             </button>
@@ -1123,11 +1361,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           </p>
         )}
 
-        {sideA.length === 0 && sideB.length === 0 && (
+        {sideA.length === 0 && sideB.length === 0 && picksA.length === 0 && picksB.length === 0 && (
           <p className={styles.emptyHint}>
             {leagueLoaded
-              ? 'Add players to either side — from a team roster or the name search — then hit Analyze trade.'
-              : 'Add players to either side with the name search — then hit Analyze trade.'}
+              ? 'Add players to either side — from a team roster or the name search — or a draft pick, then hit Analyze trade.'
+              : 'Add players to either side with the name search — or a draft pick — then hit Analyze trade.'}
           </p>
         )}
 
@@ -1274,8 +1512,8 @@ function Results({
       )}
 
       <div className={styles.breakdowns}>
-        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
-        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
+        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} picks={result.picksA} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
+        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} picks={result.picksB} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
       </div>
 
       {(result.teamAImpact || result.teamBImpact) && (
@@ -1309,7 +1547,11 @@ function Results({
         Start/Sit page shows. The Sleeper value beside each VOR is
         Sleeper's own week-{week} projection where published; a dash means
         no Sleeper line for that player, and the verdict counts VOR rows
-        only.
+        only. Draft picks price at the mid-round slot for the league size
+        (a traded pick's exact slot is unknown until the season ends),
+        losing one round of value per year beyond the next draft — an
+        expected value, not a guarantee of where the pick lands. Picks
+        count toward the value totals but never toward a starting lineup.
       </p>
     </section>
   );
@@ -1357,17 +1599,19 @@ function SleeperValue({
 function PlayerBreakdown({
   title,
   players,
+  picks,
   week,
   sleeperProjections,
   sleeperReady,
 }: {
   title: string;
   players: FullTradeAnalysis['sideA'];
+  picks: ValuedPick[];
   week: number;
   sleeperProjections: Record<string, number> | undefined;
   sleeperReady: boolean;
 }) {
-  if (players.length === 0) {
+  if (players.length === 0 && picks.length === 0) {
     return (
       <div className={styles.breakdown}>
         <h3>{title}</h3>
@@ -1394,6 +1638,20 @@ function PlayerBreakdown({
               ready={sleeperReady}
               week={week}
             />
+          </li>
+        ))}
+        {/* Draft picks on this side (backlog item 175): no matchup chip and
+            no Sleeper line — a pick has no week-N opponent — just the label
+            and its expected VOR, which the totals above already include. */}
+        {picks.map(({ pick, vor, label }) => (
+          <li
+            key={`${pick.season}-${pick.round}`}
+            className={styles.vorRow}
+            aria-label={`${label}, expected value ${vor.toFixed(1)} VOR`}
+            title={`${label} — expected value, priced at the mid-round slot`}
+          >
+            <span className={styles.pName}>{label}</span>
+            <span className={styles.vor}>{vor.toFixed(1)}</span>
           </li>
         ))}
       </ul>

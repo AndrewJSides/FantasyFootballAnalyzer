@@ -86,6 +86,20 @@ describe('suggestFairnessFixes', () => {
     expect(fixes.every(f => f.action !== 'remove')).toBe(true);
   });
 
+  it('returns nothing when a pick already evens the trade', () => {
+    // Star vs base is lopsided on players alone, but a pick on the losing
+    // side worth exactly the margin makes the pick-adjusted totals even —
+    // the fixes must price on the same totals as the verdict, not suggest
+    // a player tweak for a deal the pick already balanced.
+    const fixes = suggestFairnessFixes({
+      ...baseOpts,
+      sideA: [star],
+      sideB: [base],
+      pickVorB: baseMargin([star], [base]),
+    });
+    expect(fixes).toEqual([]);
+  });
+
   it('never suggests a player already changing hands', () => {
     // star is on Side A already — the roster listing him must not produce
     // a "add star to Side B" fix.

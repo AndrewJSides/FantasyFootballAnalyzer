@@ -51,6 +51,12 @@ export interface FairnessFixOptions {
   cfg?: VorConfig;
   /** Max suggestions returned (default 3). */
   max?: number;
+  /** Expected VOR points of future draft picks already on each side
+      (backlog item 175): the fixes price on the same pick-adjusted totals
+      as the verdict, so a trade that's even only because of a pick gets
+      no spurious "make it fair" suggestion. */
+  pickVorA?: number;
+  pickVorB?: number;
 }
 
 function normName(s: string): string {
@@ -87,8 +93,8 @@ export function suggestFairnessFixes(opts: FairnessFixOptions): FairnessFix[] {
     return { winner, margin };
   };
 
-  const totalA = totalOf(sideA);
-  const totalB = totalOf(sideB);
+  const totalA = round1(totalOf(sideA) + (opts.pickVorA ?? 0));
+  const totalB = round1(totalOf(sideB) + (opts.pickVorB ?? 0));
   const base = verdictOf(totalA, totalB);
   if (base.winner === 'even') return [];
 
