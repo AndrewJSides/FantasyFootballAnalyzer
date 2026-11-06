@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { League, Player, Transaction } from '@/types';
+import type { League, Player, Trade, Transaction } from '@/types';
 import { WirePage } from './WirePage';
 
 function player(name: string, position = 'RB', team = 'SF'): Player {
@@ -20,13 +20,37 @@ function tx(
   return { id, type, timestamp, week, teamId, teamName, adds, drops };
 }
 
-function league(transactionsByTeam: Record<string, Transaction[]>): League {
+function trade(
+  id: string,
+  status: Trade['status'],
+  timestamp: number,
+  week: number,
+  sides: { teamId: string; teamName: string; received: Player[] }[],
+): Trade {
+  return {
+    id,
+    status,
+    timestamp,
+    week,
+    teams: sides.map(s => ({
+      teamId: s.teamId,
+      teamName: s.teamName,
+      playersReceived: s.received,
+      playersSent: [],
+    })),
+  } as unknown as Trade;
+}
+
+function league(
+  transactionsByTeam: Record<string, Transaction[]>,
+  trades: Trade[] = [],
+): League {
   const teams = Object.entries(transactionsByTeam).map(([id, transactions]) => ({
     id,
     name: `Team ${id}`,
     transactions,
   }));
-  return { id: 'L1', name: 'Wire Test League', season: 2026, teams } as unknown as League;
+  return { id: 'L1', name: 'Wire Test League', season: 2026, teams, trades } as unknown as League;
 }
 
 describe('WirePage', () => {
@@ -85,6 +109,63 @@ describe('WirePage', () => {
     fireEvent.change(screen.getByLabelText('Move type'), { target: { value: 'waiver' } });
     expect(screen.getByText('1 move')).toBeInTheDocument();
     expect(screen.getByText('Kareem Hunt')).toBeInTheDocument();
+  });
+
+  it('renders completed trades on the wire, newest first', () => {
+    render(
+      <WirePage
+        league={league(
+          {
+            t1: [tx('a', 'waiver', 1_000, 3, 't1', 'Team t1', [player('Kareem Hunt')])],
+            t2: [],
+          },
+          [
+            trade('x', 'completed', 2_000, 4, [
+              { teamId: 't1', teamName: 'Team t1', received: [player('JaMarr Chase', 'WR')] },
+              { teamId: 't2', teamName: 'Team t2', received: [player('Amon-Ra St. Brown', 'WR')] },
+            ]),
+          ],
+        )}
+      />,
+    );
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Team t1 ⇄ Team t2');
+    expect(items[0]).toHaveTextContent('Team t1 received');
+    expect(items[0]).toHaveTextContent('JaMarr Chase');
+    expect(items[0]).toHaveTextContent('Team t2 received');
+    expect(items[0]).toHaveTextContent('Amon-Ra St. Brown');
+    expect(items[1]).toHaveTextContent('Kareem Hunt');
+  });
+
+  it('filters by move type to trades only, and by either trade side', () => {
+    render(
+      <WirePage
+        league={league(
+          {
+            t1: [tx('a', 'waiver', 1_000, 3, 't1', 'Team t1', [player('Kareem Hunt')])],
+            t2: [],
+          },
+          [
+            trade('x', 'completed', 2_000, 4, [
+              { teamId: 't1', teamName: 'Team t1', received: [player('JaMarr Chase', 'WR')] },
+              { teamId: 't2', teamName: 'Team t2', received: [player('Amon-Ra St. Brown', 'WR')] },
+            ]),
+          ],
+        )}
+      />,
+    );
+    expect(screen.getByText('2 moves')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Move type'), { target: { value: 'trade' } });
+    expect(screen.getByText('1 move')).toBeInTheDocument();
+    expect(screen.getByText('JaMarr Chase')).toBeInTheDocument();
+    expect(screen.queryByText('Kareem Hunt')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Move type'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Team'), { target: { value: 't2' } });
+    expect(screen.getByText('1 move')).toBeInTheDocument();
+    expect(screen.getByText('Amon-Ra St. Brown')).toBeInTheDocument();
   });
 
   it('announces the move count in a live region', () => {

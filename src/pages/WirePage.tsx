@@ -12,8 +12,9 @@ import {
 import styles from './WirePage.module.css';
 
 // League Wire: every add/drop move across the league, newest first, from the
-// synced per-team transactions (waiver claims + free-agent pickups).
-// Trades live on the Trades page.
+// synced per-team transactions (waiver claims + free-agent pickups), plus
+// completed trades from the synced trade list — one chronological activity
+// feed. The Trades page keeps the full trade table.
 
 const DATE_FMT: Intl.DateTimeFormatOptions = {
   month: 'short',
@@ -42,7 +43,7 @@ export function WirePage({ league }: { league: League }) {
   const rows = useMemo(() => buildLeagueWire(league), [league]);
   const teams = useMemo(() => wireTeams(rows), [rows]);
   const [teamId, setTeamId] = useState('');
-  const [moveType, setMoveType] = useState<'' | 'waiver' | 'free_agent'>('');
+  const [moveType, setMoveType] = useState<'' | 'waiver' | 'free_agent' | 'trade'>('');
   const filtered = useMemo(
     () => filterWire(rows, { teamId, type: moveType }),
     [rows, teamId, moveType],
@@ -55,7 +56,7 @@ export function WirePage({ league }: { league: League }) {
           <h1 className={styles.title}>League Wire</h1>
           <DataAsOf syncedAt={league.pinSyncedAt} />
           <p className={styles.subtitle}>
-            Every waiver claim and free-agent move across the league
+            Every waiver claim, free-agent move, and completed trade across the league
           </p>
         </div>
 
@@ -63,7 +64,7 @@ export function WirePage({ league }: { league: League }) {
           <div className={styles.empty}>
             <h2>No transactions yet</h2>
             <p>
-              Add/drop moves appear here once the league's transactions sync.
+              Add/drop moves and completed trades appear here once the league's transactions sync.
             </p>
           </div>
         ) : (
@@ -95,11 +96,12 @@ export function WirePage({ league }: { league: League }) {
                   id="wireType"
                   className="input"
                   value={moveType}
-                  onChange={e => setMoveType(e.target.value as '' | 'waiver' | 'free_agent')}
+                  onChange={e => setMoveType(e.target.value as '' | 'waiver' | 'free_agent' | 'trade')}
                 >
                   <option value="">All moves</option>
                   <option value="waiver">Waiver claims</option>
                   <option value="free_agent">Free-agent pickups</option>
+                  <option value="trade">Trades</option>
                 </select>
               </div>
             </div>
@@ -114,38 +116,64 @@ export function WirePage({ league }: { league: League }) {
                 <p>Widen the filters to see the rest of the wire.</p>
               </div>
             ) : (
-              <ul aria-label="League transactions, newest first" className={styles.list}>
+              <>
+                <ul aria-label="League transactions, newest first" className={styles.list}>
                 {filtered.map(row => (
                   <li key={row.id} className={styles.item}>
                     <div className={styles.meta}>
-                      <span className={styles.team}>{row.teamName}</span>
+                      <span className={styles.team}>
+                        {row.type === 'trade' && row.sides
+                          ? row.sides.map(s => s.teamName).join(' ⇄ ')
+                          : row.teamName}
+                      </span>
                       <span className={styles.when}>
                         Week {row.week} · {formatDate(row.timestamp)}
                       </span>
                     </div>
                     <div className={styles.moves}>
-                      {row.adds.length > 0 && (
-                        <div className={styles.move}>
-                          <span className={styles.action}>
-                            {wireMoveLabel(row)}
-                            {row.type === 'waiver' &&
-                              typeof row.waiverBudgetSpent === 'number' &&
-                              row.waiverBudgetSpent > 0 &&
-                              ` for $${row.waiverBudgetSpent}`}
-                          </span>
-                          <PlayerList players={row.adds} />
-                        </div>
-                      )}
-                      {row.drops.length > 0 && (
-                        <div className={styles.move}>
-                          <span className={styles.action}>dropped</span>
-                          <PlayerList players={row.drops} />
-                        </div>
+                      {row.type === 'trade' ? (
+                        (row.sides ?? []).map(side => (
+                          <div key={side.teamId} className={styles.move}>
+                            <span className={styles.action}>{side.teamName} received</span>
+                            {side.received.length > 0 ? (
+                              <PlayerList players={side.received} />
+                            ) : (
+                              <span className={styles.player}>no players (picks or FAAB)</span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <>
+                          {row.adds.length > 0 && (
+                            <div className={styles.move}>
+                              <span className={styles.action}>
+                                {wireMoveLabel(row)}
+                                {row.type === 'waiver' &&
+                                  typeof row.waiverBudgetSpent === 'number' &&
+                                  row.waiverBudgetSpent > 0 &&
+                                  ` for $${row.waiverBudgetSpent}`}
+                              </span>
+                              <PlayerList players={row.adds} />
+                            </div>
+                          )}
+                          {row.drops.length > 0 && (
+                            <div className={styles.move}>
+                              <span className={styles.action}>dropped</span>
+                              <PlayerList players={row.drops} />
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </li>
                 ))}
               </ul>
+              <p className={styles.note}>
+                Completed trades come from the league's synced trade list — pending or vetoed
+                trades don't appear. Draft picks and FAAB in a trade aren't shown here; see
+                the Trades page for the full deal.
+              </p>
+              </>
             )}
           </>
         )}
