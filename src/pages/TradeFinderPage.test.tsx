@@ -306,13 +306,18 @@ describe('TradeFinderPage', () => {
     const list = screen.getByRole('list', { name: 'Proposed three-team trades' });
     expect(list).toBeInTheDocument();
     // The RB -> WR -> TE circle renders both flow directions of the same
-    // three players — each team gives depth and gains a starter either way.
+    // three players — each team gives its star and gains a starter either
+    // way, so the best variant of each direction tops the list.
     const articles = screen.getAllByRole('article', { name: /Three-team trade: Team A/ });
     expect(articles.length).toBe(2);
-    expect(screen.getByText('Team A sends RB2 to Team B')).toBeInTheDocument();
-    expect(screen.getByText('Team B sends WR2 to Team C')).toBeInTheDocument();
-    expect(screen.getByText('Team C sends TE2 to Team A')).toBeInTheDocument();
-    expect(screen.getAllByText(/Total starter gain \+100 VOR/).length).toBe(2);
+    expect(screen.getByText('Team A sends RB1 to Team B')).toBeInTheDocument();
+    expect(screen.getByText('Team B sends WR1 to Team C')).toBeInTheDocument();
+    expect(screen.getByText('Team C sends TE1 to Team A')).toBeInTheDocument();
+    expect(screen.getAllByText(/Total starter gain \+113 VOR/).length).toBe(2);
+    // Star legs are flagged inline with the fallback in the hover note.
+    const badges = screen.getAllByText('Star');
+    expect(badges.length).toBeGreaterThan(0);
+    expect(badges[0].getAttribute('title')).toMatch(/falls back to RB2/);
   });
 
   it('shows an honest empty state for three-team trades when no circle lines up', () => {

@@ -203,12 +203,13 @@ function CandidateList({
 }
 
 // Three-team trades (backlog item 172): deals no two teams can close on
-// their own — each team gives bench depth it can spare and gets a better
-// starter at a position it needs, around a three-way circle. League mode
-// only: cycles need 3+ teams, so guest mode (two synthetic teams) has none
-// and this section never renders there. A three-team deal can't deep-link
-// into the two-team Trade Analyzer, so each card states the exact split to
-// propose in the league's trade talks.
+// their own — each team gives a player it can spare (bench depth, or a star
+// at a position it can cover) and gets a better starter at a position it
+// needs, around a three-way circle. League mode only: cycles need 3+ teams,
+// so guest mode (two synthetic teams) has none and this section never
+// renders there. A three-team deal can't deep-link into the two-team Trade
+// Analyzer, so each card states the exact split to propose in the league's
+// trade talks.
 function ThreeTeamCycles({
   cycles,
   sleeperProjections,
@@ -225,8 +226,9 @@ function ThreeTeamCycles({
       <h2 className={styles.shopTitle}>Three-team trades</h2>
       <p className={styles.shopIntro}>
         When no two teams match up directly, a third team can close the
-        circle: each team gives bench depth it can spare and gets a better
-        starter at a position it needs.
+        circle: each team gives a player it can spare — bench depth, or a
+        star at a position it can cover — and gets a better starter at a
+        position it needs.
       </p>
 
       {cycles.length === 0 ? (
@@ -264,6 +266,14 @@ function ThreeTeamCycles({
                           {leg.giver.name} sends {leg.player.name} to{' '}
                           {leg.receiver.name}
                         </span>
+                        {leg.kind === 'star' ? (
+                          <span
+                            className={styles.starBadge}
+                            title={`${leg.giver.name} gives its ${leg.position} star and falls back to ${leg.fallbackName}`}
+                          >
+                            Star
+                          </span>
+                        ) : null}
                         <span className={styles.vor}>
                           {round1(leg.playerVor)} VOR
                         </span>

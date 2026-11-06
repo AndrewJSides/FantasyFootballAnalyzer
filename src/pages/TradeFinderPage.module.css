@@ -149,6 +149,20 @@
 .cycleLegs li { border-bottom: 1px dashed var(--bone-dim); }
 .cycleLegs li:last-child { border-bottom: none; }
 
+/* Star legs (backlog item 172 remainder): the giver moves its positional
+   best, not a depth piece — flagged inline so the cost is visible. */
+.starBadge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lime);
+  border: 1px solid var(--lime);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+}
+
 .cycleNote {
   font-family: var(--font-display);
   font-style: italic;
