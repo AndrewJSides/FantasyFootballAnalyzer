@@ -574,6 +574,14 @@ export function Header({
                   Rushing Yards
                 </Link>
                 <Link
+                  to="/receptions"
+                  className={`${styles.navLink} ${location.pathname === '/receptions' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/receptions' ? 'page' : undefined}
+                >
+                  Receptions
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -970,6 +978,14 @@ export function Header({
               aria-current={location.pathname === '/rushing-yards' ? 'page' : undefined}
             >
               Rushing Yards
+            </Link>
+            <Link
+              to="/receptions"
+              className={`${styles.navLink} ${location.pathname === '/receptions' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/receptions' ? 'page' : undefined}
+            >
+              Receptions
             </Link>
             <Link
               to="/watchlist"
