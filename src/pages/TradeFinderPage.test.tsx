@@ -320,6 +320,38 @@ describe('TradeFinderPage', () => {
     expect(badges[0].getAttribute('title')).toMatch(/falls back to RB2/);
   });
 
+  it('deep-links each team\'s side of a three-team cycle into the Trade Analyzer', () => {
+    renderPage(
+      league([
+        team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'WR40', 'TE20']),
+        team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+        team('c', 'Team C', ['QB3', 'RB45', 'WR41', 'WR46', 'TE1', 'TE2', 'TE3']),
+        team('d', 'Team D', ['QB4', 'RB5', 'RB6', 'WR7', 'WR8', 'TE5']),
+      ]),
+    );
+    // The A -> B -> C -> A circle: A gives RB1 and gets TE1, B gives WR1
+    // and gets RB1, C gives TE1 and gets WR1.
+    const article = screen.getByRole('article', {
+      name: 'Three-team trade: Team A → Team B → Team C → Team A',
+    });
+    const links = within(article).getAllByRole('link', {
+      name: /Check Team (A|B|C)'s side/,
+    });
+    expect(links).toHaveLength(3);
+    const aHref = decodeURIComponent(links[0].getAttribute('href') ?? '');
+    expect(aHref).toMatch(/^\/trade-analyzer#trade=/);
+    expect(aHref).toContain('"a":["RB1"]');
+    expect(aHref).toContain('"b":["TE1"]');
+    // Manual mode by design: no team ids ride along, so the analyzer
+    // prices the net on VOR alone instead of modeling a two-team exchange.
+    expect(aHref).not.toContain('"ta"');
+    expect(aHref).not.toContain('"tb"');
+    expect(links[0].getAttribute('aria-label')).toMatch(/gives RB1, gets TE1/);
+    const bHref = decodeURIComponent(links[1].getAttribute('href') ?? '');
+    expect(bHref).toContain('"a":["WR1"]');
+    expect(bHref).toContain('"b":["RB1"]');
+  });
+
   it('flags a 2-for-1 package leg in a three-team cycle', () => {
     renderPage(
       league([

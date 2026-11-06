@@ -4,7 +4,7 @@ import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { DEFAULT_VOR_CONFIG, vorPoints } from './projectionValues';
 import { DEFAULT_MANUAL_SHAPE, valueLeagueFor } from './tradeAnalysis';
 import { teamProfiles } from './tradeFinder';
-import { findThreeTeamCycles } from './threeTeamTrades';
+import { findThreeTeamCycles, cycleTeamNets } from './threeTeamTrades';
 
 const SLOTS: RosterSlots = { ...DEFAULT_MANUAL_SHAPE };
 
@@ -285,5 +285,40 @@ describe('findThreeTeamCycles', () => {
     for (let i = 1; i < cycles.length; i++) {
       expect(cycles[i - 1].score).toBeGreaterThanOrEqual(cycles[i].score);
     }
+  });
+});
+
+describe('cycleTeamNets', () => {
+  it('nets each team gives vs gets around the circle: A gives RB1, gets TE1', () => {
+    const pool = makePool();
+    const cycles = findThreeTeamCycles(cycleLeague(), pool, DEFAULT_VOR_CONFIG);
+    expect(cycles.length).toBeGreaterThan(0);
+    // Legs flow A -> B (RB1), B -> C (WR1), C -> A (TE1): each team gives on
+    // its outgoing leg and receives on the incoming one.
+    const nets = cycleTeamNets(cycles[0]);
+    expect(nets.map(n => n.team.id)).toEqual(['a', 'b', 'c']);
+    expect(nets[0].gives.map(p => p.id)).toEqual(['RB1']);
+    expect(nets[0].gets.map(p => p.id)).toEqual(['TE1']);
+    expect(nets[1].gives.map(p => p.id)).toEqual(['WR1']);
+    expect(nets[1].gets.map(p => p.id)).toEqual(['RB1']);
+    expect(nets[2].gives.map(p => p.id)).toEqual(['TE1']);
+    expect(nets[2].gets.map(p => p.id)).toEqual(['WR1']);
+  });
+
+  it('carries both pieces of a package leg on the giving side of the net', () => {
+    const pool = makePool();
+    const deep = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'RB7', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB45', 'WR41', 'WR46', 'TE1', 'TE2', 'TE3']),
+      team('d', 'Team D', ['QB4', 'RB5', 'RB6', 'WR7', 'WR8', 'TE5']),
+    ]);
+    const cycles = findThreeTeamCycles(deep, pool, DEFAULT_VOR_CONFIG);
+    expect(cycles.length).toBeGreaterThan(0);
+    const nets = cycleTeamNets(cycles[0]);
+    const aNet = nets.find(n => n.team.id === 'a')!;
+    // The A -> B leg is a 2-for-1 package (RB2 + RB3); A still gets TE1.
+    expect(aNet.gives.map(p => p.id)).toEqual(['RB2', 'RB3']);
+    expect(aNet.gets.map(p => p.id)).toEqual(['TE1']);
   });
 });

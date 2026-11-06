@@ -37,11 +37,15 @@
 // players circulate, so aggregate value is balanced by construction, and
 // each team's cost is a player it can spare while its gain is a real
 // starter upgrade. The check is starter gain on every leg, and cycles rank
-// by total starter gain. A three-team deal can't deep-link into the
-// two-team Trade Analyzer, so the page states the exact three-way split
-// instead. Legs in one cycle must sit at three distinct positions: a team
-// giving and receiving at the same position would double-count its own
-// best-before, so those pass-through shapes never form.
+// by total starter gain. A whole cycle can't open in the two-team Trade
+// Analyzer, so the page deep-links each team's side of the circle instead
+// (cycleTeamNets + cycleNetLink): what that team gives vs what it gets,
+// priced on value alone in the analyzer's manual mode — no team ids ride
+// along, because the analyzer would model the receiver giving the
+// incoming player back to the giver, which isn't what happens in a circle.
+// Legs in one cycle must sit at three distinct positions: a team giving and
+// receiving at the same position would double-count its own best-before, so
+// those pass-through shapes never form.
 //
 // Season-agnostic: consumes whatever pool season is bundled and whatever
 // league is supplied, like findTradeCandidates. Needs 3+ teams, so guest
@@ -302,4 +306,30 @@ export function findThreeTeamCycles(
 export function cycleFlowLabel(cycle: ThreeTeamCycle): string {
   const [a, b, c] = cycle.legs;
   return `${a.giver.name} → ${b.giver.name} → ${c.giver.name} → ${a.giver.name}`;
+}
+
+/**
+ * One team's side of a three-team cycle: what it gives on its outgoing leg
+ * vs what it gets on the incoming leg — the two-sided value question the
+ * two-team Trade Analyzer can actually grade (cycleNetLink opens it in
+ * manual mode, priced on VOR alone). Legs flow A -> B -> C -> A, so the team
+ * giving on leg i receives on leg (i + 2) % 3. Package legs move two players
+ * on both sides of the net.
+ */
+export interface CycleTeamNet {
+  team: Team;
+  gives: PoolPlayer[];
+  gets: PoolPlayer[];
+}
+
+export function cycleTeamNets(cycle: ThreeTeamCycle): CycleTeamNet[] {
+  const legPlayers = (leg: CycleLeg): PoolPlayer[] =>
+    leg.kind === 'package' && leg.extraPlayer
+      ? [leg.player, leg.extraPlayer]
+      : [leg.player];
+  return cycle.legs.map((leg, i) => ({
+    team: leg.giver,
+    gives: legPlayers(leg),
+    gets: legPlayers(cycle.legs[(i + 2) % 3]),
+  }));
 }

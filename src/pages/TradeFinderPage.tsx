@@ -15,12 +15,13 @@ import {
 } from '@/utils/tradeFinder';
 import {
   cycleFlowLabel,
+  cycleTeamNets,
   findThreeTeamCycles,
   type ThreeTeamCycle,
 } from '@/utils/threeTeamTrades';
 import { shopOffers } from '@/utils/shopPlayer';
 import { partnerDealLine, rankTradePartners } from '@/utils/tradePartners';
-import { tradeLink } from '@/utils/tradeLinks';
+import { cycleNetLink, tradeLink } from '@/utils/tradeLinks';
 import { valueLeagueFor, DEFAULT_MANUAL_SHAPE } from '@/utils/tradeAnalysis';
 import { DEFAULT_VOR_CONFIG } from '@/utils/projectionValues';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
@@ -207,16 +208,19 @@ function CandidateList({
 // at a position it can cover) and gets a better starter at a position it
 // needs, around a three-way circle. League mode only: cycles need 3+ teams,
 // so guest mode (two synthetic teams) has none and this section never
-// renders there. A three-team deal can't deep-link into the two-team Trade
-// Analyzer, so each card states the exact split to propose in the league's
-// trade talks.
+// renders there. The analyzer grades two-team deals, so a whole cycle can't
+// open there — instead each card links each team's side of the circle (what
+// they give vs what they get) into the analyzer in manual mode, priced on
+// VOR alone.
 function ThreeTeamCycles({
   cycles,
+  search,
   sleeperProjections,
   sleeperReady,
   week,
 }: {
   cycles: ThreeTeamCycle[];
+  search: string;
   sleeperProjections: Record<string, number> | undefined;
   sleeperReady: boolean;
   week: number;
@@ -318,10 +322,26 @@ function ThreeTeamCycles({
                   </ul>
 
                   <p className={styles.cycleNote}>
-                    A three-team deal can&apos;t open in the two-team Trade
-                    Analyzer — propose this exact split in your league&apos;s
-                    trade talks.
+                    The analyzer grades two-team deals, so vet each
+                    team&apos;s side of the circle — what they give vs
+                    what they get — on value alone:
                   </p>
+                  <ul
+                    className={styles.netLinks}
+                    aria-label="Check each team's side of this deal in the Trade Analyzer"
+                  >
+                    {cycleTeamNets(cycle).map(net => (
+                      <li key={net.team.id}>
+                        <Link
+                          className={styles.analyze}
+                          to={cycleNetLink(net, search)}
+                          aria-label={`Check ${net.team.name}'s side of this three-team deal in the Trade Analyzer: gives ${net.gives.map(p => p.name).join(', ')}, gets ${net.gets.map(p => p.name).join(', ')}`}
+                        >
+                          Check {net.team.name}&apos;s side →
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </article>
               </li>
             ))}
@@ -985,6 +1005,7 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
 
         <ThreeTeamCycles
           cycles={cycles}
+          search={location.search}
           sleeperProjections={sleeperProjections}
           sleeperReady={sleeperReady}
           week={currentWeek}
