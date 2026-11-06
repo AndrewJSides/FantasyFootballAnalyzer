@@ -25,7 +25,13 @@ function trade(
   status: Trade['status'],
   timestamp: number,
   week: number,
-  sides: { teamId: string; teamName: string; received: Player[] }[],
+  sides: {
+    teamId: string;
+    teamName: string;
+    received: Player[];
+    picksReceived?: { season: number; round: number }[];
+    faabReceived?: number;
+  }[],
 ): Trade {
   return {
     id,
@@ -37,6 +43,8 @@ function trade(
       teamName: s.teamName,
       playersReceived: s.received,
       playersSent: [],
+      draftPicksReceived: s.picksReceived,
+      faabReceived: s.faabReceived,
     })),
   } as unknown as Trade;
 }
@@ -166,6 +174,41 @@ describe('WirePage', () => {
     fireEvent.change(screen.getByLabelText('Team'), { target: { value: 't2' } });
     expect(screen.getByText('1 move')).toBeInTheDocument();
     expect(screen.getByText('Amon-Ra St. Brown')).toBeInTheDocument();
+  });
+
+  it('renders draft picks and FAAB received on trade rows', () => {
+    render(
+      <WirePage
+        league={league(
+          { t1: [], t2: [] },
+          [
+            trade('x', 'completed', 2_000, 4, [
+              {
+                teamId: 't1',
+                teamName: 'Team t1',
+                received: [player('JaMarr Chase', 'WR')],
+                picksReceived: [{ season: 2027, round: 2 }],
+                faabReceived: 15,
+              },
+              { teamId: 't2', teamName: 'Team t2', received: [] },
+            ]),
+          ],
+        )}
+      />,
+    );
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+    expect(items[0]).toHaveTextContent('JaMarr Chase');
+    expect(items[0]).toHaveTextContent('2027 Round 2 pick');
+    expect(items[0]).toHaveTextContent('draft pick');
+    expect(items[0]).toHaveTextContent('$15 FAAB');
+    expect(items[0]).toHaveTextContent('waiver budget');
+    // A side that received nothing at all reads "nothing", not the old
+    // "no players (picks or FAAB)" fallback.
+    expect(items[0]).toHaveTextContent('Team t2 received');
+    expect(items[0]).toHaveTextContent('nothing');
+    expect(items[0]).not.toHaveTextContent('picks or FAAB');
+    expect(screen.getByText(/Draft picks and FAAB that changed hands are shown/)).toBeInTheDocument();
   });
 
   it('announces the move count in a live region', () => {

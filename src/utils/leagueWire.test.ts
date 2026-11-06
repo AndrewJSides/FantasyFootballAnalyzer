@@ -38,7 +38,13 @@ function trade(
   status: Trade['status'],
   timestamp: number,
   week: number,
-  sides: { teamId: string; teamName: string; received: Player[] }[],
+  sides: {
+    teamId: string;
+    teamName: string;
+    received: Player[];
+    picksReceived?: { season: number; round: number }[];
+    faabReceived?: number;
+  }[],
 ): Trade {
   return {
     id,
@@ -50,6 +56,8 @@ function trade(
       teamName: s.teamName,
       playersReceived: s.received,
       playersSent: [],
+      draftPicksReceived: s.picksReceived,
+      faabReceived: s.faabReceived,
     })),
   } as unknown as Trade;
 }
@@ -134,6 +142,33 @@ describe('buildLeagueWire', () => {
     expect(tradeRow.sides?.map(s => s.teamName)).toEqual(['Alpha', 'Beta']);
     expect(tradeRow.sides?.[0].received.map(p => p.name)).toEqual(['JaMarr Chase']);
     expect(tradeRow.sides?.[1].received.map(p => p.name)).toEqual(['Amon-Ra St. Brown']);
+  });
+
+  it('carries draft picks and FAAB received per trade side', () => {
+    const l = leagueOf(
+      [
+        { id: 't1', name: 'Alpha', transactions: [] },
+        { id: 't2', name: 'Beta', transactions: [] },
+      ],
+      [
+        trade('x', 'completed', 2000, 4, [
+          {
+            teamId: 't1',
+            teamName: 'Alpha',
+            received: [player('JaMarr Chase', 'WR')],
+            picksReceived: [{ season: 2027, round: 2 }],
+            faabReceived: 15,
+          },
+          { teamId: 't2', teamName: 'Beta', received: [player('Amon-Ra St. Brown', 'WR')] },
+        ]),
+      ],
+    );
+    const tradeRow = buildLeagueWire(l)[0];
+    expect(tradeRow.sides?.[0].picksReceived).toEqual([{ season: 2027, round: 2 }]);
+    expect(tradeRow.sides?.[0].faabReceived).toBe(15);
+    // Sides with no picks or FAAB default to empty / zero, never undefined.
+    expect(tradeRow.sides?.[1].picksReceived).toEqual([]);
+    expect(tradeRow.sides?.[1].faabReceived).toBe(0);
   });
 
   it('excludes pending and vetoed trades', () => {

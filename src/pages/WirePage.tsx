@@ -132,16 +132,43 @@ export function WirePage({ league }: { league: League }) {
                     </div>
                     <div className={styles.moves}>
                       {row.type === 'trade' ? (
-                        (row.sides ?? []).map(side => (
-                          <div key={side.teamId} className={styles.move}>
-                            <span className={styles.action}>{side.teamName} received</span>
-                            {side.received.length > 0 ? (
-                              <PlayerList players={side.received} />
-                            ) : (
-                              <span className={styles.player}>no players (picks or FAAB)</span>
-                            )}
-                          </div>
-                        ))
+                        (row.sides ?? []).map(side => {
+                          const receivedAnything =
+                            side.received.length > 0 ||
+                            side.picksReceived.length > 0 ||
+                            side.faabReceived > 0;
+                          return (
+                            <div key={side.teamId} className={styles.move}>
+                              <span className={styles.action}>{side.teamName} received</span>
+                              {receivedAnything ? (
+                                <>
+                                  <PlayerList players={side.received} />
+                                  {side.picksReceived.map((pick, i) => (
+                                    <span
+                                      key={`pick-${pick.season}-${pick.round}-${i}`}
+                                      className={styles.player}
+                                      aria-label={`${pick.season} Round ${pick.round} draft pick`}
+                                    >
+                                      {pick.season} Round {pick.round} pick
+                                      <span className={styles.playerTeam}>draft pick</span>
+                                    </span>
+                                  ))}
+                                  {side.faabReceived > 0 && (
+                                    <span
+                                      className={styles.player}
+                                      aria-label={`$${side.faabReceived} FAAB`}
+                                    >
+                                      ${side.faabReceived} FAAB
+                                      <span className={styles.playerTeam}>waiver budget</span>
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className={styles.player}>nothing</span>
+                              )}
+                            </div>
+                          );
+                        })
                       ) : (
                         <>
                           {row.adds.length > 0 && (
@@ -170,8 +197,8 @@ export function WirePage({ league }: { league: League }) {
               </ul>
               <p className={styles.note}>
                 Completed trades come from the league's synced trade list — pending or vetoed
-                trades don't appear. Draft picks and FAAB in a trade aren't shown here; see
-                the Trades page for the full deal.
+                trades don't appear. Draft picks and FAAB that changed hands are shown on each
+                side; see the Trades page for the PAR verdict and grades.
               </p>
               </>
             )}

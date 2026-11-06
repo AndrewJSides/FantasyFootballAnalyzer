@@ -1,4 +1,4 @@
-import type { League, Player, Transaction } from '@/types';
+import type { League, Player, TradedDraftPick, Transaction } from '@/types';
 
 // League Wire: one chronological feed of every league move — add/drop moves
 // (waiver claims + free-agent pickups) from the synced per-team
@@ -14,6 +14,10 @@ export interface WireTradeSide {
   teamId: string;
   teamName: string;
   received: Player[];
+  /** Draft picks that side received (empty when none changed hands). */
+  picksReceived: TradedDraftPick[];
+  /** FAAB dollars that side received (0 when none changed hands). */
+  faabReceived: number;
 }
 
 export interface WireRow {
@@ -76,6 +80,8 @@ export function buildLeagueWire(league: League): WireRow[] {
         teamId: s.teamId,
         teamName: s.teamName,
         received: s.playersReceived ?? [],
+        picksReceived: s.draftPicksReceived ?? [],
+        faabReceived: s.faabReceived ?? 0,
       })),
     });
   }
