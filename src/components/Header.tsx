@@ -590,6 +590,14 @@ export function Header({
                   Passing TDs
                 </Link>
                 <Link
+                  to="/rushing-touchdowns"
+                  className={`${styles.navLink} ${location.pathname === '/rushing-touchdowns' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/rushing-touchdowns' ? 'page' : undefined}
+                >
+                  Rushing TDs
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1002,6 +1010,14 @@ export function Header({
               aria-current={location.pathname === '/passing-touchdowns' ? 'page' : undefined}
             >
               Passing TDs
+            </Link>
+            <Link
+              to="/rushing-touchdowns"
+              className={`${styles.navLink} ${location.pathname === '/rushing-touchdowns' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/rushing-touchdowns' ? 'page' : undefined}
+            >
+              Rushing TDs
             </Link>
             <Link
               to="/watchlist"
