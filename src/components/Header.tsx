@@ -622,6 +622,14 @@ export function Header({
                   Rushing Attempts
                 </Link>
                 <Link
+                  to="/defense-leaders"
+                  className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/defense-leaders' ? 'page' : undefined}
+                >
+                  Defense Leaders
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1066,6 +1074,14 @@ export function Header({
               aria-current={location.pathname === '/rushing-attempts' ? 'page' : undefined}
             >
               Rushing Attempts
+            </Link>
+            <Link
+              to="/defense-leaders"
+              className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/defense-leaders' ? 'page' : undefined}
+            >
+              Defense Leaders
             </Link>
             <Link
               to="/watchlist"

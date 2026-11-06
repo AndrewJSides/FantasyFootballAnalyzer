@@ -68,6 +68,23 @@ export interface WeeklyUsageLine {
   /** PPR fantasy points (pts_ppr) — the scoreboard read behind the
    *  Fantasy Points Leaders board (backlog item 158). */
   ptsPpr: number;
+  /** Sacks (sack) — team-defense rows only; the pressure read behind
+   *  the Defense Leaders board (backlog item 169). 0 / absent on
+   *  skill-player lines. */
+  sacks?: number;
+  /** Interceptions (int) — team-defense rows only, same board. */
+  defInt?: number;
+  /** Fumble recoveries (fum_rec) — team-defense rows only, same board. */
+  fumRec?: number;
+  /** Defensive touchdowns (td) — team-defense rows only, same board. */
+  defTd?: number;
+  /** Safeties (safe) — team-defense rows only, same board. */
+  safeties?: number;
+  /** Blocked kicks (blk_kick) — team-defense rows only, same board. */
+  blkKick?: number;
+  /** Points allowed (pts_allow) — team-defense rows only; the
+   *  points-allowed bracket in standard D/ST scoring, same board. */
+  ptsAllow?: number;
 }
 
 export interface WeeklyUsage {
@@ -134,6 +151,13 @@ export async function fetchWeeklyUsage(
         rushFd: num(stats.rush_fd),
         recFd: num(stats.rec_fd),
         ptsPpr: num(stats.pts_ppr),
+        sacks: num(stats.sack),
+        defInt: num(stats.int),
+        fumRec: num(stats.fum_rec),
+        defTd: num(stats.td),
+        safeties: num(stats.safe),
+        blkKick: num(stats.blk_kick),
+        ptsAllow: num(stats.pts_allow),
       };
     }
   }
