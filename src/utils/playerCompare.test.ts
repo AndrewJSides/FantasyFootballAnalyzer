@@ -185,4 +185,45 @@ describe('comparePlayers', () => {
       expect(text === null || text.startsWith('vs ')).toBe(true);
     }
   });
+
+  // Item-173 remainder: the measured sole-back term folds into the week
+  // projection, so Compare agrees with the Weekly Rankings board,
+  // Start/Sit, and the Matchup game plan on the same player.
+  it('folds a sole-back vacancy into the week projection and tags the row', () => {
+    const lead = player('lead-sid', 'Lead Back', 'TEN', 'RB');
+    const other = player('other-sid', 'Other Back', 'DAL', 'RB');
+    const series: Array<[number, number]> = [[1, 10], [2, 12], [3, 11], [4, 13]];
+    const weekly = weeklyFor([['lead-sid', series], ['other-sid', series]]);
+    const base = comparePlayers(lead, other, weekly, ctxFor());
+    // Identical series tie on the projection row with no vacancy.
+    expect(base.metricsA.projection).toBe(base.metricsB.projection);
+    expect(base.metricsA.soleBack).toBeNull();
+
+    const soleBack = new Map([['lead-sid', { mates: ['Backup Mate'], upside: 4.8 }]]);
+    const r = comparePlayers(lead, other, weekly, ctxFor(), soleBack);
+    expect(r.metricsA.soleBack).toEqual({ mates: ['Backup Mate'], upside: 4.8 });
+    expect(r.metricsA.projection).toBe(Math.round((base.metricsA.projection! + 4.8) * 10) / 10);
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('projection')!.a).toContain('Sole back +4.8');
+    expect(byKey.get('projection')!.winner).toBe('A');
+    expect(r.verdict).toContain('sole back in his backfield');
+    // The other side is untouched.
+    expect(r.metricsB.projection).toBe(base.metricsB.projection);
+    expect(r.metricsB.soleBack).toBeNull();
+  });
+
+  it('never folds a sole-back vacancy into a ruled-out player', () => {
+    const lead = { ...player('lead-sid', 'Lead Back', 'TEN', 'RB'), injuryStatus: 'Out' };
+    const other = player('other-sid', 'Other Back', 'DAL', 'RB');
+    const weekly = weeklyFor([
+      ['lead-sid', [[1, 10], [2, 12], [3, 11], [4, 13]]],
+      ['other-sid', [[1, 10], [2, 12], [3, 11], [4, 13]]],
+    ]);
+    const soleBack = new Map([['lead-sid', { mates: ['Backup Mate'], upside: 4.8 }]]);
+    const r = comparePlayers(lead, other, weekly, ctxFor(), soleBack);
+    expect(r.metricsA.projection).toBe(0);
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('projection')!.a).toBe('0.0 pts (ruled out)');
+    expect(byKey.get('projection')!.a).not.toContain('Sole back');
+  });
 });

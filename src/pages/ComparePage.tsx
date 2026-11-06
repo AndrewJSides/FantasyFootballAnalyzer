@@ -433,7 +433,12 @@ export function ComparePage({ league }: { league: League }) {
               weeks {dataStart}–{dataEnd}; the rest-of-season outlook blends the
               player's pace with his season projection. The Sleeper row is
               Sleeper's own week {week} projection (pts_ppr) for each player,
-              a dash where Sleeper published no line. VOR values are priced
+              a dash where Sleeper published no line. A &ldquo;Sole back&rdquo;
+              tag marks an RB whose backfield mate is ruled out — the
+              estimated extra points from the vacated usage are priced into
+              the projection shown, the same measured term the Weekly
+              Rankings board, Start/Sit, and the Matchup game plan fold in.
+              VOR values are priced
               on {league.totalTeams || 10}-team {league.scoringType} scoring.
               Consistency is the item-20 Steady/Mixed/Volatile verdict with its
               P25–P75 floor–ceiling band over completed weeks (dash under 3

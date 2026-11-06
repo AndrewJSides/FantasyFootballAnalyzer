@@ -20,6 +20,7 @@ import {
 } from '@/utils/matchupRating';
 import { vorPoints, type ValueLeague, type VorConfig } from '@/utils/projectionValues';
 import { injuryOf, seasonOutlooks } from '@/utils/seasonOutlook';
+import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
 
 export type CompareWinner = 'A' | 'B' | 'tie';
@@ -47,6 +48,11 @@ export interface CompareMetrics {
    * season-ending IR description) — his week projection is then 0, not
    * the frozen full projection, because he will score 0. */
   ruledOut: boolean;
+  /** Item-173 remainder: the sole-back vacancy for this player, if any —
+   * the measured term (item 137) folded into the week projection below,
+   * so Compare agrees with the Weekly Rankings board, Start/Sit, and
+   * the Matchup game plan on the same player in the same week. */
+  soleBack: SoleBackInfo | null;
   matchup: MatchupRating | null;
   matchupText: string | null;
   /** Projected points for the remaining weeks (ROS outlook). */
@@ -100,7 +106,12 @@ function completedWeeks(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, curr
   return { entries, gpCompleted };
 }
 
-function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: CompareContext): CompareMetrics {
+function metricsFor(
+  p: PoolPlayer,
+  weekly: WeeklyPprPoints | undefined,
+  ctx: CompareContext,
+  sole: SoleBackInfo | null = null,
+): CompareMetrics {
   const { entries, gpCompleted } = completedWeeks(p, weekly, ctx.currentWeek);
   const total = entries.length > 0 ? round1(entries.reduce((s, e) => s + e.pts, 0)) : null;
   const games = gpCompleted.length > 0 ? gpCompleted.length : entries.length > 0 ? entries.length : null;
@@ -124,10 +135,18 @@ function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: Com
   // to price them, and an invented discount would be a guess.
   const info = injuryOf(p);
   const ruledOut = Boolean(info?.outNow || info?.seasonEnding);
-  const projection = ruledOut
+  const rawProjection = ruledOut
     ? 0
     : (projectWeeklyPoints(entries, gpCompleted.length > 0 ? gpCompleted.length : null, matchupContext)
         ?.projection ?? null);
+  // Item-173 remainder: fold the measured sole-back term into the week
+  // projection — the same priced term the Weekly Rankings board, Start/Sit,
+  // and the Matchup game plan already fold in. A ruled-out lead back never
+  // wears the tag: his week score is 0, vacancy or not.
+  const projection =
+    rawProjection !== null && !ruledOut && sole !== null
+      ? round1(rawProjection + sole.upside)
+      : rawProjection;
 
   // Consistency + boom chance price on the same completed-week series the
   // projection uses. Volatility is the population std dev of completed
@@ -154,6 +173,7 @@ function metricsFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, ctx: Com
     last3,
     projection: projection === null ? null : round1(projection),
     ruledOut,
+    soleBack: sole,
     // A ruled-out player cannot boom: his week score is 0, whatever the
     // volatility of his completed weeks says.
     boomPct: ruledOut ? 0 : boomProb === null ? null : round1(boomProb * 100),
@@ -185,15 +205,20 @@ function asPick(p: PoolPlayer, total: number | null, games: number | null): Draf
   };
 }
 
-/** Compare two pool players across the comparison rows. */
+/** Compare two pool players across the comparison rows.
+ * `soleBack` is an optional precomputed vacancy map (pool-id keyed, as
+ * soleBackMap returns it); when omitted it is computed from the bundled
+ * pool and the same weekly series, so the page never has to pass it. */
 export function comparePlayers(
   playerA: PoolPlayer,
   playerB: PoolPlayer,
   weekly: WeeklyPprPoints | undefined,
   ctx: CompareContext,
+  soleBack?: Map<string, SoleBackInfo>,
 ): CompareResult {
-  const metricsA = metricsFor(playerA, weekly, ctx);
-  const metricsB = metricsFor(playerB, weekly, ctx);
+  const vacancies = soleBack ?? soleBackMap(POOL, weekly, ctx.currentWeek);
+  const metricsA = metricsFor(playerA, weekly, ctx, vacancies.get(playerA.id) ?? null);
+  const metricsB = metricsFor(playerB, weekly, ctx, vacancies.get(playerB.id) ?? null);
 
   // Shared context maps: one ROS pass and one VOR pass for both players.
   const poolIndex = indexPool(POOL);
@@ -276,8 +301,12 @@ const consistencyText = (m: CompareMetrics): string | null =>
 const pctText = (pct: number | null): string | null => (pct === null ? null : `${round1(pct)}%`);
 
 function buildRows(a: CompareMetrics, b: CompareMetrics, currentWeek: number): CompareRow[] {
-  const projText = (m: CompareMetrics): string | null =>
-    m.ruledOut ? '0.0 pts (ruled out)' : fmtPts(m.projection);
+  const projText = (m: CompareMetrics): string | null => {
+    if (m.ruledOut) return '0.0 pts (ruled out)';
+    const base = fmtPts(m.projection);
+    if (base === null || !m.soleBack) return base;
+    return `${base} · Sole back +${m.soleBack.upside.toFixed(1)}`;
+  };
   return [
     row('projection', `Week ${currentWeek} projection`, a.projection, b.projection,
       projText(a), projText(b), ' pts'),
@@ -315,11 +344,20 @@ function buildVerdict(
       : !a.ruledOut && b.ruledOut
         ? ` ${nameB} is ruled out this week, so the week projection is 0.`
         : '';
+  // Item-173 remainder: name the priced vacancy so a sole-back win reads
+  // as a role call, not a talent call — the same discipline as the
+  // ruled-out note above.
+  const soleBackNote =
+    a.soleBack && !b.soleBack
+      ? ` ${nameA} is the sole back in his backfield this week — the vacated usage is priced into his projection.`
+      : !a.soleBack && b.soleBack
+        ? ` ${nameB} is the sole back in his backfield this week — the vacated usage is priced into his projection.`
+        : '';
   if (winsA === 0 && winsB === 0) {
-    return `No usable data to separate ${nameA} and ${nameB} — pick players with weekly stats.${ruledOutNote}`;
+    return `No usable data to separate ${nameA} and ${nameB} — pick players with weekly stats.${ruledOutNote}${soleBackNote}`;
   }
   if (winsA === winsB) {
-    return `${nameA} and ${nameB} split the comparison ${winsA}–${winsB}; pick on roster need, not a clear edge.${ruledOutNote}`;
+    return `${nameA} and ${nameB} split the comparison ${winsA}–${winsB}; pick on roster need, not a clear edge.${ruledOutNote}${soleBackNote}`;
   }
   const [leader, laggard] = winsA > winsB ? [nameA, nameB] : [nameB, nameA];
   // Name the biggest numeric edge for the leading side.
@@ -329,7 +367,7 @@ function buildVerdict(
     if (!biggest || marginOf(r) > marginOf(biggest)) biggest = r;
   }
   const edge = biggest ? `, biggest edge ${biggest.label.toLowerCase()} (${biggest.margin})` : '';
-  return `${leader} takes the comparison ${winsA}–${winsB} over ${laggard}${edge}.${ruledOutNote}`;
+  return `${leader} takes the comparison ${winsA}–${winsB} over ${laggard}${edge}.${ruledOutNote}${soleBackNote}`;
 }
 
 function marginOf(r: CompareRow): number {

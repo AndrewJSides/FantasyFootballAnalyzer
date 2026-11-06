@@ -29,6 +29,24 @@ const h = vi.hoisted(() => {
   add('a1', 'Alpha Aardvark', 'QB', 'BUF');
   add('b1', 'Beta Badger', 'QB', 'KC');
   add('c1', 'Charlie Cheetah', 'RB', 'WAS');
+  // Item-173 remainder: Charlie's ruled-out backfield mate, so the page's
+  // sole-back fold has a real vacancy to price in the new test below.
+  players.push({
+    id: 'd1',
+    name: 'Delta Deer',
+    team: 'WAS',
+    pos: 'RB',
+    posRank: 2,
+    overallRank: players.length + 1,
+    tier: 1,
+    bye: null,
+    baseValue: null,
+    sleeperId: 'sid-d1',
+    projPtsPpr: 50,
+    projPts: 45,
+    projPtsStd: 40,
+    injuryStatus: 'Out',
+  } as PoolPlayer);
   return { players };
 });
 
@@ -79,7 +97,10 @@ beforeEach(() => {
           : Promise.resolve({
               'sid-a1': { pts_ppr: 25, gp: 1 },
               'sid-b1': { pts_ppr: 15, gp: 1 },
-              'sid-c1': { pts_ppr: 20, gp: 1 },
+              // Charlie: 20 pts on 20 opps/week (1.0 pts/opp); Delta: 12
+              // opps/week, ruled out — a 12-pt vacancy capped at +10.
+              'sid-c1': { pts_ppr: 20, gp: 1, rush_att: 15, rec_tgt: 5 },
+              'sid-d1': { pts_ppr: 5, gp: 1, rush_att: 12 },
             }),
     }),
   ));
@@ -203,6 +224,24 @@ describe('ComparePage', () => {
     const table = screen.getByRole('table');
     const sleeperRow = within(table).getByRole('row', { name: /Sleeper week 5 projection/ });
     within(sleeperRow).getAllByRole('cell').forEach(c => expect(c).toHaveTextContent('—'));
+  });
+
+  it('folds a sole-back vacancy into the week projection and tags the row', async () => {
+    renderPage();
+    pickPlayer('Player A', 'Charlie Cheetah');
+    pickPlayer('Player B', 'Beta Badger');
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+
+    const table = screen.getByRole('table');
+    const projRow = within(table).getByRole('row', { name: /Week 5 projection/ });
+    const cells = within(projRow).getAllByRole('cell');
+    // Charlie: 20-pt base + 10-pt capped vacancy = 30.0 pts, tagged.
+    expect(cells[0]).toHaveTextContent('30 pts');
+    expect(cells[0]).toHaveTextContent('Sole back +10.0');
+    expect(cells[1]).not.toHaveTextContent('Sole back');
+
+    const verdict = screen.getByText(/sole back in his backfield/);
+    expect(verdict).toBeInTheDocument();
   });
 
   it('shows a retry affordance when weekly stats fail to load', async () => {
