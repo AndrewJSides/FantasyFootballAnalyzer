@@ -630,6 +630,14 @@ export function Header({
                   Defense Leaders
                 </Link>
                 <Link
+                  to="/kicker-leaders"
+                  className={`${styles.navLink} ${location.pathname === '/kicker-leaders' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/kicker-leaders' ? 'page' : undefined}
+                >
+                  Kicker Leaders
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1082,6 +1090,14 @@ export function Header({
               aria-current={location.pathname === '/defense-leaders' ? 'page' : undefined}
             >
               Defense Leaders
+            </Link>
+            <Link
+              to="/kicker-leaders"
+              className={`${styles.navLink} ${location.pathname === '/kicker-leaders' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/kicker-leaders' ? 'page' : undefined}
+            >
+              Kicker Leaders
             </Link>
             <Link
               to="/watchlist"

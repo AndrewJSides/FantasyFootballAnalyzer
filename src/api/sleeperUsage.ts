@@ -85,6 +85,14 @@ export interface WeeklyUsageLine {
   /** Points allowed (pts_allow) — team-defense rows only; the
    *  points-allowed bracket in standard D/ST scoring, same board. */
   ptsAllow?: number;
+  /** Field goals made (fgm) — kicker rows only; the volume read
+   *  behind the Kicker Leaders board (backlog item 170). 0 / absent
+   *  on non-kicker lines. */
+  fgm?: number;
+  /** Field goals attempted (fga) — kicker rows only, same board. */
+  fga?: number;
+  /** Extra points made (xpm) — kicker rows only, same board. */
+  xpm?: number;
 }
 
 export interface WeeklyUsage {
@@ -158,6 +166,9 @@ export async function fetchWeeklyUsage(
         safeties: num(stats.safe),
         blkKick: num(stats.blk_kick),
         ptsAllow: num(stats.pts_allow),
+        fgm: num(stats.fgm),
+        fga: num(stats.fga),
+        xpm: num(stats.xpm),
       };
     }
   }

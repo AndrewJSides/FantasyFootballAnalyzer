@@ -49,6 +49,9 @@ describe('fetchWeeklyUsage', () => {
       safeties: 0,
       blkKick: 0,
       ptsAllow: 0,
+      fgm: 0,
+      fga: 0,
+      xpm: 0,
     });
     // gp 0 → no line recorded.
     expect(r?.usageBySleeperId.p2).toBeUndefined();
@@ -79,7 +82,7 @@ describe('fetchWeeklyUsage', () => {
       targets: 0,
       rushAtt: 0,
       receptions: 0,
-      rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, passAtt: 0, passCmp: 0, rushFd: 0, recFd: 0, ptsPpr: 0, sacks: 0, defInt: 0, fumRec: 0, defTd: 0, safeties: 0, blkKick: 0, ptsAllow: 0,
+      rzOpps: 0, airYards: 0, deepRec: 0, longRec: 0, yac: 0, recYards: 0, rushYards: 0, rushTd: 0, recTd: 0, passYards: 0, passTd: 0, passAtt: 0, passCmp: 0, rushFd: 0, recFd: 0, ptsPpr: 0, sacks: 0, defInt: 0, fumRec: 0, defTd: 0, safeties: 0, blkKick: 0, ptsAllow: 0, fgm: 0, fga: 0, xpm: 0,
     });
   });
 
