@@ -74,6 +74,7 @@ const PassingLeadersPage = lazyPage(() => import('@/pages/PassingLeadersPage'), 
 const TargetVolumeLeadersPage = lazyPage(() => import('@/pages/TargetVolumeLeadersPage'), 'TargetVolumeLeadersPage');
 const FirstDownLeadersPage = lazyPage(() => import('@/pages/FirstDownLeadersPage'), 'FirstDownLeadersPage');
 const TouchesLeadersPage = lazyPage(() => import('@/pages/TouchesLeadersPage'), 'TouchesLeadersPage');
+const DynastyRankingsPage = lazyPage(() => import('@/pages/DynastyRankingsPage'), 'DynastyRankingsPage');
 const FantasyPointsLeadersPage = lazyPage(() => import('@/pages/FantasyPointsLeadersPage'), 'FantasyPointsLeadersPage');
 const SnapCountLeadersPage = lazyPage(() => import('@/pages/SnapCountLeadersPage'), 'SnapCountLeadersPage');
 const YardsPerTargetLeadersPage = lazyPage(() => import('@/pages/YardsPerTargetLeadersPage'), 'YardsPerTargetLeadersPage');
@@ -199,6 +200,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/target-volume': 'Target Volume Leaders',
   '/first-downs': 'First Downs Leaders',
   '/touches': 'Touches Leaders',
+  '/dynasty': 'Dynasty Rankings',
   '/fantasy-points': 'Fantasy Points Leaders',
   '/snap-counts': 'Snap Count Leaders',
   '/yards-per-target': 'Yards / Target Leaders',
@@ -1050,6 +1052,12 @@ function App() {
           <Route
             path="/trade-values"
             element={league ? <TradeValuesPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
+          />
+          {/* Dynasty Rankings works in guest mode on the bundled pool plus
+              the generated age file (no auth); league mode adds owners. */}
+          <Route
+            path="/dynasty"
+            element={league ? <DynastyRankingsPage league={league} /> : <GuestAutoEnter onEnter={enterGuest} />}
           />
           {/* Compare Players works in guest mode on two picked players
               (Sleeper's public weekly stats, no auth), like Start/Sit. */}

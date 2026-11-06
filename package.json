@@ -12,6 +12,7 @@
     "build:award-icons": "tsx scripts/sliceAwardIcons.ts",
     "build:draft-data": "tsx scripts/buildDraftPool.ts",
     "build:weekly-shape": "tsx scripts/updateWeeklyShape.ts",
+    "build:ages": "tsx scripts/buildPlayerAges.ts",
     "fetch:rankings": "tsx scripts/fetchRankings.ts",
     "snapshot:projections": "tsx scripts/snapshotProjections.ts",
     "snapshot:trade-values": "tsx scripts/snapshotTradeValues.ts",
