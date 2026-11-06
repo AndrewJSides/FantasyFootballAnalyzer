@@ -614,6 +614,14 @@ export function Header({
                   Pass Attempts
                 </Link>
                 <Link
+                  to="/rushing-attempts"
+                  className={`${styles.navLink} ${location.pathname === '/rushing-attempts' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/rushing-attempts' ? 'page' : undefined}
+                >
+                  Rushing Attempts
+                </Link>
+                <Link
                   to="/watchlist"
                   className={`${styles.navLink} ${location.pathname === '/watchlist' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1050,6 +1058,14 @@ export function Header({
               aria-current={location.pathname === '/pass-attempts' ? 'page' : undefined}
             >
               Pass Attempts
+            </Link>
+            <Link
+              to="/rushing-attempts"
+              className={`${styles.navLink} ${location.pathname === '/rushing-attempts' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/rushing-attempts' ? 'page' : undefined}
+            >
+              Rushing Attempts
             </Link>
             <Link
               to="/watchlist"
