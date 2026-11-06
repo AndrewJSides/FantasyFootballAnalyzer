@@ -24,6 +24,7 @@ import {
 } from '@/utils/matchupRating';
 import type { OptimalLineupPlayer } from '@/utils/optimalLineup';
 import { injuryTier, injuryTierLabel, type InjurySeverityTier } from '@/utils/injuryReport';
+import type { SoleBackInfo } from '@/utils/roleChange';
 
 export interface ScoredPlayer extends OptimalLineupPlayer {
   player: Player;
@@ -33,6 +34,15 @@ export interface ScoredPlayer extends OptimalLineupPlayer {
   projection: WeeklyProjection | null;
   /** Population std dev of completed-week scores; null with fewer than 2 games. */
   stdDev: number | null;
+  /**
+   * Item-173 sole-back vacancy for this player (null when none): a ruled-out
+   * same-team RB mate vacates real rotation usage this week. The upside is
+   * FOLDED into `projection` and `score` (backtested Nov 6, 2026 on the
+   * week-8 grade — the gated term cut the three affected RBs' MAE 14.95 ->
+   * 7.05 without raising overall MAE) — the tag on the consuming page
+   * names the priced-in amount.
+   */
+  soleBack: SoleBackInfo | null;
   bye: number | null;
   onBye: boolean;
   matchup: MatchupRating | null;
@@ -82,6 +92,15 @@ export interface RosterScoreInputs {
    */
   tdRegression?: TdRegression | null;
   usageTrend?: UsageTrend | null;
+  /**
+   * Item-173 sole-back map (pool-id keyed, as soleBackMap returns it):
+   * each entry's upside is folded into that player's weekly projection
+   * and score. A player with no entry prices as before; a missing map
+   * means the term stays off entirely. The map is a this-week signal —
+   * callers planning future weeks (lineupPlanner) gate it to the
+   * current week.
+   */
+  soleBack?: Map<string, SoleBackInfo>;
   gamesBySleeperId?: Record<string, number[]>;
   gamesSeason?: number;
   season?: number;
@@ -105,6 +124,7 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
     weeklyUsage,
     tdRegression,
     usageTrend,
+    soleBack,
     gamesBySleeperId,
     gamesSeason,
     season,
@@ -186,6 +206,17 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
     );
     const poolPlayer = resolvePoolPlayer(rosterPlayer, poolIndex);
     const bye = poolPlayer?.bye ?? null;
+    // Item-173: the measured sole-back term folds into this week's
+    // projection (and therefore `score`, which the optimizer ranks on),
+    // so Start/Sit, the matchup preview, the game plan, and the position
+    // battles all price the same number the Weekly Rankings board shows.
+    // A ruled-out or bye-week lead back never starts, so the fold is
+    // inert for him — the term only moves an eligible starter's call.
+    const sole = poolPlayer ? (soleBack?.get(poolPlayer.id) ?? null) : null;
+    const foldedProjection =
+      projection !== null && sole !== null
+        ? { ...projection, projection: round1(projection.projection + sole.upside) }
+        : projection;
     // Injury designations from the bundled pool (refreshed twice daily):
     // Out and season-ending IR never start, same discipline as bye weeks.
     const tier = poolPlayer ? injuryTier(poolPlayer) : 'other';
@@ -212,13 +243,14 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
       id: rosterPlayer.id,
       name: rosterPlayer.name,
       position: rosterPlayer.position,
-      score: projection?.projection ?? ppg ?? 0,
+      score: foldedProjection?.projection ?? ppg ?? 0,
       player: rosterPlayer,
       nflTeam: rosterPlayer.team,
       ppg,
       last3,
-      projection,
+      projection: foldedProjection,
       stdDev,
+      soleBack: sole,
       bye,
       onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
       matchup,

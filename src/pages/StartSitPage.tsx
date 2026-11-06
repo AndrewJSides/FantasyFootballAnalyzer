@@ -260,9 +260,10 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // The Weekly Rankings board's sole-back and weather-risk tags come to
   // the lineup tables, where the start/sit call is actually made. Same
   // non-blocking discipline as the board: a failed forecast fetch just
-  // leaves the tags off. The ranked projection is deliberately NOT
-  // changed — both terms stay display-only until a graded week measures
-  // them (the model's priced-term discipline).
+  // leaves the tags off. The weather-risk tag stays display-only; the
+  // sole-back upside is priced into the projection (item 173 — the
+  // week-8 grade measured it), so only the weather term is still
+  // upside to weigh.
   const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
   useEffect(() => {
     if (currentWeek == null) return;
@@ -281,6 +282,21 @@ export function StartSitPage({ league }: StartSitPageProps) {
   }, [currentWeek]);
 
   // --- Score the active roster ----------------------------------------------
+  // Sole-back map for the roster: the same Sleeper weekly series the
+  // component maps already fetch (guest: the guest fetch; league: the
+  // component fetch), joined onto scored players through the pool index
+  // so Yahoo/ESPN platform ids resolve like everywhere else on the page.
+  // Item-173: the map is passed into the scoring core, so a sole back's
+  // upside is priced into his projection and score (backtested Nov 6,
+  // 2026 on the week-8 grade), not just flagged — the tag below names
+  // the priced-in amount.
+  const poolIndex = useMemo(() => indexPool(POOL), []);
+  const soleBack = useMemo(() => {
+    if (currentWeek == null) return new Map<string, SoleBackInfo>();
+    const weekly = isGuest ? guestWeekly : leagueComponents;
+    return soleBackMap(POOL, weekly ?? undefined, currentWeek);
+  }, [isGuest, guestWeekly, leagueComponents, currentWeek]);
+
   const roster: Player[] = useMemo(
     () =>
       isGuest
@@ -437,6 +453,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
         weeklyUsage: isGuest
           ? guestWeekly?.usageBySleeperId
           : leagueComponentMaps?.weeklyUsage,
+        soleBack,
         gamesBySleeperId: isGuest
           ? guestWeekly?.gamesBySleeperId
           : league.gamesPlayed?.bySleeperId,
@@ -444,7 +461,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
         season: league.season,
         currentWeek,
       }),
-    [roster, weeklyPoints, isGuest, guestWeekly, leagueComponentMaps, league.gamesPlayed, league.season, currentWeek],
+    [roster, weeklyPoints, isGuest, guestWeekly, leagueComponentMaps, soleBack, league.gamesPlayed, league.season, currentWeek],
   );
 
   // --- Lineup mode: floor/ceiling re-ranking (backlog item 25) ----------------
@@ -658,6 +675,10 @@ export function StartSitPage({ league }: StartSitPageProps) {
             weeklyUsage: isGuest
               ? guestWeekly?.usageBySleeperId
               : leagueComponentMaps?.weeklyUsage,
+            // Item-173: the sole-back map rides along; the planner prices
+            // it for the current week only (a mate ruled out this week may
+            // return next week), later weeks price it as 0.
+            soleBack,
             gamesBySleeperId: isGuest
               ? guestWeekly?.gamesBySleeperId
               : league.gamesPlayed?.bySleeperId,
@@ -673,6 +694,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
       isGuest,
       guestWeekly,
       leagueComponentMaps,
+      soleBack,
       league.gamesPlayed,
       league.season,
       currentWeek,
@@ -797,33 +819,16 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // rescued by a same-slot-eligible bench player who plays later. Injury
   // designations resolve from the bundled pool (refreshed twice daily),
   // same as the Rankings injury tags.
-  const poolIndex = useMemo(() => indexPool(POOL), []);
-  // Sole-back map for the roster: the same Sleeper weekly series the
-  // component maps already fetch (guest: the guest fetch; league: the
-  // component fetch), joined onto scored players through the pool index
-  // so Yahoo/ESPN platform ids resolve like everywhere else on the page.
-  const soleBack = useMemo(() => {
-    if (currentWeek == null) return new Map<string, SoleBackInfo>();
-    const weekly = isGuest ? guestWeekly : leagueComponents;
-    return soleBackMap(POOL, weekly ?? undefined, currentWeek);
-  }, [isGuest, guestWeekly, leagueComponents, currentWeek]);
-  const soleByScoredId = useMemo(() => {
-    const m = new Map<string, SoleBackInfo>();
-    for (const s of scored) {
-      const poolPlayer = resolvePoolPlayer(s.player, poolIndex);
-      const info = poolPlayer ? soleBack.get(poolPlayer.id) : undefined;
-      if (info) m.set(s.id, info);
-    }
-    return m;
-  }, [scored, soleBack, poolIndex]);
-  // Display-only tags under the player name in both optimizer tables:
-  // a lime "Sole back" upside flag for RBs whose backfield mate is ruled
-  // out, an amber "Weather risk" flag for passing-game players in a
-  // windy or wet outdoor game. Neither changes the projection.
+  // Tags under the player name in both optimizer tables: a lime
+  // "Sole back" flag for RBs whose backfield mate is ruled out — the
+  // upside is priced into the projection shown (item 173), so the tag
+  // names the amount already counted — and an amber "Weather risk" flag
+  // for passing-game players in a windy or wet outdoor game, which stays
+  // display-only.
   const rowTags = (s: ScoredPlayer): ReactNode => {
-    const sole = soleByScoredId.get(s.id);
+    const sole = s.soleBack;
     const soleLabel = sole
-      ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10`
+      ? `Sole back: ${sole.mates.join(', ')} ruled out — estimated +${sole.upside.toFixed(1)} points from vacated usage at this player's own points per opportunity, capped at +10, priced into the projection shown`
       : null;
     const risk =
       WEATHER_RISK_POSITIONS.has(s.position) && weatherRisk
@@ -1411,8 +1416,8 @@ export function StartSitPage({ league }: StartSitPageProps) {
               steady history plus a kind matchup is safe, volatile history
               plus a tough matchup is risky.
               Sole back tags flag an RB whose backfield mate is ruled out
-              (estimated upside from vacated usage, not folded into the
-              projection); Weather risk tags flag passing-game players in
+              (estimated upside from vacated usage, priced into the
+              projection shown); Weather risk tags flag passing-game players in
               a windy or wet outdoor game — both mirror the Weekly
               Rankings board.
               {mode !== 'balanced'

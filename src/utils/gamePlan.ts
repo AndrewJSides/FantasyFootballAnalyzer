@@ -16,6 +16,7 @@
 import type { League, Team } from '@/types';
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
 import type { RosterComponentMaps } from '@/utils/leagueComponents';
+import type { SoleBackInfo } from '@/utils/roleChange';
 import type { TdRegression, UsageTrend } from '@/utils/weeklyProjection';
 import { optimalLineup, slotEligiblePositions, normalizeLineupPos } from '@/utils/optimalLineup';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
@@ -69,6 +70,13 @@ export interface GamePlanOptions {
   componentMaps?: RosterComponentMaps;
   tdRegression?: TdRegression;
   usageTrend?: UsageTrend;
+  /**
+   * Item-173 sole-back map (pool-id keyed, as soleBackMap returns it):
+   * each entry's upside folds into that player's weekly projection and
+   * score, so the close calls price the same number Start/Sit and the
+   * Weekly Rankings board show. A missing map means the term stays off.
+   */
+  soleBack?: Map<string, SoleBackInfo>;
 }
 
 /** The start/sit close calls for one team this week: every starting slot
@@ -91,6 +99,7 @@ export function buildGamePlan(
     weeklyUsage: opts.componentMaps?.weeklyUsage,
     tdRegression: opts.tdRegression,
     usageTrend: opts.usageTrend,
+    soleBack: opts.soleBack,
     gamesBySleeperId: league.gamesPlayed?.bySleeperId,
     gamesSeason: league.gamesPlayed?.season,
     season: league.season,

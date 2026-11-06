@@ -13,6 +13,7 @@ import type { League, Team } from '@/types';
 import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
 import type { RosterComponentMaps } from '@/utils/leagueComponents';
 import { optimalLineup } from '@/utils/optimalLineup';
+import type { SoleBackInfo } from '@/utils/roleChange';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 import { monteCarloWinProb, type ScoreDistribution, type SwingPlayer } from '@/utils/weeklyWinProb';
 import type { TdRegression, UsageTrend } from '@/utils/weeklyProjection';
@@ -64,6 +65,14 @@ export interface ScoreTeamLineupOptions {
   componentMaps?: RosterComponentMaps;
   tdRegression?: TdRegression;
   usageTrend?: UsageTrend;
+  /**
+   * Item-173 sole-back map (pool-id keyed, as soleBackMap returns it):
+   * each entry's upside folds into that player's weekly projection and
+   * score, so the preview, the game plan, and the position battles price
+   * the same number Start/Sit and the Weekly Rankings board show. A
+   * missing map means the term stays off entirely.
+   */
+  soleBack?: Map<string, SoleBackInfo>;
 }
 
 export function scoreTeamLineup(
@@ -83,6 +92,7 @@ export function scoreTeamLineup(
     weeklyUsage: opts.componentMaps?.weeklyUsage,
     tdRegression: opts.tdRegression,
     usageTrend: opts.usageTrend,
+    soleBack: opts.soleBack,
     gamesBySleeperId: league.gamesPlayed?.bySleeperId,
     gamesSeason: league.gamesPlayed?.season,
     season: league.season,

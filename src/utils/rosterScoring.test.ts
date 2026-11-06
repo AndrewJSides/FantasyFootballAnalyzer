@@ -167,6 +167,77 @@ describe('buildGamePlan', () => {
   });
 });
 
+describe('scoreRosterPlayers sole-back fold (backlog item 173)', () => {
+  // Flat 10-pt weeks 1–7 so the base projection is exactly 10 and any
+  // movement is purely the folded term. Team XXX has no matchup rating,
+  // so the matchup term stays 0.
+  const flat10 = (): Record<string, number> => {
+    const w: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) w[String(week)] = 10;
+    return w;
+  };
+  const base = {
+    roster: [RB_HEALTHY()],
+    weeklyPoints: { 'rb-healthy': flat10() },
+    season: 2026,
+    currentWeek: 8,
+  };
+  const sole = new Map([['rb-healthy', { mates: ['IR Runner'], upside: 4.5 }]]);
+
+  it('folds the upside into the projection and the ranked score', () => {
+    const [scored] = scoreRosterPlayers({ ...base, soleBack: sole });
+    expect(scored.projection?.projection).toBe(14.5);
+    expect(scored.score).toBe(14.5);
+    expect(scored.soleBack).toEqual({ mates: ['IR Runner'], upside: 4.5 });
+  });
+
+  it('prices as before with no map', () => {
+    const [scored] = scoreRosterPlayers(base);
+    expect(scored.projection?.projection).toBe(10);
+    expect(scored.score).toBe(10);
+    expect(scored.soleBack).toBeNull();
+  });
+
+  it('ignores a map entry for another player', () => {
+    const other = new Map([['rb-ir', { mates: ['Someone'], upside: 6 }]]);
+    const [scored] = scoreRosterPlayers({ ...base, soleBack: other });
+    expect(scored.projection?.projection).toBe(10);
+    expect(scored.soleBack).toBeNull();
+  });
+
+  it('carries the fold into the matchup preview team total', () => {
+    const team = { id: 'A', name: 'Team A', roster: [RB_HEALTHY()] } as Team;
+    const lined = scoreTeamLineup(
+      team,
+      {
+        rosterSlots: SLOTS,
+        currentWeek: 8,
+        season: 2026,
+        playerWeeklyPoints: { 'rb-healthy': flat10() },
+      },
+      { soleBack: sole },
+    );
+    expect(lined!.preview.projectedScore).toBe(14.5);
+    expect(lined!.starters[0].soleBack).toEqual({ mates: ['IR Runner'], upside: 4.5 });
+  });
+
+  it('carries the fold into the game-plan starter scores', () => {
+    const team = { id: 'A', name: 'Team A', roster: [RB_HEALTHY()] } as Team;
+    const plan = buildGamePlan(
+      team,
+      {
+        rosterSlots: SLOTS,
+        currentWeek: 8,
+        season: 2026,
+        playerWeeklyPoints: { 'rb-healthy': flat10() },
+      },
+      { soleBack: sole },
+    );
+    expect(plan.starters[0].score).toBe(14.5);
+    expect(plan.starters[0].soleBack).toEqual({ mates: ['IR Runner'], upside: 4.5 });
+  });
+});
+
 describe('scoreRosterPlayers TD/usage wiring (pipeline follow-up)', () => {
   // Flat 10-pt weeks 1–7 so the base projection is exactly 10 and any
   // movement is purely the wired term. Team XXX has no matchup rating,

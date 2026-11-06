@@ -19,6 +19,7 @@ import {
 } from '@/utils/rosterScoring';
 import { outForWeek } from '@/utils/rosterAlerts';
 import type { MatchupLabel } from '@/utils/matchupRating';
+import type { SoleBackInfo } from '@/utils/roleChange';
 
 export interface PlannedStarter {
   name: string;
@@ -28,6 +29,12 @@ export interface PlannedStarter {
   opponent: string | null;
   matchupLabel: MatchupLabel | null;
   score: number;
+  /**
+   * Item-173 sole-back vacancy (null when none): the upside is already
+   * folded into `score`, so a consumer rendering the plan can name the
+   * priced-in amount instead of re-deriving it.
+   */
+  soleBack: SoleBackInfo | null;
 }
 
 /**
@@ -69,7 +76,7 @@ export interface PlanLineupWeeksInputs extends RosterScoreInputs {
 }
 
 export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
-  const { fromWeek, toWeek, slots, ...scoreInputs } = inputs;
+  const { fromWeek, toWeek, slots, soleBack, ...scoreInputs } = inputs;
   // Injury designations are priced as of today: a player listed Out is
   // benched for the current week only (he may return), while a
   // season-ending designation rules him out for every remaining week —
@@ -78,7 +85,15 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
   const realCurrentWeek = scoreInputs.currentWeek ?? fromWeek;
   const plans: PlannedWeek[] = [];
   for (let week = fromWeek; week <= toWeek; week++) {
-    const scored = scoreRosterPlayers({ ...scoreInputs, currentWeek: week });
+    // Item-173: the sole-back vacancy is a this-week signal (a mate ruled
+    // out this week may return next week), so only the current week's plan
+    // prices it — later weeks price the term as 0, like the pre-wiring
+    // behavior, instead of carrying a stale vacancy forward.
+    const scored = scoreRosterPlayers({
+      ...scoreInputs,
+      soleBack: week === realCurrentWeek ? soleBack : undefined,
+      currentWeek: week,
+    });
     const eligible = scored.filter(
       s => !s.onBye && !outForWeek(s.injuryTier, week, realCurrentWeek),
     );
@@ -122,6 +137,7 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
         opponent: player.matchup?.opponent ?? null,
         matchupLabel: player.matchup?.label ?? null,
         score: round1(player.score),
+        soleBack: player.soleBack,
       });
     }
     plans.push({

@@ -308,3 +308,28 @@ describe('injury handling (backlog item 67 remainder)', () => {
     expect(week8.holes.some(h => h.name === 'Game Time Gary')).toBe(false);
   });
 });
+
+describe('sole-back fold (backlog item 173)', () => {
+  it('prices the vacancy in the current week only, never in later weeks', () => {
+    const sole = new Map([
+      ['bijan-robinson-rb', { mates: ['Tyler Allgeier'], upside: 5 }],
+    ]);
+    const [week9, week10] = planLineupWeeks({
+      ...base,
+      currentWeek: 9,
+      soleBack: sole,
+      fromWeek: 9,
+      toWeek: 10,
+    });
+    const bijan9 = week9.starters.find(s => s.name === 'Bijan Robinson');
+    const bijan10 = week10.starters.find(s => s.name === 'Bijan Robinson');
+    expect(bijan9).toBeDefined();
+    expect(bijan10).toBeDefined();
+    // Same completed-week series behind both weeks, so the only gap is
+    // the folded upside — and it must not leak into the following week,
+    // when the ruled-out mate may be back.
+    expect(bijan9!.score).toBe(bijan10!.score + 5);
+    expect(bijan9!.soleBack).toEqual({ mates: ['Tyler Allgeier'], upside: 5 });
+    expect(bijan10!.soleBack).toBeNull();
+  });
+});
