@@ -21,6 +21,7 @@ import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import {
   auctionDollars,
+  buildPickChartRows,
   buildTradeValueChart,
   GUEST_AUCTION_BUDGET,
   leagueAuctionSpend,
@@ -401,6 +402,18 @@ export function TradeValuesPage({
     });
   }, [pool, valueLeague, tePremium, sixPtPassTd, vorCfg]);
 
+  // Draft picks on the same 0–100 scale (backlog item 178): the pick's
+  // expected VOR divided by the top chart player's VOR, so a pick and a
+  // player compare directly in a deal.
+  const pickRows = useMemo(() => {
+    return buildPickChartRows(pool, {
+      league: valueLeague,
+      tePremium,
+      sixPtPassTd,
+      cfg: vorCfg,
+    });
+  }, [pool, valueLeague, tePremium, sixPtPassTd, vorCfg]);
+
   const owners = useMemo(
     () => (live ? leagueOwnerMap(league, pool) : undefined),
     [league, live, pool],
@@ -636,6 +649,53 @@ export function TradeValuesPage({
           </div>
         </section>
 
+        <section aria-label="Draft pick trade values">
+          <h2 className={styles.sectionTitle}>Draft Picks</h2>
+          <p className={styles.sectionNote}>
+            Future picks on the same 0–100 scale as the players above, so a
+            pick and a player compare directly in a deal. Add picks to a
+            deal on the Trade Analyzer to price them inside a verdict.
+          </p>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <caption className={styles.caption}>
+                Draft pick trade values — next draft rounds 1–3, following
+                draft rounds 1–2
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Pick</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">Tier</th>
+                  <th scope="col">Expected VOR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pickRows.map(row => (
+                  <tr key={row.label}>
+                    <td>{row.label}</td>
+                    <td className={styles.valueCell}>{row.value.toFixed(1)}</td>
+                    <td>
+                      <span
+                        className={`${styles.tier} ${styles[`tier${row.tier}`]}`}
+                        title={`Tier ${row.tier} ${TRADE_VALUE_TIERS[row.tier]}`}
+                      >
+                        {TRADE_VALUE_TIERS[row.tier]}
+                      </span>
+                    </td>
+                    <td
+                      title={`${row.label}: expected ${row.vor.toFixed(1)} VOR points for the player taken at the pick's expected slot (mid-round for the league size, one round discounted per year beyond the next draft)`}
+                      aria-label={`${row.label}: expected ${row.vor.toFixed(1)} VOR points`}
+                    >
+                      {row.vor.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <TradeValueMovers snapshots={SNAPSHOTS} rows={rows} owners={owners} />
 
         <PositionalScarcity rows={rows} valueLeague={valueLeague} rosteredIds={rosteredIds} />
@@ -704,6 +764,10 @@ export function TradeValuesPage({
           )}
           {' '}Sleeper shows Sleeper&rsquo;s own week {chartWeek} projection
           where published; a dash means no Sleeper line for that player.
+          {' '}Draft picks price on the same 0–100 scale: each pick&rsquo;s
+          expected VOR (mid-round slot for the league size, one round
+          discounted per year beyond the next draft) divided by the top
+          player&rsquo;s VOR, with the same tier bands as the player rows.
           {' '}Next 3 shows each player&rsquo;s next three played weeks as
           matchup-difficulty chips (favorable/tough/neutral) on the same
           season-to-date averages as the weekly matchup ratings — a

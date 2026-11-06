@@ -21,6 +21,11 @@ import {
   type ValueLeague,
   type VorConfig,
 } from './projectionValues';
+import {
+  pickLabel,
+  pickTradeValue,
+  type TradePick,
+} from './pickValueCurve';
 
 export const TRADE_VALUE_POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 export type TradeValuePosition = (typeof TRADE_VALUE_POSITIONS)[number];
@@ -97,6 +102,67 @@ export function buildTradeValueChart(
 /** Look up a chart player's value by pool id; 0 for players off the chart. */
 export function tradeValueOf(rows: TradeValueRow[], poolId: string): number {
   return rows.find(r => r.player.id === poolId)?.value ?? 0;
+}
+
+export interface PickChartRow {
+  pick: TradePick;
+  /** Human-readable label, e.g. "2027 Round 1 pick". */
+  label: string;
+  /** Chart value on the same 0–100 scale as the player rows (top player = 100). */
+  value: number;
+  /** Expected VOR points for the player taken at the pick's expected slot. */
+  vor: number;
+  /** Same fixed tier bands as the player rows. */
+  tier: 1 | 2 | 3 | 4;
+}
+
+/**
+ * The picks the chart prices (backlog item 178): the next draft's rounds
+ * 1–3, plus the following draft's rounds 1–2. Deeper picks price near
+ * zero on the VOR curve and are dropped by buildPickChartRows.
+ */
+export function defaultChartPicks(poolSeason: number): TradePick[] {
+  const next = poolSeason + 1;
+  return [
+    { season: next, round: 1 },
+    { season: next, round: 2 },
+    { season: next, round: 3 },
+    { season: next + 1, round: 1 },
+    { season: next + 1, round: 2 },
+  ];
+}
+
+/**
+ * Draft picks priced on the chart's 0–100 scale: each pick's expected VOR
+ * points (item 175's pickTradeValue — mid-round slot, one-round-per-year
+ * discount beyond the next draft) divided by the top chart player's VOR,
+ * the same denominator buildTradeValueChart normalizes by, so a pick and
+ * a player compare directly. Picks pricing at zero VOR are dropped.
+ */
+export function buildPickChartRows(
+  pool: DraftPoolFile,
+  opts: TradeValueConfig,
+  picks: TradePick[] = defaultChartPicks(pool.season),
+): PickChartRow[] {
+  const vorCfg = opts.cfg ?? vorConfigFor({
+    tePremium: opts.tePremium ?? false,
+    sixPtPassTd: opts.sixPtPassTd ?? false,
+  });
+  const vor = vorPoints(pool.players, opts.league, vorCfg);
+  const maxVor = Math.max(
+    0,
+    ...pool.players
+      .filter(p => (TRADE_VALUE_POSITIONS as readonly string[]).includes(p.pos))
+      .map(p => vor.get(p.id) ?? 0),
+  );
+  return picks
+    .map(pick => {
+      const v = pickTradeValue(pick, opts.league, pool, vorCfg);
+      const value = maxVor > 0 ? round1((v / maxVor) * 100) : 0;
+      return { pick, label: pickLabel(pick), vor: v, value, tier: tierForValue(value) };
+    })
+    .filter(r => r.vor > 0)
+    .sort((a, b) => b.value - a.value);
 }
 
 export interface PackageVerdict {

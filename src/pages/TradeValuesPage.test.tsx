@@ -290,4 +290,41 @@ describe('TradeValuesPage Next 3 column (backlog item 101)', () => {
     };
     expect(chartCellText('Mystery Man', customPool, guestLeague)).toBe('—');
   });
+
+  it('lists draft picks on the same 0–100 scale as the player chart', () => {
+    renderPage(guestLeague);
+    const table = screen.getByRole('table', {
+      name: /draft pick trade values/i,
+    });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows.map(r => within(r).getAllByRole('cell')[0].textContent)).toEqual([
+      // Value-sorted: a 2028 1st prices exactly like a 2027 2nd (same slot
+      // after the one-round-per-year discount), so the years interleave.
+      '2027 Round 1 pick',
+      '2027 Round 2 pick',
+      '2028 Round 1 pick',
+      '2027 Round 3 pick',
+      '2028 Round 2 pick',
+    ]);
+    const values = rows.map(
+      r => Number(within(r).getAllByRole('cell')[1].textContent),
+    );
+    for (const v of values) {
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThan(100);
+    }
+    for (let i = 1; i < values.length; i++) {
+      expect(values[i - 1]).toBeGreaterThanOrEqual(values[i]);
+    }
+  });
+
+  it('names the expected-VOR basis on each pick row', () => {
+    renderPage(guestLeague);
+    const table = screen.getByRole('table', {
+      name: /draft pick trade values/i,
+    });
+    expect(
+      within(table).getAllByLabelText(/expected .* VOR points/).length,
+    ).toBe(5);
+  });
 });

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   auctionDollars,
+  buildPickChartRows,
   buildTradeValueChart,
+  defaultChartPicks,
   leagueAuctionSpend,
   PACKAGE_FAIR_BAND,
   packageTotals,
@@ -11,6 +13,9 @@ import {
   tradeValueOf,
   TRADE_VALUE_TIERS,
 } from './tradeValues';
+import { pickTradeValue } from './pickValueCurve';
+import { vorPoints } from './projectionValues';
+import { POOL } from '@/data/draftPool';
 import type { PoolPlayer } from '@/types/draft';
 import type { ValueLeague } from './projectionValues';
 
@@ -103,6 +108,80 @@ describe('buildTradeValueChart', () => {
     const tiers = rows.map(r => r.tier);
     expect(tiers[0]).toBe(1);
     expect(tiers[tiers.length - 1]).toBe(4);
+  });
+});
+
+describe('defaultChartPicks', () => {
+  it('prices the next draft rounds 1–3 plus the following draft rounds 1–2', () => {
+    expect(defaultChartPicks(2026)).toEqual([
+      { season: 2027, round: 1 },
+      { season: 2027, round: 2 },
+      { season: 2027, round: 3 },
+      { season: 2028, round: 1 },
+      { season: 2028, round: 2 },
+    ]);
+  });
+});
+
+describe('buildPickChartRows', () => {
+  it('prices picks on the same 0–100 scale as the player chart', () => {
+    const rows = buildPickChartRows(POOL, { league });
+    expect(rows.length).toBe(5);
+    // Same denominator as the player chart: top-player VOR.
+    const vor = vorPoints(POOL.players, league);
+    const maxVor = Math.max(
+      ...POOL.players
+        .filter(p => ['QB', 'RB', 'WR', 'TE'].includes(p.pos))
+        .map(p => vor.get(p.id) ?? 0),
+    );
+    for (const row of rows) {
+      expect(row.value).toBe(
+        Math.round(((pickTradeValue(row.pick, league, POOL) / maxVor) * 100) * 10) / 10,
+      );
+      expect(row.value).toBeGreaterThan(0);
+      expect(row.value).toBeLessThan(100);
+    }
+  });
+
+  it('orders early picks first and discounts picks a year further out', () => {
+    const rows = buildPickChartRows(POOL, { league });
+    const byLabel = new Map(rows.map(r => [r.label, r.value]));
+    expect(byLabel.get('2027 Round 1 pick')).toBeGreaterThan(
+      byLabel.get('2027 Round 2 pick')!,
+    );
+    expect(byLabel.get('2027 Round 2 pick')).toBeGreaterThan(
+      byLabel.get('2027 Round 3 pick')!,
+    );
+    // A 2028 1st prices like a 2027 2nd (one-round-per-year discount).
+    expect(byLabel.get('2028 Round 1 pick')).toBeLessThan(
+      byLabel.get('2027 Round 1 pick')!,
+    );
+    expect(byLabel.get('2028 Round 2 pick')).toBeLessThan(
+      byLabel.get('2028 Round 1 pick')!,
+    );
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i - 1].value).toBeGreaterThanOrEqual(rows[i].value);
+    }
+  });
+
+  it('tiers picks on the same bands as players', () => {
+    const rows = buildPickChartRows(POOL, { league });
+    for (const row of rows) {
+      expect(row.tier).toBe(tierForValue(row.value));
+    }
+  });
+
+  it('drops picks that price at zero VOR', () => {
+    const rows = buildPickChartRows(POOL, { league }, [
+      { season: 2027, round: 1 },
+      // Round 200 prices past the end of the board: 0 VOR.
+      { season: 2027, round: 200 },
+    ]);
+    expect(rows.map(r => r.label)).toEqual(['2027 Round 1 pick']);
+  });
+
+  it('returns no rows when nobody has positive VOR', () => {
+    expect(buildPickChartRows({ ...POOL, players: [] }, { league })).toEqual([]);
   });
 });
 
