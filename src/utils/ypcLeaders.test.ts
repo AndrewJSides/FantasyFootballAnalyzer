@@ -38,7 +38,7 @@ function line(rushYards: number, carries = 10): WeeklyUsageLine {
     recYards: 0,
     rushYards,
     rushTd: 0,
-    recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
+    recTd: 0, passYards: 0, passTd: 0, passAtt: 0, passCmp: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
   };
 }
 

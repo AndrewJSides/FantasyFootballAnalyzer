@@ -53,7 +53,7 @@ function line(rushYards: number, rushAtt = 15, rushTd = 1) {
     longRec: 0,
     yac: 0,
     recYards: 0,
-    rushYards, rushTd, recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
+    rushYards, rushTd, recTd: 0, passYards: 0, passTd: 0, passAtt: 0, passCmp: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
   };
 }
 

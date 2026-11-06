@@ -45,6 +45,8 @@ function line(recTd: number, recYards = 80, receptions = 5): WeeklyUsageLine {
     recTd,
     passYards: 0,
     passTd: 0,
+    passAtt: 0,
+    passCmp: 0,
     rushFd: 0,
     recFd: 0,
     ptsPpr: 0,

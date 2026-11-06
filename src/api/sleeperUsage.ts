@@ -55,6 +55,11 @@ export interface WeeklyUsageLine {
   passYards: number;
   /** Passing touchdowns (pass_td) — same board, the scoring half. */
   passTd: number;
+  /** Pass attempts (pass_att) — the volume read behind the Pass
+   *  Attempts Leaders board (backlog item 167). */
+  passAtt: number;
+  /** Pass completions (pass_cmp) — the accuracy read on the same board. */
+  passCmp: number;
   /** Rushing first downs (rush_fd) — the ground half of the chain-moving
    *  read behind the First Downs Leaders board (backlog item 156). */
   rushFd: number;
@@ -124,6 +129,8 @@ export async function fetchWeeklyUsage(
         recTd: num(stats.rec_td),
         passYards: num(stats.pass_yd),
         passTd: num(stats.pass_td),
+        passAtt: num(stats.pass_att),
+        passCmp: num(stats.pass_cmp),
         rushFd: num(stats.rush_fd),
         recFd: num(stats.rec_fd),
         ptsPpr: num(stats.pts_ppr),

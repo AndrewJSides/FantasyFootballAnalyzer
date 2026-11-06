@@ -38,7 +38,7 @@ function line(rushYards: number, recYards: number, carries = 10, receptions = 5)
     recYards,
     rushYards,
     rushTd: 0,
-    recTd: 0, passYards: 0, passTd: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
+    recTd: 0, passYards: 0, passTd: 0, passAtt: 0, passCmp: 0, rushFd: 0, recFd: 0, ptsPpr: 0,
   };
 }
 
