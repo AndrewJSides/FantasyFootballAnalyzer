@@ -678,6 +678,14 @@ export function Header({
                   Rookies
                 </Link>
                 <Link
+                  to="/ypt"
+                  className={`${styles.navLink} ${location.pathname === '/ypt' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/ypt' ? 'page' : undefined}
+                >
+                  YPT
+                </Link>
+                <Link
                   to="/defense-leaders"
                   className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1194,6 +1202,14 @@ export function Header({
               aria-current={location.pathname === '/rookies' ? 'page' : undefined}
             >
               Rookies
+            </Link>
+            <Link
+              to="/ypt"
+              className={`${styles.navLink} ${location.pathname === '/ypt' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/ypt' ? 'page' : undefined}
+            >
+              YPT
             </Link>
             <Link
               to="/defense-leaders"
