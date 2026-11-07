@@ -31,6 +31,8 @@ const h = vi.hoisted(() => {
   add('b1', 'Beta Badger', 'RB', 'FA', 8);
   add('c1', 'Charlie Cheetah', 'WR', 'FA', null);
   add('d1', 'Delta Dolphin', 'QB', 'FA', null);
+  // Echo is on bye in week 9 only: on this week's board, off next week's.
+  add('e1', 'Echo Eagle', 'WR', 'FA', 9);
   return { players };
 });
 
@@ -67,8 +69,9 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  // Alpha scores 25/week, Charlie 18/week; Beta is on bye in week 8 and
-  // Delta has no stats (unprojected). Each week fetch returns the same map.
+  // Alpha scores 25/week, Charlie 18/week, Echo 10/week; Beta is on bye
+  // in week 8 and Delta has no stats (unprojected). Each week fetch
+  // returns the same map.
   vi.stubGlobal('fetch', vi.fn(() =>
     Promise.resolve({
       ok: true,
@@ -76,6 +79,7 @@ beforeEach(() => {
         Promise.resolve({
           'sid-a1': { pts_ppr: 25, gp: 1 },
           'sid-c1': { pts_ppr: 18, gp: 1 },
+          'sid-e1': { pts_ppr: 10, gp: 1 },
         }),
     }),
   ));
@@ -96,7 +100,7 @@ describe('WeeklyRankingsPage', () => {
       .getAllByRole('rowheader')
       .map(el => el.textContent);
     // Beta is on bye in week 8: excluded. Alpha outranks Charlie on projection.
-    expect(names).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Delta Dolphin']);
+    expect(names).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Echo Eagle', 'Delta Dolphin']);
   });
 
   it('shows a Consistency column with verdict chips and a dash for data-less players', async () => {
@@ -175,6 +179,7 @@ describe('WeeklyRankingsPage', () => {
             Promise.resolve({
               'sid-a1': { pts_ppr: 25, gp: 1 },
               'sid-c1': { pts_ppr: 18, gp: 1 },
+              'sid-e1': { pts_ppr: 10, gp: 1 },
             }),
         });
       }),
@@ -207,6 +212,7 @@ describe('WeeklyRankingsPage', () => {
             Promise.resolve({
               'sid-a1': { pts_ppr: 25, gp: 1 },
               'sid-c1': { pts_ppr: 18, gp: 1 },
+              'sid-e1': { pts_ppr: 10, gp: 1 },
             }),
         });
       }),
@@ -246,6 +252,7 @@ describe('WeeklyRankingsPage', () => {
           Promise.resolve({
             'sid-a1': { pts_ppr: 25, gp: 1 },
             'sid-c1': { pts_ppr: 18, gp: 1 },
+            'sid-e1': { pts_ppr: 10, gp: 1 },
           }),
       });
     });
@@ -301,17 +308,17 @@ describe('WeeklyRankingsPage free agents only (backlog item 176)', () => {
   it('hides rostered players when checked and restores them when unchecked', async () => {
     renderLivePage();
     let table = await rankingsTable();
-    expect(rowNames(table)).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Delta Dolphin']);
+    expect(rowNames(table)).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Echo Eagle', 'Delta Dolphin']);
     const toggle = screen.getByRole('checkbox', { name: /free agents only/i });
     fireEvent.click(toggle);
     table = screen.getByRole('table', { name: /week \d+ rankings/i });
-    expect(rowNames(table)).toEqual(['Charlie Cheetah', 'Delta Dolphin']);
+    expect(rowNames(table)).toEqual(['Charlie Cheetah', 'Echo Eagle', 'Delta Dolphin']);
     expect(
       screen.getByRole('table', { name: /free agents only/i }),
     ).toBeInTheDocument();
     fireEvent.click(toggle);
     table = screen.getByRole('table', { name: /week \d+ rankings/i });
-    expect(rowNames(table)).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Delta Dolphin']);
+    expect(rowNames(table)).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Echo Eagle', 'Delta Dolphin']);
   });
 
   it('shows a free-agents empty state when every player at the position is rostered', async () => {
@@ -335,5 +342,93 @@ describe('WeeklyRankingsPage free agents only (backlog item 176)', () => {
     expect(
       screen.queryByRole('checkbox', { name: /free agents only/i }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('WeeklyRankingsPage Next Week view (backlog item 180)', () => {
+  function renderWithProjections() {
+    const fetchMock = vi.fn((url: string) => {
+      if (url.includes('/projections/')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              { player_id: 'sid-a1', stats: { pts_ppr: 22.5 } },
+              { player_id: 'sid-c1', stats: { pts_ppr: 17 } },
+              { player_id: 'sid-e1', stats: { pts_ppr: 9 } },
+            ]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            'sid-a1': { pts_ppr: 25, gp: 1 },
+            'sid-c1': { pts_ppr: 18, gp: 1 },
+            'sid-e1': { pts_ppr: 10, gp: 1 },
+          }),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderPage();
+    return fetchMock;
+  }
+
+  it('re-prices the board for next week: bye weeks follow the target week', async () => {
+    const fetchMock = renderWithProjections();
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 8 rankings/i })).toBeInTheDocument();
+    });
+    const nextButton = within(
+      screen.getByRole('group', { name: 'Week to rank' }),
+    ).getByRole('button', { name: /next week/i });
+    expect(nextButton).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(nextButton);
+    expect(nextButton).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 9 rankings/i })).toBeInTheDocument();
+    });
+    const table = screen.getByRole('table', { name: /week 9 rankings/i });
+    const names = within(table)
+      .getAllByRole('rowheader')
+      .map(el => el.textContent);
+    // Beta was on bye in week 8 and returns for week 9; Echo is on bye in
+    // week 9 and drops off. Alpha still outranks Charlie.
+    expect(names).toEqual(['Alpha Aardvark', 'Charlie Cheetah', 'Beta Badger', 'Delta Dolphin']);
+    // The Sleeper column re-fetched for week 9.
+    const projectionCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes('/projections/'),
+    );
+    expect(projectionCalls.some(([url]) => String(url).includes('/2026/9?'))).toBe(true);
+    // The next-week caveat names the stale injury report.
+    expect(screen.getByText(/this week's injury report/i)).toBeInTheDocument();
+  });
+
+  it('switches back to this week', async () => {
+    renderWithProjections();
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 8 rankings/i })).toBeInTheDocument();
+    });
+    const group = screen.getByRole('group', { name: 'Week to rank' });
+    fireEvent.click(within(group).getByRole('button', { name: /next week/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 9 rankings/i })).toBeInTheDocument();
+    });
+    fireEvent.click(within(group).getByRole('button', { name: /this week/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 8 rankings/i })).toBeInTheDocument();
+    });
+  });
+
+  it('hides the week switcher in the final regular-season week', async () => {
+    render(
+      <MemoryRouter>
+        <WeeklyRankingsPage league={{ ...league, currentWeek: 18 }} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 18 rankings/i })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('group', { name: 'Week to rank' })).not.toBeInTheDocument();
   });
 });

@@ -2,7 +2,10 @@
 // ranked by THIS week's TraderApe projection (recency-weighted form +
 // season baseline; the numeric matchup blend was turned off Nov 1, 2026
 // after the backtest measured it worse than no term) — the browsable-board answer to the weekly "who are this
-// week's top plays at my position" question. League mode flags ownership;
+// week's top plays at my position" question. Item-180 adds a Next Week
+// view that re-prices the same board for week N+1 (same engine, Sleeper
+// column, and disagreement board; weather tags stay this-week-only).
+// League mode flags ownership;
 // guest mode is owner-free. Priced on Sleeper's free weekly stats in both
 // modes (same as the Compare page), full-PPR. FantasyPros publishes
 // "Weekly Rankings" pages (researched for feature shape only); this is
@@ -36,6 +39,10 @@ import {
   type WeatherRisk,
 } from '@/utils/weatherRisk';
 import { ProjectionDisagreements } from '@/components/ProjectionDisagreements';
+// Item-180: the regular-season cap for the Next Week view — the last week
+// a forward board can price (same cap as the Waivers page's next-week
+// targets).
+import { MAX_TARGET_WEEK } from '@/components/NextWeekTargets';
 import {
   loadWatchlist,
   saveWatchlist,
@@ -162,6 +169,12 @@ export function WeeklyRankingsPage({
   pool?: DraftPoolFile;
 }) {
   const [pos, setPos] = useState<PosFilter>('ALL');
+  // Item-180 Next Week view: 'this' prices the week in progress, 'next'
+  // re-prices the whole board for week N+1. The weekly-stats fetch stays
+  // bound to the real current week (completed weeks only); the engine,
+  // the Sleeper column, and the disagreement board all take the display
+  // week instead.
+  const [viewWeek, setViewWeek] = useState<'this' | 'next'>('this');
   // Item-176 free-agents-only toggle: league mode only — guest mode has no
   // ownership data, so the toggle hides there.
   const [freeAgentsOnly, setFreeAgentsOnly] = useState(false);
@@ -206,12 +219,19 @@ export function WeeklyRankingsPage({
 
   const live = league.status === 'live' && league.currentWeek != null;
   const week = league.currentWeek ?? currentWeekEstimate();
+  const displayWeek = viewWeek === 'next' ? week + 1 : week;
 
   // Item-138 weather risk: kickoff-hour forecast for this week, joined to
   // rows by NFL team. Non-blocking like the Sleeper column — a failed
   // fetch just leaves the tags off while the board renders.
   useEffect(() => {
     let cancelled = false;
+    // Item-180: no weather tags on next week's board — a kickoff forecast
+    // 7–10 days out is not reliable enough to tag a passing game.
+    if (viewWeek === 'next') {
+      setWeatherRisk(new Map());
+      return;
+    }
     const venues = buildGameVenues(week);
     fetchKickoffWeather(venues)
       .then(w => {
@@ -223,20 +243,20 @@ export function WeeklyRankingsPage({
     return () => {
       cancelled = true;
     };
-  }, [week]);
+  }, [week, viewWeek]);
 
   // The board never waits on this fetch: a failed or pending Sleeper load
   // just leaves the column (and the disagreement section below) in its
   // dash / loading state while TraderApe's own numbers render.
   const loadSleeper = useCallback(() => {
     setSleeperState('loading');
-    fetchSleeperWeekProjections(league.season, week)
+    fetchSleeperWeekProjections(league.season, displayWeek)
       .then(data => {
         setSleeperProjections(data);
         setSleeperState('ready');
       })
       .catch(() => setSleeperState('error'));
-  }, [league.season, week]);
+  }, [league.season, displayWeek]);
 
   useEffect(loadSleeper, [loadSleeper]);
 
@@ -267,10 +287,10 @@ export function WeeklyRankingsPage({
       buildWeeklyRankings({
         pool,
         weekly,
-        currentWeek: week,
+        currentWeek: displayWeek,
         ownerByPoolId: owners,
       }),
-    [pool, weekly, week, owners],
+    [pool, weekly, displayWeek, owners],
   );
 
   const filtered = useMemo(() => {
@@ -301,9 +321,34 @@ export function WeeklyRankingsPage({
           <h1 className={styles.title}>Weekly Rankings</h1>
           <p className={styles.subtitle}>
             Every startable player ranked by TraderApe&apos;s own projection for
-            week {week} — not a consensus board.
+            week {displayWeek} — not a consensus board.
           </p>
         </div>
+
+        {/* Item-180 Next Week view: the whole board re-priced for week N+1
+            — same engine, same Sleeper column, same disagreement board.
+            Hidden in the final regular-season week: there is no next week
+            to price. */}
+        {week < MAX_TARGET_WEEK && (
+          <div className={styles.weekBar} role="group" aria-label="Week to rank">
+            <button
+              type="button"
+              className={`${styles.filterButton} ${viewWeek === 'this' ? styles.active : ''}`}
+              aria-pressed={viewWeek === 'this'}
+              onClick={() => setViewWeek('this')}
+            >
+              This week · Wk {week}
+            </button>
+            <button
+              type="button"
+              className={`${styles.filterButton} ${viewWeek === 'next' ? styles.active : ''}`}
+              aria-pressed={viewWeek === 'next'}
+              onClick={() => setViewWeek('next')}
+            >
+              Next week · Wk {week + 1}
+            </button>
+          </div>
+        )}
 
         <div className={styles.filterBar} role="group" aria-label="Filter by position">
           {FILTERS.map(f => (
@@ -350,20 +395,20 @@ export function WeeklyRankingsPage({
           </p>
         )}
         {weeklyState === 'ready' && (
-          <section aria-label={`Weekly rankings for week ${week}${pos === 'ALL' ? '' : `, ${pos}s`}`}>
+          <section aria-label={`Weekly rankings for week ${displayWeek}${pos === 'ALL' ? '' : `, ${pos}s`}`}>
             <div className={styles.tableWrap} aria-live="polite">
               {filtered.length === 0 ? (
                 <p className={styles.status} role="status">
                   {freeAgentsOnly && rows.length > 0
                     ? pos === 'ALL'
-                      ? `No free agents on the board for week ${week}.`
-                      : `No free agents at ${pos} for week ${week}.`
+                      ? `No free agents on the board for week ${displayWeek}.`
+                      : `No free agents at ${pos} for week ${displayWeek}.`
                     : 'No weekly projection data for this filter.'}
                 </p>
               ) : (
                 <table className={styles.table}>
                   <caption className={styles.caption}>
-                    Week {week} rankings
+                    Week {displayWeek} rankings
                     {pos === 'ALL' ? ' — all positions, top 40 each' : ` — ${pos}, top 40`}
                     {freeAgentsOnly ? ', free agents only' : ''}
                   </caption>
@@ -374,12 +419,12 @@ export function WeeklyRankingsPage({
                       <th scope="col">Pos</th>
                       <th scope="col">NFL</th>
                       <th scope="col">
-                        <abbr title={`TraderApe's projected fantasy points for week ${week}`}>
-                          Wk {week} Proj
+                        <abbr title={`TraderApe's projected fantasy points for week ${displayWeek}`}>
+                          Wk {displayWeek} Proj
                         </abbr>
                       </th>
                       <th scope="col">
-                        <abbr title={`Sleeper's projected fantasy points for week ${week}`}>
+                        <abbr title={`Sleeper's projected fantasy points for week ${displayWeek}`}>
                           Sleeper
                         </abbr>
                       </th>
@@ -453,13 +498,13 @@ export function WeeklyRankingsPage({
                           <td className={styles.num}>{fmt(r.projection)}</td>
                           <SleeperCell
                             row={r}
-                            week={week}
+                            week={displayWeek}
                             sleeperProjections={sleeperProjections}
                             sleeperReady={sleeperState === 'ready'}
                           />
                           <td className={styles.num}>{fmt(r.ppg)}</td>
                           <td className={styles.num}>{fmt(r.last3)}</td>
-                          <MatchupCell team={r.player.team} pos={r.player.pos} week={week} />
+                          <MatchupCell team={r.player.team} pos={r.player.pos} week={displayWeek} />
                           <ConsistencyCell row={r} />
                           {live && (
                             <td className={styles.owner}>
@@ -496,14 +541,14 @@ export function WeeklyRankingsPage({
               )}
             </div>
             <p className={styles.footnote}>
-              Week {week} projections come from TraderApe&apos;s weekly model
+              Week {displayWeek} projections come from TraderApe&apos;s weekly model
               (recency-weighted last-4 form blended with the season baseline,
-              nudged by this week&apos;s matchup difficulty), priced on full-PPR
+              nudged by week {displayWeek}&apos;s matchup difficulty), priced on full-PPR
               scoring from Sleeper&apos;s free weekly stats. Matchup ratings are
               priced on the opponent&apos;s fantasy points allowed per position
               over weeks {dataStart}–{dataEnd}. Consistency reuses the
               Player Journey boom/bust engine (P25 floor / P75 ceiling, TraderApe&apos;s
-              own per-position bars). Players on bye this week are
+              own per-position bars). Players on bye in week {displayWeek} are
               excluded, as are players the injury report rules out this
               week — a ruled-out player&apos;s expected score is 0, not his
               frozen projection. A &ldquo;Sole back&rdquo; tag marks an RB whose
@@ -523,13 +568,23 @@ export function WeeklyRankingsPage({
               position. The Watch column stars a player onto your
               watchlist (same list as the Watchlist page, which reflects
               the toggle immediately) — tap again to remove. The Sleeper column shows
-              Sleeper&apos;s own week {week} projection for the same player —
+              Sleeper&apos;s own week {displayWeek} projection for the same player —
               the market read next to TraderApe&apos;s number; a dash means
               Sleeper published no line. The &ldquo;Free agents only&rdquo;
               toggle (league mode) hides rostered players so the board shows
               only players you can actually add. Trade research only — nothing here
               moves a roster.
             </p>
+            {viewWeek === 'next' && (
+              <p className={styles.footnote}>
+                Next week&apos;s board is priced on the same completed-week form
+                as this week&apos;s, with next week&apos;s byes and matchups — and
+                this week&apos;s injury report, so a player ruled out this week
+                stays off next week&apos;s board until the report updates. No
+                weather tags: a kickoff forecast 7–10 days out is not
+                reliable enough to tag.
+              </p>
+            )}
           </section>
         )}
 
@@ -537,7 +592,7 @@ export function WeeklyRankingsPage({
           <ProjectionDisagreements
             rows={rows}
             season={league.season}
-            week={week}
+            week={displayWeek}
             sleeperProjections={sleeperProjections}
             sleeperProjectionsLoading={sleeperState === 'loading'}
             sleeperProjectionsFailed={sleeperState === 'error'}
