@@ -47,4 +47,28 @@ describe('ModelReportPage', () => {
     expect(screen.getByText(/week-by-week replay/)).toBeInTheDocument();
     expect(screen.getAllByText(/Weeks 1–8/).length).toBeGreaterThan(0);
   });
+
+  it('renders the week 8 grade with its headline numbers', () => {
+    renderPage();
+    const section = screen.getByRole('region', {
+      name: 'Weekly grades — how the projections actually did',
+    });
+    expect(section.textContent).toMatch(/Week 8: 230 players graded/);
+    expect(within(section).getByText('5.64 pts')).toBeInTheDocument();
+    expect(section.textContent).toMatch(/47 over \/ 62 under \/ 121 in line/);
+    expect(section.textContent).toMatch(/projections ran high by 0\.52 pts/);
+  });
+
+  it('names the biggest week 8 beats and misses by player', () => {
+    renderPage();
+    const section = screen.getByRole('region', {
+      name: 'Weekly grades — how the projections actually did',
+    });
+    expect(
+      within(section).getByRole('row', { name: /Tyler Allgeier.*ARI.*7\.62.*36\.10/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByRole('row', { name: /Lamar Jackson.*BAL.*20\.37.*0\.00/ }),
+    ).toBeInTheDocument();
+  });
 });

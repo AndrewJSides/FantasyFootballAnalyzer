@@ -8,6 +8,7 @@
 // (6.74 vs 6.72 MAE), win at RB, and trail slightly at WR/TE.
 import { useEffect, useMemo } from 'react';
 import backtestJson from '@/data/projectionBacktest.2026.json';
+import { WeeklyGrades } from '@/components/WeeklyGrades';
 import {
   summarizeModelReport,
   verdictLabel,
@@ -114,6 +115,8 @@ export function ModelReportPage() {
             </tbody>
           </table>
         </section>
+
+        <WeeklyGrades />
 
         <section aria-labelledby="model-report-terms">
           <h2 id="model-report-terms">Why the extra terms stay off</h2>
