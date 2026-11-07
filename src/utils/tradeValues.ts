@@ -26,6 +26,7 @@ import {
   pickTradeValue,
   type TradePick,
 } from './pickValueCurve';
+import { dynastyValue } from './dynastyValue';
 
 export const TRADE_VALUE_POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 export type TradeValuePosition = (typeof TRADE_VALUE_POSITIONS)[number];
@@ -102,6 +103,49 @@ export function buildTradeValueChart(
 /** Look up a chart player's value by pool id; 0 for players off the chart. */
 export function tradeValueOf(rows: TradeValueRow[], poolId: string): number {
   return rows.find(r => r.player.id === poolId)?.value ?? 0;
+}
+
+/**
+ * Dynasty trade value chart (backlog item 192): the same 0-100 chart shape
+ * as buildTradeValueChart, but each player's value is TraderApe's own
+ * dynasty value (season projection × the per-position age curve from
+ * dynastyValue.ts) instead of redraft VOR — so a young player and a
+ * veteran with the same season projection no longer grade as equals.
+ * Same tier bands and posRank discipline; players with no known age price
+ * on their raw projection, and players with no positive projection are
+ * off the chart. No league shape enters: dynasty value is projection ×
+ * age, so the chart is the same in league and guest mode.
+ */
+export function buildDynastyTradeValueChart(
+  players: DraftPoolFile['players'],
+  agesBySleeperId: Record<string, number>,
+): TradeValueRow[] {
+  const priced = players
+    .filter(p => (TRADE_VALUE_POSITIONS as readonly string[]).includes(p.pos))
+    .map(p => {
+      const proj = p.projPtsPpr ?? p.projPts;
+      const age = p.sleeperId ? (agesBySleeperId[p.sleeperId] ?? null) : null;
+      return {
+        player: p,
+        value:
+          proj === undefined || !Number.isFinite(proj) || proj <= 0
+            ? 0
+            : dynastyValue(proj, p.pos, age),
+      };
+    })
+    .filter(({ value }) => value > 0)
+    .sort(
+      (a, b) => b.value - a.value || a.player.name.localeCompare(b.player.name),
+    );
+  if (priced.length === 0) return [];
+  const maxValue = priced[0].value;
+  const posCounter = new Map<string, number>();
+  return priced.map(({ player, value }) => {
+    const scaled = maxValue > 0 ? round1((value / maxValue) * 100) : 0;
+    const posRank = (posCounter.get(player.pos) ?? 0) + 1;
+    posCounter.set(player.pos, posRank);
+    return { player, value: scaled, tier: tierForValue(scaled), posRank };
+  });
 }
 
 export interface PickChartRow {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   auctionDollars,
+  buildDynastyTradeValueChart,
   buildPickChartRows,
   buildTradeValueChart,
   defaultChartPicks,
@@ -108,6 +109,92 @@ describe('buildTradeValueChart', () => {
     const tiers = rows.map(r => r.tier);
     expect(tiers[0]).toBe(1);
     expect(tiers[tiers.length - 1]).toBe(4);
+  });
+});
+
+describe('buildDynastyTradeValueChart (backlog item 192)', () => {
+  const ages = { 's-young': 23, 's-old': 29 };
+  const withSleeper = (
+    id: string,
+    name: string,
+    pos: string,
+    proj: number | undefined,
+    sleeperId?: string,
+  ): PoolPlayer => ({ ...mkPlayer(id, name, pos, proj), sleeperId }) as PoolPlayer;
+
+  it('ranks a young RB above an old RB on equal projections', () => {
+    const rows = buildDynastyTradeValueChart(
+      [
+        withSleeper('rb-old', 'Old Back', 'RB', 240, 's-old'),
+        withSleeper('rb-young', 'Young Back', 'RB', 240, 's-young'),
+      ],
+      ages,
+    );
+    expect(rows.map(r => r.player.id)).toEqual(['rb-young', 'rb-old']);
+    expect(rows[0].value).toBe(100);
+    // RB age curve: 23 prices at 1.0, 29 at 0.5 — half the dynasty value.
+    expect(rows[1].value).toBe(50);
+    expect(rows[1].tier).toBe(2);
+  });
+
+  it('prices an unknown age at the raw projection', () => {
+    const rows = buildDynastyTradeValueChart(
+      [
+        withSleeper('rb-young', 'Young Back', 'RB', 240, 's-young'),
+        withSleeper('rb-unknown', 'Mystery Back', 'RB', 120),
+      ],
+      ages,
+    );
+    const unknown = rows.find(r => r.player.id === 'rb-unknown');
+    expect(unknown?.value).toBe(50);
+  });
+
+  it('normalizes the top dynasty value to 100 and sorts by value', () => {
+    const rows = buildDynastyTradeValueChart(
+      [
+        withSleeper('rb1', 'Back One', 'RB', 240, 's-young'),
+        withSleeper('rb2', 'Back Two', 'RB', 200, 's-young'),
+        withSleeper('rb3', 'Back Three', 'RB', 160, 's-old'),
+      ],
+      ages,
+    );
+    expect(rows[0].value).toBe(100);
+    expect(rows.map(r => r.value)).toEqual([100, 83.3, 33.3]);
+  });
+
+  it('assigns 1-based ranks within each position', () => {
+    const rows = buildDynastyTradeValueChart(
+      [
+        ...pool(10, 'RB').map(p => ({ ...p, sleeperId: undefined })),
+        ...pool(10, 'WR').map(p => ({ ...p, sleeperId: undefined })),
+      ],
+      {},
+    );
+    const rbRanks = rows.filter(r => r.player.pos === 'RB').map(r => r.posRank);
+    expect(Math.min(...rbRanks)).toBe(1);
+    expect(new Set(rbRanks).size).toBe(rbRanks.length);
+  });
+
+  it('excludes K/DST and players with no projection', () => {
+    const rows = buildDynastyTradeValueChart(
+      [
+        withSleeper('rb1', 'Back One', 'RB', 240, 's-young'),
+        withSleeper('k1', 'Kicker', 'K', 200, 's-young'),
+        withSleeper('rbx', 'No Projection', 'RB', undefined, 's-young'),
+      ],
+      ages,
+    );
+    expect(rows.map(r => r.player.id)).toEqual(['rb1']);
+  });
+
+  it('returns an empty chart when nobody has a positive projection', () => {
+    expect(buildDynastyTradeValueChart([], {})).toEqual([]);
+    expect(
+      buildDynastyTradeValueChart(
+        [withSleeper('rb0', 'Zero Back', 'RB', 0, 's-young')],
+        ages,
+      ),
+    ).toEqual([]);
   });
 });
 

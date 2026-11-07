@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PosBadge, TradeValueMovers } from '@/components';
 import { PositionalScarcity } from '@/components/PositionalScarcity';
 import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
+import { PLAYER_AGES } from '@/data/playerAges';
 import { POOL } from '@/data/draftPool';
 import snapshotsJson from '@/data/tradeValueSnapshots.2026.json';
 import type { League } from '@/types';
@@ -21,6 +22,7 @@ import { upcomingMatchupChips } from '@/utils/upcomingMatchups';
 import { SITE_TITLE } from '@/utils/siteTitle';
 import {
   auctionDollars,
+  buildDynastyTradeValueChart,
   buildPickChartRows,
   buildTradeValueChart,
   GUEST_AUCTION_BUDGET,
@@ -341,6 +343,12 @@ export function TradeValuesPage({
   pool?: DraftPoolFile;
 }) {
   const [pos, setPos] = useState<PosFilter>('ALL');
+  // Value basis (backlog item 192): Redraft prices the chart on value over
+  // replacement; Dynasty re-prices every row on the dynasty model's
+  // age-adjusted value. The dynasty chart is league-shape-independent —
+  // projection × age curve — so the league-shape copy below names the
+  // redraft basis only.
+  const [valueMode, setValueMode] = useState<'redraft' | 'dynasty'>('redraft');
   const [pool] = useState(() => poolOverride ?? POOL);
   const live = league.status === 'live' && league.currentWeek != null;
 
@@ -393,7 +401,7 @@ export function TradeValuesPage({
     };
   }, [league.season, chartWeek]);
 
-  const rows = useMemo(() => {
+  const redraftRows = useMemo(() => {
     return buildTradeValueChart(pool.players, {
       league: valueLeague,
       tePremium,
@@ -401,6 +409,16 @@ export function TradeValuesPage({
       cfg: vorCfg,
     });
   }, [pool, valueLeague, tePremium, sixPtPassTd, vorCfg]);
+
+  const dynastyRows = useMemo(() => {
+    return buildDynastyTradeValueChart(pool.players, PLAYER_AGES.ages);
+  }, [pool]);
+
+  const rows = valueMode === 'dynasty' ? dynastyRows : redraftRows;
+
+  /** Age at the 2026 season start, from the bundled Sleeper ages file. */
+  const ageOf = (player: PoolPlayer): number | null =>
+    player.sleeperId ? (PLAYER_AGES.ages[player.sleeperId] ?? null) : null;
 
   // Draft picks on the same 0–100 scale (backlog item 178): the pick's
   // expected VOR divided by the top chart player's VOR, so a pick and a
@@ -435,7 +453,11 @@ export function TradeValuesPage({
   // Value-change deltas vs the baseline chart snapshot. The snapshots are
   // priced on the standard 10-team full-PPR scale, so the delta is shown in
   // both modes; the Value column itself stays league-shaped in league mode.
-  const deltaInfo = useMemo(() => tradeValueDeltas(SNAPSHOTS), []);
+  // Dynasty mode hides the column: the snapshots are redraft-basis.
+  const deltaInfo = useMemo(
+    () => (valueMode === 'redraft' ? tradeValueDeltas(SNAPSHOTS) : null),
+    [valueMode],
+  );
 
   const valueByPoolId = useMemo(
     () => new Map(rows.map(r => [r.player.id, r.value] as const)),
@@ -451,8 +473,11 @@ export function TradeValuesPage({
     [league, live],
   );
   const auctionByPoolId = useMemo(
-    () => (auctionBudget != null ? auctionDollars(rows, auctionBudget) : null),
-    [rows, auctionBudget],
+    () =>
+      auctionBudget != null && valueMode === 'redraft'
+        ? auctionDollars(rows, auctionBudget)
+        : null,
+    [rows, auctionBudget, valueMode],
   );
   const validIds = useMemo(() => new Set(rows.map(r => r.player.id)), [rows]);
   const [sideA, setSideA] = useState<string[]>(() => loadStoredIds(SIDE_A_KEY, validIds));
@@ -489,6 +514,27 @@ export function TradeValuesPage({
     }
   };
 
+  const handleValueModeChange = (mode: 'redraft' | 'dynasty') => {
+    setValueMode(mode);
+    // A player off the new chart has no value in that mode — drop him from
+    // the evaluator sides instead of pricing him at 0. (The dynasty chart
+    // is a superset of the redraft chart, so this only ever bites going
+    // back to redraft.)
+    const ids = new Set(
+      (mode === 'dynasty' ? dynastyRows : redraftRows).map(r => r.player.id),
+    );
+    setSideA(prev => {
+      const next = prev.filter(id => ids.has(id));
+      storeIds(SIDE_A_KEY, next);
+      return next;
+    });
+    setSideB(prev => {
+      const next = prev.filter(id => ids.has(id));
+      storeIds(SIDE_B_KEY, next);
+      return next;
+    });
+  };
+
   const verdict = useMemo(
     () => packageTotals(valueByPoolId, sideA, sideB),
     [valueByPoolId, sideA, sideB],
@@ -520,11 +566,41 @@ export function TradeValuesPage({
         <div className={styles.header}>
           <h1 className={styles.title}>Trade Value Chart</h1>
           <p className={styles.subtitle}>
-            {live
-              ? 'Every startable player on one 0–100 scale, priced on your league\u2019s exact shape.'
-              : 'Every startable player on one 0–100 scale, priced on the 10-team full-PPR default shape.'}
+            {valueMode === 'dynasty'
+              ? 'Dynasty values — each player\u2019s season projection priced through the age curve, top player 100.'
+              : live
+                ? 'Every startable player on one 0–100 scale, priced on your league\u2019s exact shape.'
+                : 'Every startable player on one 0–100 scale, priced on the 10-team full-PPR default shape.'}
           </p>
         </div>
+
+        {/* Value basis (backlog item 192): Redraft prices the chart on
+            value over replacement; Dynasty re-prices every row on the
+            dynasty model's age-adjusted value. Switching re-prices the
+            chart and the Package Evaluator in place. */}
+        <fieldset className={styles.valueMode}>
+          <legend className={styles.valueModeLegend}>Value basis</legend>
+          <label className={styles.valueModeOption}>
+            <input
+              type="radio"
+              name="trade-values-mode"
+              value="redraft"
+              checked={valueMode === 'redraft'}
+              onChange={() => handleValueModeChange('redraft')}
+            />
+            Redraft (VOR)
+          </label>
+          <label className={styles.valueModeOption}>
+            <input
+              type="radio"
+              name="trade-values-mode"
+              value="dynasty"
+              checked={valueMode === 'dynasty'}
+              onChange={() => handleValueModeChange('dynasty')}
+            />
+            Dynasty (age-adjusted)
+          </label>
+        </fieldset>
 
         <div className={styles.filterBar} role="group" aria-label="Filter by position">
           {FILTERS.map(f => (
@@ -555,6 +631,7 @@ export function TradeValuesPage({
                   <tr>
                     <th scope="col">Rank</th>
                     <th scope="col">Player</th>
+                    {valueMode === 'dynasty' && <th scope="col">Age</th>}
                     <th scope="col">Pos</th>
                     <th scope="col">NFL</th>
                     <th scope="col">Value</th>
@@ -593,6 +670,7 @@ export function TradeValuesPage({
                 <tbody>
                   {filtered.map((row, i) => {
                     const tag = injuryTag(row.player);
+                    const age = valueMode === 'dynasty' ? ageOf(row.player) : null;
                     return (
                       <tr key={row.player.id}>
                         <td>{i + 1}</td>
@@ -600,6 +678,18 @@ export function TradeValuesPage({
                           {row.player.name}
                           {tag && <span className={styles.injuryTag}> {tag}</span>}
                         </td>
+                        {valueMode === 'dynasty' && (
+                          <td
+                            title={
+                              age != null
+                                ? `${row.player.name}: age ${age} at the 2026 season start`
+                                : `${row.player.name}: age unknown, priced on raw projection`
+                            }
+                            aria-label={age != null ? `Age ${age}` : 'Age unknown'}
+                          >
+                            {age ?? '—'}
+                          </td>
+                        )}
                         <td>
                           <PosBadge pos={row.player.pos} />
                         </td>
@@ -651,52 +741,64 @@ export function TradeValuesPage({
 
         <section aria-label="Draft pick trade values">
           <h2 className={styles.sectionTitle}>Draft Picks</h2>
-          <p className={styles.sectionNote}>
-            Future picks on the same 0–100 scale as the players above, so a
-            pick and a player compare directly in a deal. Add picks to a
-            deal on the Trade Analyzer to price them inside a verdict.
-          </p>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.caption}>
-                Draft pick trade values — next draft rounds 1–3, following
-                draft rounds 1–2
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Pick</th>
-                  <th scope="col">Value</th>
-                  <th scope="col">Tier</th>
-                  <th scope="col">Expected VOR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pickRows.map(row => (
-                  <tr key={row.label}>
-                    <td>{row.label}</td>
-                    <td className={styles.valueCell}>{row.value.toFixed(1)}</td>
-                    <td>
-                      <span
-                        className={`${styles.tier} ${styles[`tier${row.tier}`]}`}
-                        title={`Tier ${row.tier} ${TRADE_VALUE_TIERS[row.tier]}`}
-                      >
-                        {TRADE_VALUE_TIERS[row.tier]}
-                      </span>
-                    </td>
-                    <td
-                      title={`${row.label}: expected ${row.vor.toFixed(1)} VOR points for the player taken at the pick's expected slot (mid-round for the league size, one round discounted per year beyond the next draft)`}
-                      aria-label={`${row.label}: expected ${row.vor.toFixed(1)} VOR points`}
-                    >
-                      {row.vor.toFixed(1)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {valueMode === 'dynasty' ? (
+            <p className={styles.sectionNote}>
+              Draft picks price on redraft value over replacement, not dynasty
+              value, so they are not on this chart — switch back to Redraft
+              to see them on the same 0–100 scale as the players above.
+            </p>
+          ) : (
+            <>
+              <p className={styles.sectionNote}>
+                Future picks on the same 0–100 scale as the players above, so a
+                pick and a player compare directly in a deal. Add picks to a
+                deal on the Trade Analyzer to price them inside a verdict.
+              </p>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <caption className={styles.caption}>
+                    Draft pick trade values — next draft rounds 1–3, following
+                    draft rounds 1–2
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Pick</th>
+                      <th scope="col">Value</th>
+                      <th scope="col">Tier</th>
+                      <th scope="col">Expected VOR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pickRows.map(row => (
+                      <tr key={row.label}>
+                        <td>{row.label}</td>
+                        <td className={styles.valueCell}>{row.value.toFixed(1)}</td>
+                        <td>
+                          <span
+                            className={`${styles.tier} ${styles[`tier${row.tier}`]}`}
+                            title={`Tier ${row.tier} ${TRADE_VALUE_TIERS[row.tier]}`}
+                          >
+                            {TRADE_VALUE_TIERS[row.tier]}
+                          </span>
+                        </td>
+                        <td
+                          title={`${row.label}: expected ${row.vor.toFixed(1)} VOR points for the player taken at the pick's expected slot (mid-round for the league size, one round discounted per year beyond the next draft)`}
+                          aria-label={`${row.label}: expected ${row.vor.toFixed(1)} VOR points`}
+                        >
+                          {row.vor.toFixed(1)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </section>
 
-        <TradeValueMovers snapshots={SNAPSHOTS} rows={rows} owners={owners} />
+        {valueMode === 'redraft' && (
+          <TradeValueMovers snapshots={SNAPSHOTS} rows={rows} owners={owners} />
+        )}
 
         <PositionalScarcity rows={rows} valueLeague={valueLeague} rosteredIds={rosteredIds} />
 
@@ -745,6 +847,16 @@ export function TradeValuesPage({
           (60+), Core (35+), Starter (15+), Depth (below 15). Deals within{' '}
           {PACKAGE_FAIR_BAND} points are a fair swap. Values compare only
           within one league shape — reprice after trades change the pool.
+          {valueMode === 'dynasty' && (
+            <>
+              {' '}Dynasty values price each player&rsquo;s projected full-PPR
+              season points through the per-position age curve (young players
+              hold full value, veterans decline toward a floor); players with
+              no known age price on their raw projection. The Δ, Auction $,
+              Draft Picks, and Value Movers sections are redraft-basis and
+              hide in dynasty mode.
+            </>
+          )}
           {deltaInfo && (
             <>
               {' '}Δ compares the player&rsquo;s value on the standard 10-team

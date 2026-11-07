@@ -328,3 +328,83 @@ describe('TradeValuesPage Next 3 column (backlog item 101)', () => {
     ).toBe(5);
   });
 });
+
+describe('TradeValuesPage dynasty mode (backlog item 192)', () => {
+  function chartHeaders(): string[] {
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    return within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent ?? '');
+  }
+
+  function firstRowCells(): HTMLElement[] {
+    const table = screen.getByRole('table', { name: /trade value chart/i });
+    return within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
+  }
+
+  it('defaults to Redraft and re-prices on raw projection in Dynasty mode', () => {
+    renderPage(guestLeague);
+    expect(
+      screen.getByRole('radio', { name: /redraft \(vor\)/i }),
+    ).toBeChecked();
+    // Redraft ranks on VOR: the QB's 330-point season is worth less than
+    // the wideout's 250 once replacement level is priced in.
+    expect(firstRowCells()[1]).toHaveTextContent('Top Wideout');
+
+    fireEvent.click(screen.getByRole('radio', { name: /dynasty \(age-adjusted\)/i }));
+    // Dynasty prices raw projection (no ages in the test pool): the QB's
+    // 330 tops the board at 100, the wideout's 250 prices 75.8.
+    const headers = chartHeaders();
+    const valueIdx = headers.findIndex(h => h === 'Value');
+    const cells = firstRowCells();
+    expect(cells[1]).toHaveTextContent('Elite QB');
+    expect(cells[valueIdx]).toHaveTextContent('100.0');
+    const rows = within(
+      screen.getByRole('table', { name: /trade value chart/i }),
+    ).getAllByRole('row');
+    expect(within(rows[2]).getAllByRole('cell')[valueIdx]).toHaveTextContent('75.8');
+  });
+
+  it('shows the Age column in Dynasty mode and hides the redraft-only columns', () => {
+    renderPage(guestLeague);
+    expect(chartHeaders()).not.toContain('Age');
+    fireEvent.click(screen.getByRole('radio', { name: /dynasty \(age-adjusted\)/i }));
+    const headers = chartHeaders();
+    expect(headers).toContain('Age');
+    expect(headers).not.toContain('Auction $');
+    expect(headers.some(h => h.startsWith('Δ since'))).toBe(false);
+    // No Sleeper ids in the test pool: every age reads unknown.
+    expect(firstRowCells()[2]).toHaveTextContent('—');
+  });
+
+  it('hides the Draft Picks table in Dynasty mode with a note instead', () => {
+    renderPage(guestLeague);
+    expect(
+      screen.getByRole('table', { name: /draft pick trade values/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /dynasty \(age-adjusted\)/i }));
+    expect(
+      screen.queryByRole('table', { name: /draft pick trade values/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/draft picks price on redraft value over replacement/i),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the Package Evaluator pricing the displayed dynasty values', () => {
+    renderPage(guestLeague);
+    fireEvent.click(screen.getByRole('radio', { name: /dynasty \(age-adjusted\)/i }));
+    const addA = screen.getByLabelText('Add a player to side a');
+    fireEvent.change(addA, { target: { value: 'Elite QB' } });
+    fireEvent.click(screen.getByRole('button', { name: /add elite qb/i }));
+    const addB = screen.getByLabelText('Add a player to side b');
+    fireEvent.change(addB, { target: { value: 'Lead Back' } });
+    fireEvent.click(screen.getByRole('button', { name: /add lead back/i }));
+    // Dynasty values: 100.0 vs 72.7 — Side A wins by 27.3, and no auction
+    // dollars (redraft currency) appear in the verdict.
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /Side A wins by 27\.3 value points \(100 vs 72\.7\)/,
+    );
+    expect(screen.getByRole('status')).not.toHaveTextContent(/auction dollars/);
+  });
+});
