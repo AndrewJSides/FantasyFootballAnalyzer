@@ -90,6 +90,7 @@ const RushingAttemptsLeadersPage = lazyPage(() => import('@/pages/RushingAttempt
 const RushShareLeadersPage = lazyPage(() => import('@/pages/RushShareLeadersPage'), 'RushShareLeadersPage');
 const QbRushingLeadersPage = lazyPage(() => import('@/pages/QbRushingLeadersPage'), 'QbRushingLeadersPage');
 const PasserRatingLeadersPage = lazyPage(() => import('@/pages/PasserRatingLeadersPage'), 'PasserRatingLeadersPage');
+const RookieLeadersPage = lazyPage(() => import('@/pages/RookieLeadersPage'), 'RookieLeadersPage');
 const DefenseLeadersPage = lazyPage(() => import('@/pages/DefenseLeadersPage'), 'DefenseLeadersPage');
 const KickerLeadersPage = lazyPage(() => import('@/pages/KickerLeadersPage'), 'KickerLeadersPage');
 const GameDayPage = lazyPage(() => import('@/pages/GameDayPage'), 'GameDayPage');
@@ -220,6 +221,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/rush-share': 'Rush Share Leaders',
   '/qb-rushing': 'QB Rushing Leaders',
   '/passer-rating': 'Passer Rating Leaders',
+  '/rookies': 'Rookie Leaders',
   '/defense-leaders': 'Defense Leaders',
   '/kicker-leaders': 'Kicker Leaders',
   '/game-day': 'Game Day',
@@ -1154,6 +1156,7 @@ function App() {
           <Route path="/rush-share" element={<RushShareLeadersPage />} />
           <Route path="/qb-rushing" element={<QbRushingLeadersPage />} />
           <Route path="/passer-rating" element={<PasserRatingLeadersPage />} />
+          <Route path="/rookies" element={<RookieLeadersPage />} />
           <Route path="/defense-leaders" element={<DefenseLeadersPage />} />
           <Route path="/kicker-leaders" element={<KickerLeadersPage />} />
           {/* Game Day is league-independent like Scores: the team
