@@ -204,6 +204,37 @@ export function teamTouchesByWeek(
 }
 
 /**
+ * Per-NFL-team total rushing attempts per week, summed from the same usage
+ * response (rush_att per player; the pool gives each player's current
+ * team). Exported for reuse by the Rush Share Leaders board (backlog item
+ * 184) — the same denominator prices rush shares there. Mirrors
+ * teamTargetsByWeek exactly, including QB scrambles in the denominator
+ * (a carry is a carry whoever runs it).
+ */
+export function teamRushAttByWeek(
+  poolPlayers: PoolPlayer[],
+  usageBySleeperId: Record<string, Record<number, WeeklyUsageLine>>,
+): Map<string, Map<number, number>> {
+  const sleeperTeam = new Map<string, string>();
+  for (const p of poolPlayers) {
+    if (p.sleeperId && p.team) sleeperTeam.set(p.sleeperId, p.team.toUpperCase());
+  }
+  const out = new Map<string, Map<number, number>>();
+  for (const [id, byWeek] of Object.entries(usageBySleeperId)) {
+    const team = sleeperTeam.get(id);
+    if (!team) continue;
+    let weeks = out.get(team);
+    if (!weeks) out.set(team, (weeks = new Map()));
+    for (const [w, line] of Object.entries(byWeek)) {
+      const week = Number(w);
+      if (!Number.isFinite(week)) continue;
+      weeks.set(week, (weeks.get(week) ?? 0) + line.rushAtt);
+    }
+  }
+  return out;
+}
+
+/**
  * Ranked opportunity candidates: available players earning 55%+ snap share
  * and/or 20%+ target share over their last 3 completed weeks. In league
  * mode, rostered players are excluded (opportunity is a waiver question);

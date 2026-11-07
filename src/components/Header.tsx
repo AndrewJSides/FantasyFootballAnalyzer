@@ -646,6 +646,14 @@ export function Header({
                   Rushing Attempts
                 </Link>
                 <Link
+                  to="/rush-share"
+                  className={`${styles.navLink} ${location.pathname === '/rush-share' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/rush-share' ? 'page' : undefined}
+                >
+                  Rush Share
+                </Link>
+                <Link
                   to="/defense-leaders"
                   className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1130,6 +1138,14 @@ export function Header({
               aria-current={location.pathname === '/rushing-attempts' ? 'page' : undefined}
             >
               Rushing Attempts
+            </Link>
+            <Link
+              to="/rush-share"
+              className={`${styles.navLink} ${location.pathname === '/rush-share' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/rush-share' ? 'page' : undefined}
+            >
+              Rush Share
             </Link>
             <Link
               to="/defense-leaders"
