@@ -241,7 +241,7 @@ function SwapCall({ flag, impact }: { flag: SwapFlag; impact?: SwapImpact }) {
   );
 }
 
-function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { league: League; preview: MatchupPreview; componentMaps?: RosterComponentMaps; leagueWeekly?: WeeklyPprPoints | null }) {
+function MatchupDetail({ league, preview, componentMaps, leagueWeekly, weatherRisk }: { league: League; preview: MatchupPreview; componentMaps?: RosterComponentMaps; leagueWeekly?: WeeklyPprPoints | null; weatherRisk?: Map<string, WeatherRisk> }) {
   const location = useLocation();
   const teamById = useMemo(() => new Map(league.teams.map(t => [t.id, t])), [league.teams]);
   const aName = teamById.get(preview.teamAId)?.name ?? '?';
@@ -272,8 +272,8 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
     [leagueWeekly, preview.week],
   );
   const plan = useMemo(
-    () => (focusTeam ? buildGamePlan(focusTeam, league, { componentMaps, soleBack }) : null),
-    [focusTeam, league, componentMaps, soleBack],
+    () => (focusTeam ? buildGamePlan(focusTeam, league, { componentMaps, soleBack, weatherRisk }) : null),
+    [focusTeam, league, componentMaps, soleBack, weatherRisk],
   );
   const focusName = teamById.get(focusId)?.name ?? '?';
 
@@ -340,29 +340,15 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
 
   // --- Sole-back + weather-risk tags (backlog item 139) ------------------
   // The Weekly Rankings board's and Start/Sit tables' tags come to the
-  // game-plan lineup, the third place a weekly lineup call is made. Same
-  // non-blocking discipline: a failed forecast fetch just leaves the tags
-  // off. The weather-risk tag stays display-only; the sole-back upside
-  // is priced into the projection (item 173 — the week-8 grade measured
-  // it), so only the weather term is still upside to weigh.
-  const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
-  useEffect(() => {
-    let cancelled = false;
-    const venues = buildGameVenues(preview.week);
-    fetchKickoffWeather(venues)
-      .then(w => {
-        if (!cancelled) setWeatherRisk(weatherRiskByTeam(venues, w));
-      })
-      .catch(() => {
-        if (!cancelled) setWeatherRisk(new Map());
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [preview.week]);
+  // game-plan lineup, the third place a weekly lineup call is made. The
+  // weather map is the parent's (one Open-Meteo request for the page) —
+  // a failed fetch just leaves the tags off. Both terms are priced into
+  // the projection now (items 173 + 138 — the week-8 grade measured
+  // them), so the tags name the priced-in amounts.
   // Tags under the player name in the game-plan table: a lime
   // "Sole back" flag whose upside is priced into the projection shown
-  // (item 173), and an amber "Weather risk" flag, display-only.
+  // (item 173), and an amber "Weather risk" flag whose -25% downgrade is
+  // priced into the projection shown (item 138).
   const rowTags = (s: ScoredPlayer | null): ReactNode => {
     if (!s) return null;
     const sole: SoleBackInfo | null = s.soleBack;
@@ -373,7 +359,11 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
       WEATHER_RISK_POSITIONS.has(s.position) && weatherRisk
         ? weatherRisk.get(s.nflTeam) ?? null
         : null;
-    const riskLabel = risk ? weatherRiskLabel(risk) : null;
+    const riskLabel = risk
+      ? s.weatherAdjustment !== null
+        ? `${weatherRiskLabel(risk)} — ${Math.abs(s.weatherAdjustment).toFixed(1)} pts priced into the projection shown`
+        : weatherRiskLabel(risk)
+      : null;
     if (!sole && !risk) return null;
     return (
       <>
@@ -412,14 +402,14 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
     const a = teamById.get(preview.teamAId);
     const b = teamById.get(preview.teamBId);
     if (!a || !b) return null;
-    const la = scoreTeamLineup(a, league, { componentMaps, soleBack });
-    const lb = scoreTeamLineup(b, league, { componentMaps, soleBack });
+    const la = scoreTeamLineup(a, league, { componentMaps, soleBack, weatherRisk });
+    const lb = scoreTeamLineup(b, league, { componentMaps, soleBack, weatherRisk });
     if (!la || !lb) return null;
     return {
       a: sleeperLineupTotal(la.starters, mapRosterToSleeperIds(a.roster ?? []), sleeperProjections),
       b: sleeperLineupTotal(lb.starters, mapRosterToSleeperIds(b.roster ?? []), sleeperProjections),
     };
-  }, [sleeperReady, sleeperProjections, teamById, preview, league, componentMaps, soleBack]);
+  }, [sleeperReady, sleeperProjections, teamById, preview, league, componentMaps, soleBack, weatherRisk]);
   const sleeperSide = (name: string, total: SleeperLineupTotal | null | undefined): ReactNode => {
     if (total) {
       const coverage =
@@ -458,8 +448,8 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
     const opponentId = focusId === preview.teamAId ? preview.teamBId : preview.teamAId;
     const oppTeam = teamById.get(opponentId);
     if (!focusTeam || !oppTeam) return empty;
-    const a = scoreTeamLineup(focusTeam, league, { componentMaps, soleBack });
-    const b = scoreTeamLineup(oppTeam, league, { componentMaps, soleBack });
+    const a = scoreTeamLineup(focusTeam, league, { componentMaps, soleBack, weatherRisk });
+    const b = scoreTeamLineup(oppTeam, league, { componentMaps, soleBack, weatherRisk });
     if (!a || !b) return empty;
     return new Map(
       priceSwapImpacts(a.starters, b.starters, plan.swapFlags).map(i => [
@@ -467,7 +457,7 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
         i,
       ]),
     );
-  }, [plan, preview, focusId, focusTeam, league, teamById, componentMaps, soleBack]);
+  }, [plan, preview, focusId, focusTeam, league, teamById, componentMaps, soleBack, weatherRisk]);
 
   // This season's series record between the two teams, from completed
   // weeks only (the current week's partial scores don't count yet).
@@ -481,8 +471,8 @@ function MatchupDetail({ league, preview, componentMaps, leagueWeekly }: { leagu
   const battles = useMemo(() => {
     const a = teamById.get(preview.teamAId);
     const b = teamById.get(preview.teamBId);
-    return a && b ? buildPositionBattles(a, b, league, { componentMaps, soleBack }) : null;
-  }, [league, preview, teamById, componentMaps, soleBack]);
+    return a && b ? buildPositionBattles(a, b, league, { componentMaps, soleBack, weatherRisk }) : null;
+  }, [league, preview, teamById, componentMaps, soleBack, weatherRisk]);
   // Win-now trades: the Trade Finder's 1-for-1 candidates between these
   // two teams, re-priced on this week's Monte Carlo win probability for
   // the focus team. The baseline reuses the same seeded sims, so the
@@ -852,9 +842,33 @@ export default function MatchupPage({ league }: MatchupPageProps) {
     [leagueComponents, league.currentWeek],
   );
 
+  // Item-138: the kickoff weather risk map for the preview table AND the
+  // detail view below (passed down as a prop, so both surfaces price the
+  // same forecast — one Open-Meteo request, not one per surface). The
+  // preview's projected totals cut each passing-game player 25% in a
+  // flagged outdoor game, so the table can't disagree with Start/Sit or
+  // the Weekly Rankings board. A failed fetch leaves it empty and the
+  // preview prices as before.
+  const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
+  useEffect(() => {
+    if (league.currentWeek == null) return;
+    let cancelled = false;
+    const venues = buildGameVenues(league.currentWeek);
+    fetchKickoffWeather(venues)
+      .then(w => {
+        if (!cancelled) setWeatherRisk(weatherRiskByTeam(venues, w));
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherRisk(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [league.currentWeek]);
+
   const previews = useMemo(
-    () => previewWeeklyMatchups(league, { componentMaps, soleBack }),
-    [league, componentMaps, soleBack],
+    () => previewWeeklyMatchups(league, { componentMaps, soleBack, weatherRisk }),
+    [league, componentMaps, soleBack, weatherRisk],
   );
   const teamById = useMemo(() => new Map(league.teams.map(t => [t.id, t])), [league.teams]);
 
@@ -905,7 +919,7 @@ export default function MatchupPage({ league }: MatchupPageProps) {
               );
             })}
           </div>
-          {preview && <MatchupDetail key={`${preview.week}-${preview.teamAId}-${preview.teamBId}`} league={league} preview={preview} componentMaps={componentMaps} leagueWeekly={leagueComponents} />}
+          {preview && <MatchupDetail key={`${preview.week}-${preview.teamAId}-${preview.teamBId}`} league={league} preview={preview} componentMaps={componentMaps} leagueWeekly={leagueComponents} weatherRisk={weatherRisk} />}
         </>
       )}
 
@@ -950,7 +964,8 @@ export default function MatchupPage({ league }: MatchupPageProps) {
         &quot;Sole back&quot; flags an RB whose backfield mate is ruled
         out (estimated upside from the vacated usage, priced into the
         projection shown); &quot;Weather risk&quot; flags passing-game
-        players in a windy or wet outdoor game, and changes no projection.
+        players in a windy or wet outdoor game (a −25% passing-game
+        downgrade, priced into the projection shown).
       </p>
     </div>
   );

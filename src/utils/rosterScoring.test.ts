@@ -238,6 +238,114 @@ describe('scoreRosterPlayers sole-back fold (backlog item 173)', () => {
   });
 });
 
+describe('scoreRosterPlayers weather fold (backlog item 138)', () => {
+  // Flat 20-pt weeks 1–7 so the base projection is exactly 20 and any
+  // movement is purely the folded term. Team XXX has no matchup rating,
+  // so the matchup term stays 0. The map is keyed by the mocked
+  // players' NFL team ('XXX').
+  const flat20 = (): Record<string, number> => {
+    const w: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) w[String(week)] = 20;
+    return w;
+  };
+  const flat10 = (): Record<string, number> => {
+    const w: Record<string, number> = {};
+    for (let week = 1; week <= 7; week++) w[String(week)] = 10;
+    return w;
+  };
+  const risk = {
+    windy: true,
+    wet: true,
+    windMph: 18,
+    gustsMph: 27,
+    precipProb: 88,
+    tempF: 55,
+  };
+  const weather = new Map([['XXX', risk]]);
+
+  it('folds -25% into a passing-game projection and the ranked score', () => {
+    const [scored] = scoreRosterPlayers({
+      roster: [QB_HEALTHY()],
+      weeklyPoints: { 'qb-healthy': flat20() },
+      season: 2026,
+      currentWeek: 8,
+      weatherRisk: weather,
+    });
+    expect(scored.projection?.projection).toBe(15);
+    expect(scored.score).toBe(15);
+    expect(scored.weatherAdjustment).toBe(-5);
+  });
+
+  it('never downgrades an RB in the same flagged game', () => {
+    const [scored] = scoreRosterPlayers({
+      roster: [RB_HEALTHY()],
+      weeklyPoints: { 'rb-healthy': flat10() },
+      season: 2026,
+      currentWeek: 8,
+      weatherRisk: weather,
+    });
+    expect(scored.projection?.projection).toBe(10);
+    expect(scored.score).toBe(10);
+    expect(scored.weatherAdjustment).toBeNull();
+  });
+
+  it('prices as before with no map', () => {
+    const [scored] = scoreRosterPlayers({
+      roster: [QB_HEALTHY()],
+      weeklyPoints: { 'qb-healthy': flat20() },
+      season: 2026,
+      currentWeek: 8,
+    });
+    expect(scored.projection?.projection).toBe(20);
+    expect(scored.weatherAdjustment).toBeNull();
+  });
+
+  it('ignores a map entry for another team', () => {
+    const other = new Map([['YYY', risk]]);
+    const [scored] = scoreRosterPlayers({
+      roster: [QB_HEALTHY()],
+      weeklyPoints: { 'qb-healthy': flat20() },
+      season: 2026,
+      currentWeek: 8,
+      weatherRisk: other,
+    });
+    expect(scored.projection?.projection).toBe(20);
+    expect(scored.weatherAdjustment).toBeNull();
+  });
+
+  it('carries the fold into the matchup preview team total', () => {
+    const team = { id: 'A', name: 'Team A', roster: [QB_HEALTHY()] } as Team;
+    const lined = scoreTeamLineup(
+      team,
+      {
+        rosterSlots: SLOTS,
+        currentWeek: 8,
+        season: 2026,
+        playerWeeklyPoints: { 'qb-healthy': flat20() },
+      },
+      { weatherRisk: weather },
+    );
+    expect(lined!.preview.projectedScore).toBe(15);
+    expect(lined!.starters[0].weatherAdjustment).toBe(-5);
+  });
+
+  it('carries the fold into the game-plan starter scores', () => {
+    const team = { id: 'A', name: 'Team A', roster: [QB_HEALTHY()] } as Team;
+    const plan = buildGamePlan(
+      team,
+      {
+        rosterSlots: SLOTS,
+        currentWeek: 8,
+        season: 2026,
+        playerWeeklyPoints: { 'qb-healthy': flat20() },
+      },
+      { weatherRisk: weather },
+    );
+    expect(plan.starters[0].score).toBe(15);
+    expect(plan.starters[0].weatherAdjustment).toBe(-5);
+  });
+});
+
 describe('scoreRosterPlayers TD/usage wiring (pipeline follow-up)', () => {
   // Flat 10-pt weeks 1–7 so the base projection is exactly 10 and any
   // movement is purely the wired term. Team XXX has no matchup rating,

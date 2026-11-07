@@ -35,6 +35,13 @@ export interface PlannedStarter {
    * priced-in amount instead of re-deriving it.
    */
   soleBack: SoleBackInfo | null;
+  /**
+   * Item-138 weather downgrade (null when none): the points already
+   * subtracted from `score` for a windy/wet outdoor game this week.
+   * Only ever set for the current week's plan — later weeks carry no
+   * kickoff forecast yet.
+   */
+  weatherAdjustment: number | null;
 }
 
 /**
@@ -76,7 +83,7 @@ export interface PlanLineupWeeksInputs extends RosterScoreInputs {
 }
 
 export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
-  const { fromWeek, toWeek, slots, soleBack, ...scoreInputs } = inputs;
+  const { fromWeek, toWeek, slots, soleBack, weatherRisk, ...scoreInputs } = inputs;
   // Injury designations are priced as of today: a player listed Out is
   // benched for the current week only (he may return), while a
   // season-ending designation rules him out for every remaining week —
@@ -88,10 +95,13 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
     // Item-173: the sole-back vacancy is a this-week signal (a mate ruled
     // out this week may return next week), so only the current week's plan
     // prices it — later weeks price the term as 0, like the pre-wiring
-    // behavior, instead of carrying a stale vacancy forward.
+    // behavior, instead of carrying a stale vacancy forward. Item-138:
+    // the weather map is the same kind of this-week signal (a kickoff
+    // forecast 7–10 days out is not a forecast), gated the same way.
     const scored = scoreRosterPlayers({
       ...scoreInputs,
       soleBack: week === realCurrentWeek ? soleBack : undefined,
+      weatherRisk: week === realCurrentWeek ? weatherRisk : undefined,
       currentWeek: week,
     });
     const eligible = scored.filter(
@@ -138,6 +148,7 @@ export function planLineupWeeks(inputs: PlanLineupWeeksInputs): PlannedWeek[] {
         matchupLabel: player.matchup?.label ?? null,
         score: round1(player.score),
         soleBack: player.soleBack,
+        weatherAdjustment: player.weatherAdjustment,
       });
     }
     plans.push({

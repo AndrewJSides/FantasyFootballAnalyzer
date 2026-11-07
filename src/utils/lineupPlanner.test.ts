@@ -333,3 +333,47 @@ describe('sole-back fold (backlog item 173)', () => {
     expect(bijan10!.soleBack).toBeNull();
   });
 });
+
+describe('weather fold (backlog item 138)', () => {
+  it('prices the downgrade in the current week only, never in later weeks', () => {
+    const risk = {
+      windy: true,
+      wet: true,
+      windMph: 18,
+      gustsMph: 27,
+      precipProb: 88,
+      tempF: 55,
+    };
+    const weather = new Map([['ATL', risk]]);
+    // Tua is the clear QB1 on points, so he starts both weeks.
+    const boosted: Record<string, Record<string, number>> = {};
+    for (const p of roster) {
+      boosted[p.id] = {};
+      for (let w = 1; w <= 7; w++) boosted[p.id][String(w)] = 10 + w;
+    }
+    for (let w = 1; w <= 7; w++) boosted['tua-tagovailoa-qb'][String(w)] = 20 + w;
+    const [week9, week10] = planLineupWeeks({
+      ...base,
+      weeklyPoints: boosted,
+      currentWeek: 9,
+      weatherRisk: weather,
+      fromWeek: 9,
+      toWeek: 10,
+    });
+    const tua9 = week9.starters.find(s => s.name === 'Tua Tagovailoa');
+    const tua10 = week10.starters.find(s => s.name === 'Tua Tagovailoa');
+    expect(tua9).toBeDefined();
+    expect(tua10).toBeDefined();
+    // Same completed-week series behind both weeks, so the only gap is
+    // the folded -25% — and it must not leak into the following week,
+    // when the forecast is a different game entirely.
+    expect(tua9!.weatherAdjustment).not.toBeNull();
+    expect(tua9!.weatherAdjustment).toBe(
+      -Math.round(tua10!.score * 0.25 * 10) / 10,
+    );
+    expect(tua9!.score).toBe(
+      Math.round((tua10!.score + tua9!.weatherAdjustment!) * 10) / 10,
+    );
+    expect(tua10!.weatherAdjustment).toBeNull();
+  });
+});

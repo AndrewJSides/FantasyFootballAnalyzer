@@ -226,4 +226,72 @@ describe('comparePlayers', () => {
     expect(byKey.get('projection')!.a).toBe('0.0 pts (ruled out)');
     expect(byKey.get('projection')!.a).not.toContain('Sole back');
   });
+
+  // Item-138 remainder: the measured weather term folds into the week
+  // projection, so Compare agrees with the Weekly Rankings board,
+  // Start/Sit, and the Matchup game plan on the same player.
+  const weatherRiskFor = (team: string) =>
+    new Map([
+      [
+        team,
+        {
+          windy: true,
+          wet: true,
+          windMph: 18,
+          gustsMph: 27,
+          precipProb: 88,
+          tempF: 55,
+        },
+      ],
+    ]);
+
+  it('folds the -25% weather downgrade into the week projection and tags the row', () => {
+    const series: Array<[number, number]> = [[1, 25], [2, 28], [3, 22], [4, 30]];
+    const weekly = weeklyFor([['allen-sid', series], ['daniels-sid', series]]);
+    const base = comparePlayers(allen(), daniels(), weekly, ctxFor());
+    // Identical series tie on the projection row with no flagged game.
+    expect(base.metricsA.projection).toBe(base.metricsB.projection);
+    expect(base.metricsA.weatherAdjustment).toBeNull();
+
+    const r = comparePlayers(allen(), daniels(), weekly, ctxFor(), undefined, weatherRiskFor('BUF'));
+    const expectedAdj = -Math.round(base.metricsA.projection! * 0.25 * 10) / 10;
+    expect(r.metricsA.weatherAdjustment).toBe(expectedAdj);
+    expect(r.metricsA.projection).toBe(
+      Math.round((base.metricsA.projection! + expectedAdj) * 10) / 10,
+    );
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('projection')!.a).toContain(`Weather ${expectedAdj.toFixed(1)}`);
+    // The downgrade flips the projection row to the other side.
+    expect(byKey.get('projection')!.winner).toBe('B');
+    expect(r.verdict).toContain('windy or wet outdoor game');
+    // The other side is untouched.
+    expect(r.metricsB.projection).toBe(base.metricsB.projection);
+    expect(r.metricsB.weatherAdjustment).toBeNull();
+  });
+
+  it('never downgrades an RB in a flagged game', () => {
+    const lead = player('lead-sid', 'Lead Back', 'TEN', 'RB');
+    const other = player('other-sid', 'Other Back', 'DAL', 'RB');
+    const series: Array<[number, number]> = [[1, 10], [2, 12], [3, 11], [4, 13]];
+    const weekly = weeklyFor([['lead-sid', series], ['other-sid', series]]);
+    const r = comparePlayers(lead, other, weekly, ctxFor(), undefined, weatherRiskFor('TEN'));
+    expect(r.metricsA.projection).toBe(r.metricsB.projection);
+    expect(r.metricsA.weatherAdjustment).toBeNull();
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('projection')!.a).not.toContain('Weather');
+  });
+
+  it('never folds a weather downgrade into a ruled-out player', () => {
+    const out = { ...allen(), injuryStatus: 'Out' };
+    const weekly = weeklyFor([
+      ['allen-sid', [[1, 25], [2, 28], [3, 22], [4, 30]]],
+      ['daniels-sid', [[1, 25], [2, 28], [3, 22], [4, 30]]],
+    ]);
+    const r = comparePlayers(out, daniels(), weekly, ctxFor(), undefined, weatherRiskFor('BUF'));
+    expect(r.metricsA.projection).toBe(0);
+    expect(r.metricsA.weatherAdjustment).toBeNull();
+    const byKey = new Map(r.rows.map(x => [x.key, x]));
+    expect(byKey.get('projection')!.a).toBe('0.0 pts (ruled out)');
+    expect(byKey.get('projection')!.a).not.toContain('Weather');
+  });
 });

@@ -484,5 +484,10 @@ describe('StartSitPage sole-back + weather-risk tags (items 137/138 remainders)'
     // back plays the same game and carries no tag — wet weather favors
     // the run.
     expect(screen.queryAllByLabelText(/Weather risk:/)).toHaveLength(1);
+    // Item-138 remainder: the -25% cut is priced into the projection the
+    // tag sits under — the flat-20 QB shows -5.0, not just the flag.
+    expect(
+      screen.getByLabelText(/5\.0 pts priced into the projection shown/),
+    ).toBeInTheDocument();
   });
 });

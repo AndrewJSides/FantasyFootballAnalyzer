@@ -260,10 +260,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // The Weekly Rankings board's sole-back and weather-risk tags come to
   // the lineup tables, where the start/sit call is actually made. Same
   // non-blocking discipline as the board: a failed forecast fetch just
-  // leaves the tags off. The weather-risk tag stays display-only; the
-  // sole-back upside is priced into the projection (item 173 — the
-  // week-8 grade measured it), so only the weather term is still
-  // upside to weigh.
+  // leaves the tags off. Both terms are priced into the projection now
+  // (items 173 + 138 — the week-8 grade measured them), so the tags name
+  // the priced-in amounts.
   const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
   useEffect(() => {
     if (currentWeek == null) return;
@@ -454,6 +453,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
           ? guestWeekly?.usageBySleeperId
           : leagueComponentMaps?.weeklyUsage,
         soleBack,
+        weatherRisk,
         gamesBySleeperId: isGuest
           ? guestWeekly?.gamesBySleeperId
           : league.gamesPlayed?.bySleeperId,
@@ -461,7 +461,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
         season: league.season,
         currentWeek,
       }),
-    [roster, weeklyPoints, isGuest, guestWeekly, leagueComponentMaps, soleBack, league.gamesPlayed, league.season, currentWeek],
+    [roster, weeklyPoints, isGuest, guestWeekly, leagueComponentMaps, soleBack, weatherRisk, league.gamesPlayed, league.season, currentWeek],
   );
 
   // --- Lineup mode: floor/ceiling re-ranking (backlog item 25) ----------------
@@ -677,8 +677,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
               : leagueComponentMaps?.weeklyUsage,
             // Item-173: the sole-back map rides along; the planner prices
             // it for the current week only (a mate ruled out this week may
-            // return next week), later weeks price it as 0.
+            // return next week), later weeks price it as 0. Item-138: the
+            // weather map rides the same way — a kickoff forecast 7–10
+            // days out is not a forecast.
             soleBack,
+            weatherRisk,
             gamesBySleeperId: isGuest
               ? guestWeekly?.gamesBySleeperId
               : league.gamesPlayed?.bySleeperId,
@@ -695,6 +698,7 @@ export function StartSitPage({ league }: StartSitPageProps) {
       guestWeekly,
       leagueComponentMaps,
       soleBack,
+      weatherRisk,
       league.gamesPlayed,
       league.season,
       currentWeek,
@@ -823,8 +827,9 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // "Sole back" flag for RBs whose backfield mate is ruled out — the
   // upside is priced into the projection shown (item 173), so the tag
   // names the amount already counted — and an amber "Weather risk" flag
-  // for passing-game players in a windy or wet outdoor game, which stays
-  // display-only.
+  // for passing-game players in a windy or wet outdoor game, whose -25%
+  // downgrade is priced into the projection shown (item 138), so the
+  // tag names the amount already cut.
   const rowTags = (s: ScoredPlayer): ReactNode => {
     const sole = s.soleBack;
     const soleLabel = sole
@@ -834,7 +839,11 @@ export function StartSitPage({ league }: StartSitPageProps) {
       WEATHER_RISK_POSITIONS.has(s.position) && weatherRisk
         ? weatherRisk.get(s.nflTeam) ?? null
         : null;
-    const riskLabel = risk ? weatherRiskLabel(risk) : null;
+    const riskLabel = risk
+      ? s.weatherAdjustment !== null
+        ? `${weatherRiskLabel(risk)} — ${Math.abs(s.weatherAdjustment).toFixed(1)} pts priced into the projection shown`
+        : weatherRiskLabel(risk)
+      : null;
     if (!sole && !risk) return null;
     return (
       <>
@@ -1418,7 +1427,8 @@ export function StartSitPage({ league }: StartSitPageProps) {
               Sole back tags flag an RB whose backfield mate is ruled out
               (estimated upside from vacated usage, priced into the
               projection shown); Weather risk tags flag passing-game players in
-              a windy or wet outdoor game — both mirror the Weekly
+              a windy or wet outdoor game (a −25% passing-game downgrade,
+              priced into the projection shown) — both mirror the Weekly
               Rankings board.
               {mode !== 'balanced'
                 ? ` ${mode === 'ceiling' ? 'Chase ceiling' : 'Protect floor'} re-ranks the lineup on ${mode === 'ceiling' ? 'P75 upside' : 'P25 floor'} — each player\u2019s projection ${mode === 'ceiling' ? 'plus' : 'minus'} 0.6745 \u00d7 their own week-to-week volatility.`

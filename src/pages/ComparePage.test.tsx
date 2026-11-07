@@ -70,13 +70,34 @@ const league: League = {
   },
 } as League;
 
-function renderPage() {
+function renderPage(leagueOverride?: League) {
   return render(
     <MemoryRouter>
-      <ComparePage league={league} />
+      <ComparePage league={leagueOverride ?? league} />
     </MemoryRouter>,
   );
 }
+
+// Item-138 remainder: a windy/wet Open-Meteo body for every venue the
+// page's week-9 weather fetch asks about — hourly rows across the
+// weekend so nearestHourAt always lands within 90 minutes of kickoff.
+const openMeteoBodies = (() => {
+  const times: string[] = [];
+  const start = Date.UTC(2026, 10, 7, 0);
+  for (let i = 0; i < 79; i++) {
+    times.push(new Date(start + i * 3600_000).toISOString().slice(0, 16));
+  }
+  const body = {
+    hourly: {
+      time: times,
+      temperature_2m: times.map(() => 55),
+      precipitation_probability: times.map(() => 90),
+      wind_speed_10m: times.map(() => 20),
+      wind_gusts_10m: times.map(() => 30),
+    },
+  };
+  return Array.from({ length: 32 }, () => body);
+})();
 
 // Imported after the mock so the page binds the mocked pool.
 import { ComparePage } from './ComparePage';
@@ -84,9 +105,14 @@ import { ComparePage } from './ComparePage';
 beforeEach(() => {
   // Four completed weeks: Alpha scores 25/week, Beta scores 15/week.
   // Routed by URL: the weekly-stats endpoint returns the map, the
-  // Sleeper projections endpoint returns rows (none for Charlie).
-  vi.stubGlobal('fetch', vi.fn((url: string) =>
-    Promise.resolve({
+  // Sleeper projections endpoint returns rows (none for Charlie), and
+  // the Open-Meteo forecast endpoint returns windy/wet bodies for the
+  // week-9 weather fetch in the new test below.
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (String(url).includes('open-meteo')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(openMeteoBodies) });
+    }
+    return Promise.resolve({
       ok: true,
       json: () =>
         String(url).includes('/projections/nfl/')
@@ -102,8 +128,8 @@ beforeEach(() => {
               'sid-c1': { pts_ppr: 20, gp: 1, rush_att: 15, rec_tgt: 5 },
               'sid-d1': { pts_ppr: 5, gp: 1, rush_att: 12 },
             }),
-    }),
-  ));
+    });
+  }));
 });
 
 afterEach(() => {
@@ -241,6 +267,33 @@ describe('ComparePage', () => {
     expect(cells[1]).not.toHaveTextContent('Sole back');
 
     const verdict = screen.getByText(/sole back in his backfield/);
+    expect(verdict).toBeInTheDocument();
+  });
+
+  it('folds the -25% weather downgrade into the week projection and tags the row', async () => {
+    // Week 9: KC hosts NYJ Sunday in the open, so the stubbed forecast
+    // flags Beta's game — while BUF plays at MIN under a roof, so Alpha
+    // correctly carries no downgrade.
+    renderPage({ ...league, currentWeek: 9 });
+    pickPlayer('Player A', 'Alpha Aardvark');
+    pickPlayer('Player B', 'Beta Badger');
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+
+    // The forecast fetch lands after the table's first render, so the
+    // folded numbers arrive on a re-render — wait for them.
+    await waitFor(() => {
+      const table = screen.getByRole('table');
+      const projRow = within(table).getByRole('row', { name: /Week 9 projection/ });
+      const cells = within(projRow).getAllByRole('cell');
+      // Beta: 15-pt base − 25% = 11.2 pts, tagged. Alpha's game is
+      // under a roof: 25 pts, untagged.
+      expect(cells[1]).toHaveTextContent('11.2 pts');
+      expect(cells[1]).toHaveTextContent('Weather -3.8');
+      expect(cells[0]).toHaveTextContent('25 pts');
+      expect(cells[0]).not.toHaveTextContent('Weather');
+    });
+
+    const verdict = screen.getByText(/Beta Badger plays in a windy or wet outdoor game/);
     expect(verdict).toBeInTheDocument();
   });
 

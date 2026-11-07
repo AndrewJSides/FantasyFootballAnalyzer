@@ -21,6 +21,7 @@ import {
 import { vorPoints, type ValueLeague, type VorConfig } from '@/utils/projectionValues';
 import { injuryOf, seasonOutlooks } from '@/utils/seasonOutlook';
 import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
+import { weatherAdjustmentFor, type WeatherRisk } from '@/utils/weatherRisk';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
 
 export type CompareWinner = 'A' | 'B' | 'tie';
@@ -53,6 +54,13 @@ export interface CompareMetrics {
    * so Compare agrees with the Weekly Rankings board, Start/Sit, and
    * the Matchup game plan on the same player in the same week. */
   soleBack: SoleBackInfo | null;
+  /** Item-138 remainder: the weather downgrade for this player, if any —
+   * the points subtracted from the week projection for a windy/wet
+   * outdoor game. The measured term (item 138, -25% on QB/WR/TE) is
+   * folded into the week projection below, so Compare agrees with the
+   * Weekly Rankings board, Start/Sit, and the Matchup game plan on the
+   * same player in the same week. Null when not downgraded. */
+  weatherAdjustment: number | null;
   matchup: MatchupRating | null;
   matchupText: string | null;
   /** Projected points for the remaining weeks (ROS outlook). */
@@ -111,6 +119,7 @@ function metricsFor(
   weekly: WeeklyPprPoints | undefined,
   ctx: CompareContext,
   sole: SoleBackInfo | null = null,
+  weatherRisk?: Map<string, WeatherRisk>,
 ): CompareMetrics {
   const { entries, gpCompleted } = completedWeeks(p, weekly, ctx.currentWeek);
   const total = entries.length > 0 ? round1(entries.reduce((s, e) => s + e.pts, 0)) : null;
@@ -143,10 +152,24 @@ function metricsFor(
   // projection — the same priced term the Weekly Rankings board, Start/Sit,
   // and the Matchup game plan already fold in. A ruled-out lead back never
   // wears the tag: his week score is 0, vacancy or not.
-  const projection =
+  let projection =
     rawProjection !== null && !ruledOut && sole !== null
       ? round1(rawProjection + sole.upside)
       : rawProjection;
+  // Item-138 remainder: fold the measured weather term in on top of the
+  // sole-back fold — the same order as the Weekly Rankings board — so a
+  // passing-game player in a flagged outdoor game loses 25% of his
+  // (possibly vacancy-lifted) projection here too. RBs are never
+  // downgraded; a ruled-out player carries no weather tag: his week
+  // score is 0, weather or not.
+  let weatherAdjustment: number | null = null;
+  if (projection !== null && !ruledOut) {
+    const risk = weatherRisk?.get(p.team ?? '') ?? null;
+    weatherAdjustment = weatherAdjustmentFor(projection, risk, p.pos);
+    if (weatherAdjustment !== null) {
+      projection = round1(projection + weatherAdjustment);
+    }
+  }
 
   // Consistency + boom chance price on the same completed-week series the
   // projection uses. Volatility is the population std dev of completed
@@ -174,6 +197,7 @@ function metricsFor(
     projection: projection === null ? null : round1(projection),
     ruledOut,
     soleBack: sole,
+    weatherAdjustment,
     // A ruled-out player cannot boom: his week score is 0, whatever the
     // volatility of his completed weeks says.
     boomPct: ruledOut ? 0 : boomProb === null ? null : round1(boomProb * 100),
@@ -208,17 +232,22 @@ function asPick(p: PoolPlayer, total: number | null, games: number | null): Draf
 /** Compare two pool players across the comparison rows.
  * `soleBack` is an optional precomputed vacancy map (pool-id keyed, as
  * soleBackMap returns it); when omitted it is computed from the bundled
- * pool and the same weekly series, so the page never has to pass it. */
+ * pool and the same weekly series, so the page never has to pass it.
+ * `weatherRisk` is an optional precomputed kickoff weather map
+ * (NFL-team keyed, as weatherRiskByTeam returns it); when omitted there
+ * is no weather term — the engine cannot fetch a forecast, so the page
+ * passes the map it already fetched. */
 export function comparePlayers(
   playerA: PoolPlayer,
   playerB: PoolPlayer,
   weekly: WeeklyPprPoints | undefined,
   ctx: CompareContext,
   soleBack?: Map<string, SoleBackInfo>,
+  weatherRisk?: Map<string, WeatherRisk>,
 ): CompareResult {
   const vacancies = soleBack ?? soleBackMap(POOL, weekly, ctx.currentWeek);
-  const metricsA = metricsFor(playerA, weekly, ctx, vacancies.get(playerA.id) ?? null);
-  const metricsB = metricsFor(playerB, weekly, ctx, vacancies.get(playerB.id) ?? null);
+  const metricsA = metricsFor(playerA, weekly, ctx, vacancies.get(playerA.id) ?? null, weatherRisk);
+  const metricsB = metricsFor(playerB, weekly, ctx, vacancies.get(playerB.id) ?? null, weatherRisk);
 
   // Shared context maps: one ROS pass and one VOR pass for both players.
   const poolIndex = indexPool(POOL);
@@ -304,8 +333,11 @@ function buildRows(a: CompareMetrics, b: CompareMetrics, currentWeek: number): C
   const projText = (m: CompareMetrics): string | null => {
     if (m.ruledOut) return '0.0 pts (ruled out)';
     const base = fmtPts(m.projection);
-    if (base === null || !m.soleBack) return base;
-    return `${base} · Sole back +${m.soleBack.upside.toFixed(1)}`;
+    if (base === null) return base;
+    const tags: string[] = [];
+    if (m.soleBack) tags.push(`Sole back +${m.soleBack.upside.toFixed(1)}`);
+    if (m.weatherAdjustment !== null) tags.push(`Weather ${m.weatherAdjustment.toFixed(1)}`);
+    return tags.length > 0 ? `${base} · ${tags.join(' · ')}` : base;
   };
   return [
     row('projection', `Week ${currentWeek} projection`, a.projection, b.projection,
@@ -353,11 +385,19 @@ function buildVerdict(
       : !a.soleBack && b.soleBack
         ? ` ${nameB} is the sole back in his backfield this week — the vacated usage is priced into his projection.`
         : '';
+  // Item-138 remainder: name the priced weather downgrade so a weather
+  // loss reads as a forecast call, not a talent call — same discipline.
+  const weatherNote =
+    a.weatherAdjustment !== null && b.weatherAdjustment === null
+      ? ` ${nameA} plays in a windy or wet outdoor game — the passing-game downgrade is priced into his projection.`
+      : a.weatherAdjustment === null && b.weatherAdjustment !== null
+        ? ` ${nameB} plays in a windy or wet outdoor game — the passing-game downgrade is priced into his projection.`
+        : '';
   if (winsA === 0 && winsB === 0) {
-    return `No usable data to separate ${nameA} and ${nameB} — pick players with weekly stats.${ruledOutNote}${soleBackNote}`;
+    return `No usable data to separate ${nameA} and ${nameB} — pick players with weekly stats.${ruledOutNote}${soleBackNote}${weatherNote}`;
   }
   if (winsA === winsB) {
-    return `${nameA} and ${nameB} split the comparison ${winsA}–${winsB}; pick on roster need, not a clear edge.${ruledOutNote}${soleBackNote}`;
+    return `${nameA} and ${nameB} split the comparison ${winsA}–${winsB}; pick on roster need, not a clear edge.${ruledOutNote}${soleBackNote}${weatherNote}`;
   }
   const [leader, laggard] = winsA > winsB ? [nameA, nameB] : [nameB, nameA];
   // Name the biggest numeric edge for the leading side.
@@ -367,7 +407,7 @@ function buildVerdict(
     if (!biggest || marginOf(r) > marginOf(biggest)) biggest = r;
   }
   const edge = biggest ? `, biggest edge ${biggest.label.toLowerCase()} (${biggest.margin})` : '';
-  return `${leader} takes the comparison ${winsA}–${winsB} over ${laggard}${edge}.${ruledOutNote}${soleBackNote}`;
+  return `${leader} takes the comparison ${winsA}–${winsB} over ${laggard}${edge}.${ruledOutNote}${soleBackNote}${weatherNote}`;
 }
 
 function marginOf(r: CompareRow): number {

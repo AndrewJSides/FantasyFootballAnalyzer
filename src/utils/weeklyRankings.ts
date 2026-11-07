@@ -26,22 +26,21 @@ import {
 import { consistencySummary, type ConsistencySummary } from '@/utils/consistency';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
 import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
-import { WEATHER_RISK_POSITIONS, type WeatherRisk } from '@/utils/weatherRisk';
+import {
+  weatherAdjustmentFor,
+  WEATHER_RISK_POSITIONS,
+  type WeatherRisk,
+} from '@/utils/weatherRisk';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
 export const WEEKLY_RANKS_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 
-/** Item-138 weather term, priced into the ranked projection: a passing-
- * game player in an outdoor game flagged windy or wet loses 25% of his
- * projection. Measured Nov 6, 2026 on the week-8 grade
- * (scripts/backtestWeather.ts): the -25% variant cut the 26 affected
- * players' MAE 5.57 -> 5.25 without raising overall MAE (5.64 -> 5.60);
- * the -15% and -35% variants also folded, -25% had the lowest affected
- * MAE. One graded week is thin evidence — re-measure when week 9 grades.
- * The wet-only sensitivity pass did NOT fold, so the term stays on the
- * both-flags rule, never wet alone. RBs are never downgraded: wet weather
- * favors the run. */
-export const WEATHER_DOWNGRADE_PCT = 0.25;
+/** Item-138 weather term, priced into the ranked projection — see
+ * weatherAdjustmentFor in weatherRisk.ts for the measured definition
+ * (week-8 backtest, scripts/backtestWeather.ts). One graded week is thin
+ * evidence — re-measure when week 9 grades. The wet-only sensitivity
+ * pass did NOT fold, so the term stays on the both-flags rule, never
+ * wet alone. RBs are never downgraded: wet weather favors the run. */
 
 export interface WeeklyRankRow {
   player: PoolPlayer;
@@ -198,9 +197,11 @@ export function buildWeeklyRankings({
           ? weatherRisk?.get(p.team) ?? null
           : null;
         let weatherAdjustment: number | null = null;
-        if (projection !== null && risk !== null) {
-          weatherAdjustment = -round1(projection * WEATHER_DOWNGRADE_PCT);
-          projection = round1(projection + weatherAdjustment);
+        if (projection !== null) {
+          weatherAdjustment = weatherAdjustmentFor(projection, risk, p.pos);
+          if (weatherAdjustment !== null) {
+            projection = round1(projection + weatherAdjustment);
+          }
         }
         return {
           ...row,

@@ -194,5 +194,10 @@ describe('MatchupPage game-plan tags (item 139)', () => {
     // Exactly one tag on the page: the Tampa quarterback's. The TEN
     // running back plays no mocked-venue game and carries no tag.
     expect(screen.queryAllByLabelText(/Weather risk:/)).toHaveLength(1);
+    // Item-138 remainder: the -25% cut is priced into the projection the
+    // tag sits under — the flat-20 QB shows -5.0, not just the flag.
+    expect(
+      screen.getByLabelText(/5\.0 pts priced into the projection shown/),
+    ).toBeInTheDocument();
   });
 });

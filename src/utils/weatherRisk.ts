@@ -1,8 +1,5 @@
 // Item-138 weather risk: per-team passing-game downgrade flags for the
-// Weekly Rankings board — the display-only half of the outdoor-game
-// weather adjustment (the ranked projection does NOT fold it in, same
-// discipline as the item-137 sole-back tag: a priced term stays out
-// until a backtest says it wins).
+// Weekly Rankings board, Start/Sit, the Matchup game plan, and Compare.
 //
 // Reuses the Weather Watch feed (item 51): bundled schedule venues +
 // Open-Meteo kickoff-hour forecasts, same flag thresholds (wind 15+ mph
@@ -15,6 +12,13 @@
 //
 // Only QB/WR/TE rows get the tag: wet weather favors the run game, so
 // RBs are not downgraded by the same signal.
+//
+// The term is PRICED, not display-only: the week-8 backtest
+// (scripts/backtestWeather.ts) measured -25% folding (affected MAE
+// 5.57 -> 5.25, overall 5.64 -> 5.60 over 26 flagged-game cases), so
+// weatherAdjustmentFor is the single priced definition every surface
+// folds through — the board, the scoring core, and Compare. A failed
+// forecast fetch leaves every surface on the unfolded projection.
 
 import {
   venueKey,
@@ -25,6 +29,32 @@ import {
 
 /** Passing-game positions: the ones a weather downgrade applies to. */
 export const WEATHER_RISK_POSITIONS = new Set(['QB', 'WR', 'TE']);
+
+/**
+ * The measured weather term (item 138, backtested Nov 6, 2026 on the
+ * week-8 grade): passing-game projections in a flagged outdoor game are
+ * cut by this share. Both-flags rule — the map only ever carries games
+ * flagged windy or wet under the live thresholds, so the helper never
+ * re-checks the flag, only the position.
+ */
+export const WEATHER_DOWNGRADE_PCT = 0.25;
+
+const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+/**
+ * The (negative) points adjustment for one player's week projection, or
+ * null when the term does not apply (no flagged game for his team, or a
+ * position the weather never downgrades). One decimal, like every other
+ * priced adjustment in the app.
+ */
+export function weatherAdjustmentFor(
+  projection: number,
+  risk: WeatherRisk | null | undefined,
+  position: string,
+): number | null {
+  if (risk == null || !WEATHER_RISK_POSITIONS.has(position)) return null;
+  return -round1(projection * WEATHER_DOWNGRADE_PCT);
+}
 
 export interface WeatherRisk {
   windy: boolean;

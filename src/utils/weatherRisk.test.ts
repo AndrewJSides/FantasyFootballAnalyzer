@@ -1,6 +1,12 @@
 // Item-138 weather risk: per-team join of venues + kickoff weather.
 import { describe, it, expect } from 'vitest';
-import { weatherRiskByTeam, weatherRiskLabel, WEATHER_RISK_POSITIONS } from './weatherRisk';
+import {
+  weatherAdjustmentFor,
+  weatherRiskByTeam,
+  weatherRiskLabel,
+  WEATHER_DOWNGRADE_PCT,
+  WEATHER_RISK_POSITIONS,
+} from './weatherRisk';
 import type { GameVenue, WeatherAtKickoff } from './weatherWatch';
 
 const openVenue = (home: string, away: string): GameVenue => ({
@@ -99,5 +105,35 @@ describe('weatherRiskLabel', () => {
     expect(WEATHER_RISK_POSITIONS.has('WR')).toBe(true);
     expect(WEATHER_RISK_POSITIONS.has('TE')).toBe(true);
     expect(WEATHER_RISK_POSITIONS.has('RB')).toBe(false);
+  });
+});
+
+describe('weatherAdjustmentFor (item-138 priced term)', () => {
+  const risk = {
+    windy: true,
+    wet: true,
+    windMph: 18,
+    gustsMph: 27,
+    precipProb: 88,
+    tempF: 55,
+  };
+
+  it('is the measured -25% share', () => {
+    expect(WEATHER_DOWNGRADE_PCT).toBe(0.25);
+  });
+
+  it('cuts a passing-game projection by a quarter, one decimal', () => {
+    expect(weatherAdjustmentFor(20, risk, 'QB')).toBe(-5);
+    expect(weatherAdjustmentFor(16.6, risk, 'WR')).toBe(-4.2);
+    expect(weatherAdjustmentFor(12, risk, 'TE')).toBe(-3);
+  });
+
+  it('never downgrades an RB', () => {
+    expect(weatherAdjustmentFor(20, risk, 'RB')).toBeNull();
+  });
+
+  it('is null with no flagged game', () => {
+    expect(weatherAdjustmentFor(20, null, 'QB')).toBeNull();
+    expect(weatherAdjustmentFor(20, undefined, 'QB')).toBeNull();
   });
 });

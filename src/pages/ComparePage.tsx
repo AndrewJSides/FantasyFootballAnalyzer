@@ -23,6 +23,8 @@ import {
   WATCHLIST_MAX,
 } from '@/utils/watchlist';
 import { DEFAULT_MANUAL_SHAPE, valueLeagueFor } from '@/utils/tradeAnalysis';
+import { buildGameVenues, fetchKickoffWeather } from '@/utils/weatherWatch';
+import { weatherRiskByTeam, type WeatherRisk } from '@/utils/weatherRisk';
 import styles from './ComparePage.module.css';
 
 const SKILL_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
@@ -230,6 +232,28 @@ export function ComparePage({ league }: { league: League }) {
   }, [idB]);
 
   const week = league.currentWeek ?? currentWeekEstimate();
+  // Item-138 remainder: the kickoff weather risk map for this week, so a
+  // passing-game player in a windy or wet outdoor game carries the same
+  // -25% downgrade Compare's projection shows as the Weekly Rankings
+  // board, Start/Sit, and the Matchup game plan. Same non-blocking
+  // discipline as the Sleeper load above: a failed forecast fetch just
+  // leaves the map empty and the comparison prices on the unfolded
+  // projection.
+  const [weatherRisk, setWeatherRisk] = useState<Map<string, WeatherRisk> | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    const venues = buildGameVenues(week);
+    fetchKickoffWeather(venues)
+      .then(w => {
+        if (!cancelled) setWeatherRisk(weatherRiskByTeam(venues, w));
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherRisk(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [week]);
   // Score completed weeks only; the in-progress week's partial stats would
   // halve a player's pace (same convention as Start/Sit).
   const loadWeekly = () => {
@@ -277,8 +301,8 @@ export function ComparePage({ league }: { league: League }) {
       valueLeague,
       vorCfg: vorConfigFor({ tePremium: (league.tePremiumPerReception ?? 0) > 0 }),
     };
-    return comparePlayers(playerA, playerB, weekly, ctx);
-  }, [playerA, playerB, weekly, weeklyState, league, week]);
+    return comparePlayers(playerA, playerB, weekly, ctx, undefined, weatherRisk);
+  }, [playerA, playerB, weekly, weeklyState, league, week, weatherRisk]);
 
   const [dataStart, dataEnd] = matchupDataWeeks();
 
@@ -438,6 +462,10 @@ export function ComparePage({ league }: { league: League }) {
               estimated extra points from the vacated usage are priced into
               the projection shown, the same measured term the Weekly
               Rankings board, Start/Sit, and the Matchup game plan fold in.
+              A &ldquo;Weather&rdquo; tag marks a passing-game player in a
+              windy or wet outdoor game — the −25% passing-game downgrade
+              is priced into the projection shown, the same measured term
+              the board, Start/Sit, and the Matchup game plan fold in.
               VOR values are priced
               on {league.totalTeams || 10}-team {league.scoringType} scoring.
               Consistency is the item-20 Steady/Mixed/Volatile verdict with its

@@ -18,6 +18,7 @@ import { DEFAULT_ROSTER_SLOTS } from '@/utils/draftDefaults';
 import type { RosterComponentMaps } from '@/utils/leagueComponents';
 import type { SoleBackInfo } from '@/utils/roleChange';
 import type { TdRegression, UsageTrend } from '@/utils/weeklyProjection';
+import type { WeatherRisk } from '@/utils/weatherRisk';
 import { optimalLineup, slotEligiblePositions, normalizeLineupPos } from '@/utils/optimalLineup';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
 
@@ -77,6 +78,14 @@ export interface GamePlanOptions {
    * Weekly Rankings board show. A missing map means the term stays off.
    */
   soleBack?: Map<string, SoleBackInfo>;
+  /**
+   * Item-138 kickoff weather risk map (NFL-team keyed, as
+   * weatherRiskByTeam returns it): each passing-game player's weekly
+   * projection is cut 25% in a flagged outdoor game, so the close calls
+   * price the same number Start/Sit and the Weekly Rankings board show.
+   * A missing map means the term stays off.
+   */
+  weatherRisk?: Map<string, WeatherRisk>;
 }
 
 /** The start/sit close calls for one team this week: every starting slot
@@ -100,6 +109,7 @@ export function buildGamePlan(
     tdRegression: opts.tdRegression,
     usageTrend: opts.usageTrend,
     soleBack: opts.soleBack,
+    weatherRisk: opts.weatherRisk,
     gamesBySleeperId: league.gamesPlayed?.bySleeperId,
     gamesSeason: league.gamesPlayed?.season,
     season: league.season,

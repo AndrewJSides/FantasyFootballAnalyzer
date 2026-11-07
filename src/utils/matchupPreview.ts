@@ -15,6 +15,7 @@ import type { RosterComponentMaps } from '@/utils/leagueComponents';
 import { optimalLineup } from '@/utils/optimalLineup';
 import type { SoleBackInfo } from '@/utils/roleChange';
 import { scoreRosterPlayers, type ScoredPlayer } from '@/utils/rosterScoring';
+import type { WeatherRisk } from '@/utils/weatherRisk';
 import { monteCarloWinProb, type ScoreDistribution, type SwingPlayer } from '@/utils/weeklyWinProb';
 import type { TdRegression, UsageTrend } from '@/utils/weeklyProjection';
 
@@ -73,6 +74,15 @@ export interface ScoreTeamLineupOptions {
    * missing map means the term stays off entirely.
    */
   soleBack?: Map<string, SoleBackInfo>;
+  /**
+   * Item-138 kickoff weather risk map (NFL-team keyed, as
+   * weatherRiskByTeam returns it): each passing-game player's weekly
+   * projection is cut 25% in a flagged outdoor game, so the preview,
+   * the game plan, and the position battles price the same number
+   * Start/Sit and the Weekly Rankings board show. A missing map means
+   * the term stays off entirely.
+   */
+  weatherRisk?: Map<string, WeatherRisk>;
 }
 
 export function scoreTeamLineup(
@@ -93,6 +103,7 @@ export function scoreTeamLineup(
     tdRegression: opts.tdRegression,
     usageTrend: opts.usageTrend,
     soleBack: opts.soleBack,
+    weatherRisk: opts.weatherRisk,
     gamesBySleeperId: league.gamesPlayed?.bySleeperId,
     gamesSeason: league.gamesPlayed?.season,
     season: league.season,

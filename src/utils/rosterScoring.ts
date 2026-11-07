@@ -25,6 +25,11 @@ import {
 import type { OptimalLineupPlayer } from '@/utils/optimalLineup';
 import { injuryTier, injuryTierLabel, type InjurySeverityTier } from '@/utils/injuryReport';
 import type { SoleBackInfo } from '@/utils/roleChange';
+import {
+  weatherAdjustmentFor,
+  WEATHER_RISK_POSITIONS,
+  type WeatherRisk,
+} from '@/utils/weatherRisk';
 
 export interface ScoredPlayer extends OptimalLineupPlayer {
   player: Player;
@@ -43,6 +48,16 @@ export interface ScoredPlayer extends OptimalLineupPlayer {
    * names the priced-in amount.
    */
   soleBack: SoleBackInfo | null;
+  /**
+   * Item-138 weather downgrade for this player (null when none): the
+   * points subtracted from this week's projection for a windy/wet
+   * outdoor game. FOLDED into `projection` and `score` (backtested Nov
+   * 6, 2026 on the week-8 grade — the -25% term cut the 26 flagged-game
+   * players' MAE 5.57 -> 5.25 without raising overall MAE) — the tag on
+   * the consuming page names the priced-in amount. RBs are never
+   * downgraded: wet weather favors the run.
+   */
+  weatherAdjustment: number | null;
   bye: number | null;
   onBye: boolean;
   matchup: MatchupRating | null;
@@ -101,6 +116,16 @@ export interface RosterScoreInputs {
    * current week.
    */
   soleBack?: Map<string, SoleBackInfo>;
+  /**
+   * Item-138 kickoff weather risk map (NFL-team keyed, as
+   * weatherRiskByTeam returns it): each passing-game player's weekly
+   * projection is cut 25% in a flagged outdoor game. A missing map
+   * means the term stays off entirely — a failed forecast fetch leaves
+   * every surface on the unfolded projection. The map is a this-week
+   * signal — callers planning future weeks (lineupPlanner) gate it to
+   * the current week, like the sole-back map.
+   */
+  weatherRisk?: Map<string, WeatherRisk>;
   gamesBySleeperId?: Record<string, number[]>;
   gamesSeason?: number;
   season?: number;
@@ -125,6 +150,7 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
     tdRegression,
     usageTrend,
     soleBack,
+    weatherRisk,
     gamesBySleeperId,
     gamesSeason,
     season,
@@ -213,10 +239,30 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
     // A ruled-out or bye-week lead back never starts, so the fold is
     // inert for him — the term only moves an eligible starter's call.
     const sole = poolPlayer ? (soleBack?.get(poolPlayer.id) ?? null) : null;
-    const foldedProjection =
+    let foldedProjection =
       projection !== null && sole !== null
         ? { ...projection, projection: round1(projection.projection + sole.upside) }
         : projection;
+    // Item-138: the measured weather term folds in on top of the
+    // sole-back fold — the same order as the Weekly Rankings board —
+    // so a passing-game player in a flagged outdoor game loses 25% of
+    // his (possibly vacancy-lifted) projection here too. RBs are never
+    // downgraded. A ruled-out or bye-week player never starts, so the
+    // fold is inert for him — the term only moves an eligible
+    // starter's call.
+    const risk = WEATHER_RISK_POSITIONS.has(rosterPlayer.position)
+      ? weatherRisk?.get(rosterPlayer.team) ?? null
+      : null;
+    const weatherAdjustment =
+      foldedProjection !== null
+        ? weatherAdjustmentFor(foldedProjection.projection, risk, rosterPlayer.position)
+        : null;
+    if (foldedProjection !== null && weatherAdjustment !== null) {
+      foldedProjection = {
+        ...foldedProjection,
+        projection: round1(foldedProjection.projection + weatherAdjustment),
+      };
+    }
     // Injury designations from the bundled pool (refreshed twice daily):
     // Out and season-ending IR never start, same discipline as bye weeks.
     const tier = poolPlayer ? injuryTier(poolPlayer) : 'other';
@@ -251,6 +297,7 @@ export function scoreRosterPlayers(inputs: RosterScoreInputs): ScoredPlayer[] {
       projection: foldedProjection,
       stdDev,
       soleBack: sole,
+      weatherAdjustment,
       bye,
       onBye: bye !== null && currentWeek !== undefined && bye === currentWeek,
       matchup,
