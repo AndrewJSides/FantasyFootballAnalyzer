@@ -686,6 +686,14 @@ export function Header({
                   YPT
                 </Link>
                 <Link
+                  to="/pts-per-snap"
+                  className={`${styles.navLink} ${location.pathname === '/pts-per-snap' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/pts-per-snap' ? 'page' : undefined}
+                >
+                  Pts/Snap
+                </Link>
+                <Link
                   to="/defense-leaders"
                   className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1210,6 +1218,14 @@ export function Header({
               aria-current={location.pathname === '/ypt' ? 'page' : undefined}
             >
               YPT
+            </Link>
+            <Link
+              to="/pts-per-snap"
+              className={`${styles.navLink} ${location.pathname === '/pts-per-snap' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/pts-per-snap' ? 'page' : undefined}
+            >
+              Pts/Snap
             </Link>
             <Link
               to="/defense-leaders"
