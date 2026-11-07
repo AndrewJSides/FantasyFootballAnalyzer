@@ -23,6 +23,7 @@ import {
   netStarterChange,
   teamProfiles,
   type TradeCandidate,
+  type TradeFinderOptions,
 } from './tradeFinder';
 import { valueLeagueFor } from './tradeAnalysis';
 
@@ -44,12 +45,13 @@ export function shopOffers(
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
   valueLeague: ValueLeague = valueLeagueFor(league),
+  opts?: TradeFinderOptions,
 ): ShopOffer[] {
   if (!playerId) return [];
 
   // Locate the team that owns the player: scan every profile's depth
   // charts for the pool id.
-  const profiles = teamProfiles(league, pool, cfg, valueLeague);
+  const profiles = teamProfiles(league, pool, cfg, valueLeague, opts);
   const owner = profiles.find(p =>
     Object.values(p.positions).some(pos =>
       pos.depthChart.some(pl => pl.id === playerId),
@@ -57,7 +59,7 @@ export function shopOffers(
   );
   if (!owner) return [];
 
-  return findTradeCandidates(league, pool, cfg, valueLeague)
+  return findTradeCandidates(league, pool, cfg, valueLeague, opts)
     .map(c => {
       const ownerIsA = c.teamA.id === owner.team.id;
       const ownerIsB = c.teamB.id === owner.team.id;

@@ -9,8 +9,9 @@ import {
   resolveTradeSide,
   valueLeagueFor,
 } from './tradeAnalysis';
+import { finderValueModel } from './tradeFinder';
 import { pickTradeValue } from './pickValueCurve';
-import type { ValueLeague } from './projectionValues';
+import { DEFAULT_VOR_CONFIG, type ValueLeague } from './projectionValues';
 
 const SLOTS: RosterSlots = { ...DEFAULT_MANUAL_SHAPE };
 
@@ -313,5 +314,41 @@ describe('analyzeTrade', () => {
     expect(full.winner).toBe('A');
     expect(full.teamAImpact?.teamName).toBe('Alpha');
     expect(full.teamBImpact?.teamName).toBe('Beta');
+  });
+});
+
+describe('analyzeTeamImpact dynasty mode (backlog item 193)', () => {
+  it('prices depth and takes in dynasty units when given a value model', () => {
+    const pool = makePool();
+    const vl = league();
+    const model = finderValueModel(pool.players, vl, DEFAULT_VOR_CONFIG, {
+      valueMode: 'dynasty',
+    });
+    const t = team('t1', 'Alpha', ['RB1', 'RB2', 'RB3', 'RB4', 'TE20', 'WR1', 'WR2', 'QB1']);
+    const rb4 = pool.players.find(p => p.id === 'RB4')!;
+    const te1 = pool.players.find(p => p.id === 'TE1')!;
+    const impact = analyzeTeamImpact(t, [rb4], [te1], vl, pool, DEFAULT_VOR_CONFIG, model);
+    const rb = impact.depth.find(d => d.position === 'RB')!;
+    const te = impact.depth.find(d => d.position === 'TE')!;
+    expect(rb.startableBefore).toBe(4);
+    expect(rb.startableAfter).toBe(3);
+    // Dynasty units are raw projections, not VOR: TE20 125 → TE1 220.
+    expect(te.bestBefore).toBe(125);
+    expect(te.bestAfter).toBe(220);
+    expect(
+      impact.takes.some(tk => tk.includes('TE') && tk.includes('dynasty pts')),
+    ).toBe(true);
+  });
+
+  it('keeps redraft VOR takes when no value model is passed', () => {
+    const pool = makePool();
+    const vl = league();
+    const t = team('t1', 'Alpha', ['RB1', 'RB2', 'RB3', 'RB4', 'TE20', 'WR1', 'WR2', 'QB1']);
+    const rb4 = pool.players.find(p => p.id === 'RB4')!;
+    const te1 = pool.players.find(p => p.id === 'TE1')!;
+    const impact = analyzeTeamImpact(t, [rb4], [te1], vl, pool);
+    expect(
+      impact.takes.some(tk => tk.includes('TE') && tk.includes('VOR')),
+    ).toBe(true);
   });
 });

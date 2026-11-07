@@ -48,6 +48,7 @@ function teamProfile(
       TE: cells.TE ?? fallback('TE'),
     },
     unmapped: 0,
+    unit: 'VOR',
   };
 }
 
@@ -103,5 +104,17 @@ describe('TeamNeedsMatrix', () => {
   it('renders nothing for an empty profile list', () => {
     const { container } = render(<TeamNeedsMatrix profiles={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe('TeamNeedsMatrix dynasty units (backlog item 193)', () => {
+  it('labels best values in dynasty pts when the profiles are dynasty-priced', () => {
+    const dynastyProfiles: TeamProfile[] = profiles.map(p => ({
+      ...p,
+      unit: 'dynasty pts' as const,
+    }));
+    render(<TeamNeedsMatrix profiles={dynastyProfiles} />);
+    expect(screen.getByText('42.3 dynasty pts')).toBeTruthy();
+    expect(screen.queryByText('42.3 VOR')).toBeNull();
   });
 });

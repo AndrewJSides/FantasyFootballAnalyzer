@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { League, RosterSlots, Team } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { DEFAULT_VOR_CONFIG } from './projectionValues';
-import { DEFAULT_MANUAL_SHAPE } from './tradeAnalysis';
+import { DEFAULT_MANUAL_SHAPE, valueLeagueFor } from './tradeAnalysis';
 import { shopOffers } from './shopPlayer';
 
 const SLOTS: RosterSlots = { ...DEFAULT_MANUAL_SHAPE };
@@ -161,6 +161,27 @@ describe('shopOffers', () => {
       expect(o.ownerTeamId).toBe('b');
       const gives = o.teamA.id === 'b' ? o.aGives : o.bGives;
       expect(gives.some(p => p.id === 'WR1')).toBe(true);
+    }
+  });
+});
+
+describe('shopOffers dynasty mode (backlog item 193)', () => {
+  it('prices offers on dynasty value in dynasty mode', () => {
+    const pool = makePool();
+    const lg = asymmetricLeague(pool);
+    const offers = shopOffers(
+      lg,
+      'RB2',
+      pool,
+      DEFAULT_VOR_CONFIG,
+      valueLeagueFor(lg),
+      { valueMode: 'dynasty' },
+    );
+    expect(offers.length).toBeGreaterThan(0);
+    for (const o of offers) {
+      expect(o.analysis.valueMode).toBe('dynasty');
+      expect(o.reasons.some(r => r.includes('dynasty pts'))).toBe(true);
+      expect(o.ownerTeamId).toBe('a');
     }
   });
 });

@@ -123,6 +123,24 @@ export interface ValuedPlayer {
 // dynasty model's age-adjusted value (backlog item 182).
 export type TradeValueMode = 'redraft' | 'dynasty';
 
+// The unit a value-model number is in. 'VOR' is redraft value over
+// replacement; 'dynasty pts' is the dynasty model's age-adjusted value.
+export type FinderValueUnit = 'VOR' | 'dynasty pts';
+
+// A pricing basis for the finder stack (backlog item 193): a per-player
+// value map in one unit, plus the per-position replacement level in the
+// same unit — a player at or below it is not startable. Redraft mode is
+// VOR with a 0 replacement (VOR is already replacement-subtracted);
+// dynasty mode is raw dynasty value with the replacement-ranked dynasty
+// value as the line, so need / surplus / startable keep their exact
+// redraft semantics and the numbers agree with the analyzer's dynasty
+// totals (which price the same raw dynasty values).
+export interface ValueModel {
+  values: Map<string, number>;
+  replacement: Record<PositionKey, number>;
+  unit: FinderValueUnit;
+}
+
 // A future draft pick on one side of the deal, priced in the same VOR
 // points as the players (backlog item 175). A pick never touches the
 // roster-impact half — it helps no starting lineup this week — so it only
@@ -238,10 +256,12 @@ export type PositionKey = 'QB' | 'RB' | 'WR' | 'TE';
 
 export interface PositionalDepth {
   position: PositionKey;
-  // Players with positive VOR at this position.
+  // Players above the replacement line at this position (VOR > 0 in
+  // redraft mode, dynasty value above replacement in dynasty mode).
   startableBefore: number;
   startableAfter: number;
-  // Best VOR at this position before/after (the likely starter's value).
+  // Best value at this position before/after (the likely starter's value,
+  // in the model's units).
   bestBefore: number;
   bestAfter: number;
 }
@@ -280,9 +300,17 @@ export function analyzeTeamImpact(
   valueLeague: ValueLeague,
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
+  // Dynasty mode (backlog item 193): price the depth math on the caller's
+  // value model instead of redraft VOR, so the "starter upgraded /
+  // downgraded" takes and the startable counts are in the same units as
+  // the verdict totals. Without it the impact half stays redraft VOR,
+  // exactly as before.
+  valueModel?: ValueModel,
 ): TeamImpact {
   const index = indexPool(pool);
-  const vor = vorPoints(pool.players, valueLeague, cfg);
+  const values = valueModel?.values ?? vorPoints(pool.players, valueLeague, cfg);
+  const replacement = valueModel?.replacement;
+  const unit = valueModel?.unit ?? 'VOR';
   const demand = starterDemand(valueLeague.rosterSlots);
 
   // Current roster as pool players (best effort; unresolvable players are
@@ -302,8 +330,12 @@ export function analyzeTeamImpact(
     position => {
       const before = rosterPool.filter(p => posKey(p.pos) === position);
       const after = afterPool.filter(p => posKey(p.pos) === position);
-      const vorOf = (p: PoolPlayer) => vor.get(p.id) ?? 0;
-      const startable = (list: PoolPlayer[]) => list.filter(p => vorOf(p) > 0).length;
+      const vorOf = (p: PoolPlayer) => values.get(p.id) ?? 0;
+      // Startable means above the replacement line in the model's units
+      // (VOR > 0 in redraft mode, dynasty value above the replacement
+      // dynasty value in dynasty mode).
+      const startable = (list: PoolPlayer[]) =>
+        list.filter(p => vorOf(p) > (replacement?.[position] ?? 0)).length;
       const best = (list: PoolPlayer[]) =>
         list.reduce((m, p) => Math.max(m, vorOf(p)), 0);
       return {
@@ -322,11 +354,11 @@ export function analyzeTeamImpact(
     const slots = need.base + (need.flex > 0 ? 1 : 0);
     if (d.bestAfter > d.bestBefore + 0.5) {
       takes.push(
-        `${d.position} starter upgraded (${d.bestBefore} → ${d.bestAfter} VOR) — fills a need`,
+        `${d.position} starter upgraded (${d.bestBefore} → ${d.bestAfter} ${unit}) — fills a need`,
       );
     } else if (d.bestAfter < d.bestBefore - 0.5) {
       takes.push(
-        `${d.position} starter downgraded (${d.bestBefore} → ${d.bestAfter} VOR)`,
+        `${d.position} starter downgraded (${d.bestBefore} → ${d.bestAfter} ${unit})`,
       );
     }
     if (d.startableAfter < slots && d.startableBefore >= slots) {
@@ -369,6 +401,10 @@ export function analyzeTrade(
     picksB?: TradePick[];
     valueMode?: TradeValueMode;
     agesBySleeperId?: Record<string, number>;
+    // Dynasty mode (backlog item 193): the finder passes its value model
+    // so the roster-impact half prices in the same units as the verdict
+    // totals. Without it the impacts stay redraft VOR, as before.
+    valueModel?: ValueModel;
   },
 ): FullTradeAnalysis {
   const pool = opts.pool ?? POOL;
@@ -381,10 +417,10 @@ export function analyzeTrade(
     agesBySleeperId: opts.agesBySleeperId,
   });
   const teamAImpact = opts.teamA
-    ? analyzeTeamImpact(opts.teamA, sideA, sideB, opts.valueLeague, pool, cfg)
+    ? analyzeTeamImpact(opts.teamA, sideA, sideB, opts.valueLeague, pool, cfg, opts.valueModel)
     : undefined;
   const teamBImpact = opts.teamB
-    ? analyzeTeamImpact(opts.teamB, sideB, sideA, opts.valueLeague, pool, cfg)
+    ? analyzeTeamImpact(opts.teamB, sideB, sideA, opts.valueLeague, pool, cfg, opts.valueModel)
     : undefined;
   return { ...value, teamAImpact, teamBImpact };
 }

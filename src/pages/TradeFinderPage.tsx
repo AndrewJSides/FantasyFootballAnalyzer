@@ -4,6 +4,7 @@ import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { POOL_SEASON } from '@/data/draftPoolMeta';
+import { PLAYER_AGES } from '@/data/playerAges';
 import { DataAsOf } from '@/components/DataAsOf';
 import { BuyLowSellHigh } from '@/components/BuyLowSellHigh';
 import { TeamNeedsMatrix } from '@/components/TeamNeedsMatrix';
@@ -12,6 +13,7 @@ import {
   findTradeCandidates,
   teamProfiles,
   type TradeCandidate,
+  type TradeFinderOptions,
 } from '@/utils/tradeFinder';
 import {
   cycleFlowLabel,
@@ -22,7 +24,12 @@ import {
 import { shopOffers } from '@/utils/shopPlayer';
 import { partnerDealLine, rankTradePartners } from '@/utils/tradePartners';
 import { cycleNetLink, tradeLink } from '@/utils/tradeLinks';
-import { valueLeagueFor, DEFAULT_MANUAL_SHAPE } from '@/utils/tradeAnalysis';
+import {
+  valueLeagueFor,
+  DEFAULT_MANUAL_SHAPE,
+  type FinderValueUnit,
+  type TradeValueMode,
+} from '@/utils/tradeAnalysis';
 import { DEFAULT_VOR_CONFIG } from '@/utils/projectionValues';
 import { indexPool, resolvePoolPlayer } from '@/utils/consensusGrade';
 import { currentWeekEstimate } from '@/utils/matchupRating';
@@ -59,6 +66,46 @@ interface TradeFinderPageProps {
 // runs on the two synthetic teams priced on the default manual shape.
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+// Value basis toggle (backlog item 193): Redraft prices the finder on
+// value over replacement; Dynasty re-prices it on the dynasty model's
+// age-adjusted value. Shared by the league and guest views so the two
+// can't disagree.
+function ValueBasisToggle({
+  valueMode,
+  onChange,
+  idSuffix,
+}: {
+  valueMode: TradeValueMode;
+  onChange: (mode: TradeValueMode) => void;
+  idSuffix: string;
+}) {
+  return (
+    <fieldset className={styles.valueMode}>
+      <legend className={styles.valueModeLegend}>Value basis</legend>
+      <label className={styles.valueModeOption}>
+        <input
+          type="radio"
+          name={`value-mode-${idSuffix}`}
+          value="redraft"
+          checked={valueMode === 'redraft'}
+          onChange={() => onChange('redraft')}
+        />
+        Redraft (VOR)
+      </label>
+      <label className={styles.valueModeOption}>
+        <input
+          type="radio"
+          name={`value-mode-${idSuffix}`}
+          value="dynasty"
+          checked={valueMode === 'dynasty'}
+          onChange={() => onChange('dynasty')}
+        />
+        Dynasty (age-adjusted)
+      </label>
+    </fieldset>
+  );
+}
 
 // Item-130 Sleeper projection value: Sleeper's own week-N projection next
 // to TraderApe's VOR, so a proposed swap can be checked against the market
@@ -107,6 +154,8 @@ function CandidateList({
   sleeperProjections,
   sleeperReady,
   week,
+  unit,
+  valueMode,
 }: {
   candidates: TradeCandidate[];
   search: string;
@@ -115,6 +164,8 @@ function CandidateList({
   sleeperProjections: Record<string, number> | undefined;
   sleeperReady: boolean;
   week: number;
+  unit: FinderValueUnit;
+  valueMode: TradeValueMode;
 }) {
   return (
     <>
@@ -145,7 +196,7 @@ function CandidateList({
                           <PosBadge pos={p.pos} />
                           <span className={styles.playerName}>{p.name}</span>
                           <span className={styles.vor}>
-                            {round1(c.analysis.sideA.find(v => v.player.id === p.id)?.vor ?? 0)} VOR
+                            {round1(c.analysis.sideA.find(v => v.player.id === p.id)?.vor ?? 0)} {unit}
                           </span>
                           <SleeperValue
                             player={p}
@@ -167,7 +218,7 @@ function CandidateList({
                           <PosBadge pos={p.pos} />
                           <span className={styles.playerName}>{p.name}</span>
                           <span className={styles.vor}>
-                            {round1(c.analysis.sideB.find(v => v.player.id === p.id)?.vor ?? 0)} VOR
+                            {round1(c.analysis.sideB.find(v => v.player.id === p.id)?.vor ?? 0)} {unit}
                           </span>
                           <SleeperValue
                             player={p}
@@ -189,7 +240,7 @@ function CandidateList({
 
                 <Link
                   className={styles.analyze}
-                  to={tradeLink(c, search, includeTeamIds)}
+                  to={tradeLink(c, search, includeTeamIds, valueMode)}
                   aria-label={`Analyze ${c.teamA.name} and ${c.teamB.name} trade in the Trade Analyzer`}
                 >
                   Analyze this trade →
@@ -218,12 +269,16 @@ function ThreeTeamCycles({
   sleeperProjections,
   sleeperReady,
   week,
+  unit,
+  valueMode,
 }: {
   cycles: ThreeTeamCycle[];
   search: string;
   sleeperProjections: Record<string, number> | undefined;
   sleeperReady: boolean;
   week: number;
+  unit: FinderValueUnit;
+  valueMode: TradeValueMode;
 }) {
   return (
     <section className={styles.shop} aria-label="Three-team trades">
@@ -291,8 +346,8 @@ function ThreeTeamCycles({
                         ) : null}
                         <span className={styles.vor}>
                           {leg.kind === 'package' && leg.extraPlayerVor !== undefined
-                            ? `${round1(leg.playerVor)} + ${round1(leg.extraPlayerVor)} VOR`
-                            : `${round1(leg.playerVor)} VOR`}
+                            ? `${round1(leg.playerVor)} + ${round1(leg.extraPlayerVor)} ${unit}`
+                            : `${round1(leg.playerVor)} ${unit}`}
                         </span>
                         <SleeperValue
                           player={leg.player}
@@ -334,7 +389,7 @@ function ThreeTeamCycles({
                       <li key={net.team.id}>
                         <Link
                           className={styles.analyze}
-                          to={cycleNetLink(net, search)}
+                          to={cycleNetLink(net, search, valueMode)}
                           aria-label={`Check ${net.team.name}'s side of this three-team deal in the Trade Analyzer: gives ${net.gives.map(p => p.name).join(', ')}, gets ${net.gets.map(p => p.name).join(', ')}`}
                         >
                           Check {net.team.name}&apos;s side →
@@ -548,6 +603,19 @@ function RosterBuilder({
 function GuestTradeFinder() {
   const location = useLocation();
 
+  // Value basis (backlog item 193): same toggle as league mode — the
+  // guest scan runs on the same engine, priced on the same builders.
+  const [valueMode, setValueMode] = useState<TradeValueMode>('redraft');
+  const finderOpts = useMemo(
+    (): TradeFinderOptions => ({
+      valueMode,
+      agesBySleeperId: PLAYER_AGES.ages,
+    }),
+    [valueMode],
+  );
+  const unit: FinderValueUnit =
+    valueMode === 'dynasty' ? 'dynasty pts' : 'VOR';
+
   const [aIds, setAIds] = useState<string[]>(() =>
     loadGuestIds(GUEST_FINDER_A_KEY, START_SIT_ROSTER_KEY),
   );
@@ -616,9 +684,10 @@ function GuestTradeFinder() {
             POOL,
             DEFAULT_VOR_CONFIG,
             valueLeagueFor(null),
+            finderOpts,
           )
         : [],
-    [guestLeague, ready],
+    [guestLeague, ready, finderOpts],
   );
 
   // --- Shop a player (backlog item 90 remainder): guest-mode reverse
@@ -647,9 +716,10 @@ function GuestTradeFinder() {
             POOL,
             DEFAULT_VOR_CONFIG,
             valueLeagueFor(null),
+            finderOpts,
           )
         : [],
-    [guestLeague, shopPlayerId],
+    [guestLeague, shopPlayerId, finderOpts],
   );
 
   // --- Guest weekly data for Buy Low / Sell High: Sleeper public stats ---
@@ -747,6 +817,12 @@ function GuestTradeFinder() {
           />
         </div>
 
+        <ValueBasisToggle
+          valueMode={valueMode}
+          onChange={setValueMode}
+          idSuffix="guest"
+        />
+
         <CandidateList
           candidates={candidates}
           search={location.search}
@@ -759,6 +835,8 @@ function GuestTradeFinder() {
           sleeperProjections={sleeperProjections}
           sleeperReady={sleeperReady}
           week={guestWeek}
+          unit={unit}
+          valueMode={valueMode}
         />
 
         {aIds.length > 0 && (
@@ -802,6 +880,8 @@ function GuestTradeFinder() {
                 sleeperProjections={sleeperProjections}
                 sleeperReady={sleeperReady}
                 week={guestWeek}
+                unit={unit}
+                valueMode={valueMode}
               />
             )}
           </section>
@@ -821,16 +901,20 @@ function GuestTradeFinder() {
         />
 
         <p className={styles.footnote}>
-          Method: value from projected-points VOR on the standard 10-team
-          full-PPR shape; a swap is proposed only when the sides are within
-          25% on VOR and neither team's starting value goes backwards —
-          depth swaps leave every starter untouched, while star-for-star
-          swaps are allowed only when each team nets an upgrade at its
-          starting lineup. Needs and surplus are priced against the median
-          of the two entered rosters. The dim number beside each VOR is
-          Sleeper's own week-{guestWeek} projection where published; a dash
-          means no Sleeper line for that player, and the proposal counts
-          VOR rows only.
+          Method: value from{' '}
+          {valueMode === 'dynasty'
+            ? 'TraderApe’s dynasty model (season projection × age curve)'
+            : 'projected-points VOR on the standard 10-team full-PPR shape'}
+          ; a swap is proposed only when the sides are within 25% on{' '}
+          {unit} and neither team's starting value goes backwards — depth
+          swaps leave every starter untouched, while star-for-star swaps
+          are allowed only when each team nets an upgrade at its starting
+          lineup. Needs and surplus are priced against the median of the
+          two entered rosters. The Buy Low / Sell High panel below still
+          prices rest-of-season value on the redraft model. The dim number
+          beside each {unit} is Sleeper's own week-{guestWeek} projection
+          where published; a dash means no Sleeper line for that player,
+          and the proposal counts {unit} rows only.
         </p>
       </div>
     </div>
@@ -846,14 +930,34 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
   }, []);
   const location = useLocation();
 
+  // Value basis (backlog item 193): same toggle as the Trade Analyzer /
+  // Trade Value Chart — re-prices the whole finder (pair swaps,
+  // three-team cycles, shop offers, needs matrix) on the dynasty model.
+  const [valueMode, setValueMode] = useState<TradeValueMode>('redraft');
+  const finderOpts = useMemo(
+    (): TradeFinderOptions => ({
+      valueMode,
+      agesBySleeperId: PLAYER_AGES.ages,
+    }),
+    [valueMode],
+  );
+  const unit: FinderValueUnit =
+    valueMode === 'dynasty' ? 'dynasty pts' : 'VOR';
+
   // League mode only; the guest branch below renders GuestTradeFinder.
   const candidates = useMemo(
-    () => (league && !league.isGuest ? findTradeCandidates(league) : []),
-    [league],
+    () =>
+      league && !league.isGuest
+        ? findTradeCandidates(league, POOL, DEFAULT_VOR_CONFIG, valueLeagueFor(league), finderOpts)
+        : [],
+    [league, finderOpts],
   );
   const cycles = useMemo(
-    () => (league && !league.isGuest ? findThreeTeamCycles(league) : []),
-    [league],
+    () =>
+      league && !league.isGuest
+        ? findThreeTeamCycles(league, POOL, DEFAULT_VOR_CONFIG, valueLeagueFor(league), finderOpts)
+        : [],
+    [league, finderOpts],
   );
   const currentWeek = useMemo(
     () =>
@@ -912,9 +1016,9 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
   const profiles = useMemo(
     () =>
       league && !league.isGuest
-        ? teamProfiles(league, POOL, DEFAULT_VOR_CONFIG, valueLeagueFor(league))
+        ? teamProfiles(league, POOL, DEFAULT_VOR_CONFIG, valueLeagueFor(league), finderOpts)
         : [],
-    [league],
+    [league, finderOpts],
   );
   const defaultShopTeamId = useMemo(
     () =>
@@ -957,9 +1061,10 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
             POOL,
             DEFAULT_VOR_CONFIG,
             valueLeagueFor(league),
+            finderOpts,
           )
         : [],
-    [league, shopPlayerId],
+    [league, shopPlayerId, finderOpts],
   );
 
   // --- Ranked trade partners (backlog item 93): "who should I call first" ---
@@ -993,6 +1098,12 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           </p>
         </div>
 
+        <ValueBasisToggle
+          valueMode={valueMode}
+          onChange={setValueMode}
+          idSuffix="league"
+        />
+
         <CandidateList
           candidates={candidates}
           search={location.search}
@@ -1001,6 +1112,8 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           sleeperProjections={sleeperProjections}
           sleeperReady={sleeperReady}
           week={currentWeek}
+          unit={unit}
+          valueMode={valueMode}
         />
 
         <ThreeTeamCycles
@@ -1009,6 +1122,8 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
           sleeperProjections={sleeperProjections}
           sleeperReady={sleeperReady}
           week={currentWeek}
+          unit={unit}
+          valueMode={valueMode}
         />
 
         <TeamNeedsMatrix profiles={profiles} />
@@ -1070,6 +1185,8 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
               sleeperProjections={sleeperProjections}
               sleeperReady={sleeperReady}
               week={currentWeek}
+              unit={unit}
+              valueMode={valueMode}
             />
           )}
         </section>
@@ -1137,19 +1254,25 @@ export function TradeFinderPage({ league }: TradeFinderPageProps) {
         />
 
         <p className={styles.footnote}>
-          Method: value from projected-points VOR for your league's shape; a
-          swap is proposed only when the sides are within 25% on VOR and
-          neither team's starting value goes backwards — depth swaps leave
-          every starter untouched, while star-for-star swaps are allowed only
-          when each team nets an upgrade at its starting lineup. Needs and
-          surplus are priced against the league median at each position.
-          Three-team deals use the same need/surplus gates but rank on total
-          starter gain instead of a VOR band — in a three-way circle there is
-          no pairwise price to balance, since the same three players
-          circulate and each side trades a bench piece for a better starter.
-          The dim number beside each VOR is Sleeper's own week-{currentWeek}
-          projection where published; a dash means no Sleeper line for that
-          player, and the proposal counts VOR rows only.
+          Method: value from{' '}
+          {valueMode === 'dynasty'
+            ? 'TraderApe’s dynasty model (season projection × age curve)'
+            : 'projected-points VOR for your league’s shape'}
+          ; a swap is proposed only when the sides are within 25% on{' '}
+          {unit} and neither team's starting value goes backwards — depth
+          swaps leave every starter untouched, while star-for-star swaps
+          are allowed only when each team nets an upgrade at its starting
+          lineup. Needs and surplus are priced against the league median
+          at each position. Three-team deals use the same need/surplus
+          gates but rank on total starter gain instead of a {unit} band —
+          in a three-way circle there is no pairwise price to balance,
+          since the same three players circulate and each side trades a
+          bench piece for a better starter. The Buy Low / Sell High panel
+          below still prices rest-of-season value on the redraft model.
+          The dim number beside each {unit} is Sleeper's own
+          week-{currentWeek} projection where published; a dash means no
+          Sleeper line for that player, and the proposal counts {unit}{' '}
+          rows only.
         </p>
       </div>
     </div>

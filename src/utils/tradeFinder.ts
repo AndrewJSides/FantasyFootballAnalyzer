@@ -6,7 +6,10 @@
 // other needs). Each candidate is graded with the same value model as the
 // Trade Analyzer (VOR from projected points) plus the same roster-impact
 // takes, and only swaps that are fair on paper AND leave neither team's
-// starting value worse are proposed.
+// starting value worse are proposed. Dynasty mode (backlog item 193)
+// re-prices the whole scan on the dynasty model instead: raw dynasty value
+// with a per-position dynasty replacement line, so need / surplus /
+// startable keep their redraft semantics in dynasty units.
 //
 // Season-agnostic: consumes whatever pool season is bundled and whatever
 // league is supplied. The optional valueLeague override lets callers run the
@@ -17,8 +20,10 @@
 import type { League, Player, Team } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
+import { dynastyValue } from './dynastyValue';
 import {
   DEFAULT_VOR_CONFIG,
+  replacementRanks,
   vorPoints,
   type ValueLeague,
   type VorConfig,
@@ -27,8 +32,11 @@ import { indexPool, resolvePoolPlayer } from './consensusGrade';
 import {
   analyzeTrade,
   valueLeagueFor,
+  type FinderValueUnit,
   type FullTradeAnalysis,
   type PositionKey,
+  type TradeValueMode,
+  type ValueModel,
 } from './tradeAnalysis';
 
 const POSITIONS: PositionKey[] = ['QB', 'RB', 'WR', 'TE'];
@@ -53,15 +61,16 @@ const MAX_STAR_SWAP_PER_PAIR = 2;
 
 export interface PositionProfile {
   position: PositionKey;
-  // Best VOR on the roster at this position.
+  // Best value on the roster at this position, in the profile's unit.
   best: number;
-  // Count of positive-VOR players at this position.
+  // Count of startable players at this position (above the replacement
+  // line in the profile's unit).
   startable: number;
   // Below the league median best at this position: a trade target.
   need: boolean;
   // Can give one up and still cover starter demand.
   surplus: boolean;
-  // Positive-VOR players sorted by VOR desc (includes the best).
+  // Startable-or-better players sorted by value desc (includes the best).
   depthChart: PoolPlayer[];
 }
 
@@ -69,6 +78,60 @@ export interface TeamProfile {
   team: Team;
   positions: Record<PositionKey, PositionProfile>;
   unmapped: number;
+  // The unit the profile's best/startable numbers are in.
+  unit: FinderValueUnit;
+}
+
+// Finder options (backlog item 193): dynasty mode re-prices the whole
+// scan on the dynasty model instead of redraft VOR. Defaults to redraft.
+export interface TradeFinderOptions {
+  valueMode?: TradeValueMode;
+  agesBySleeperId?: Record<string, number>;
+}
+
+// Build the value model for a scan. Redraft mode is VOR with a 0
+// replacement line (VOR is already replacement-subtracted). Dynasty mode
+// prices every player on raw dynasty value — season full-PPR projection ×
+// the per-position age curve, exactly the analyzer's dynasty number — with
+// the replacement line set to the replacement-ranked player's dynasty
+// value at each position (same rank math as replacementRanks), so a
+// player counts as startable only above that line. Unknown ages price
+// neutrally, like the dynasty model itself.
+export function finderValueModel(
+  players: PoolPlayer[],
+  valueLeague: ValueLeague,
+  cfg: VorConfig = DEFAULT_VOR_CONFIG,
+  opts?: TradeFinderOptions,
+): ValueModel {
+  if (opts?.valueMode === 'dynasty') {
+    const ages = opts.agesBySleeperId ?? {};
+    const values = new Map<string, number>();
+    for (const p of players) {
+      if (posKeyOf(p) === null) {
+        values.set(p.id, 0);
+        continue;
+      }
+      const proj = p.projPtsPpr ?? p.projPts ?? 0;
+      const age = p.sleeperId ? (ages[p.sleeperId] ?? null) : null;
+      values.set(p.id, dynastyValue(proj, p.pos, age));
+    }
+    const ranks = replacementRanks(valueLeague.rosterSlots, valueLeague.teams, cfg);
+    const replacement = {} as Record<PositionKey, number>;
+    for (const position of POSITIONS) {
+      const sorted = players
+        .filter(p => posKeyOf(p) === position)
+        .map(p => values.get(p.id) ?? 0)
+        .sort((a, b) => b - a);
+      const idx = Math.min(ranks[position] - 1, sorted.length - 1);
+      replacement[position] = sorted.length === 0 ? 0 : (sorted[idx] ?? 0);
+    }
+    return { values, replacement, unit: 'dynasty pts' };
+  }
+  return {
+    values: vorPoints(players, valueLeague, cfg),
+    replacement: { QB: 0, RB: 0, WR: 0, TE: 0 },
+    unit: 'VOR',
+  };
 }
 
 // Resolve a league team's roster to pool players for value math.
@@ -114,8 +177,10 @@ export function teamProfiles(
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
   valueLeague: ValueLeague = valueLeagueFor(league),
+  opts?: TradeFinderOptions,
 ): TeamProfile[] {
-  const vor = vorPoints(pool.players, valueLeague, cfg);
+  const model = finderValueModel(pool.players, valueLeague, cfg, opts);
+  const valueOf = (p: PoolPlayer) => model.values.get(p.id) ?? 0;
   const slots = valueLeague.rosterSlots;
   const perTeam = league.teams.map(team => {
     const roster = resolveTeamRoster(team, pool);
@@ -124,9 +189,11 @@ export function teamProfiles(
     for (const position of POSITIONS) {
       const at = roster
         .filter(p => posKeyOf(p) === position)
-        .sort((a, b) => (vor.get(b.id) ?? 0) - (vor.get(a.id) ?? 0));
-      const best = at.length > 0 ? (vor.get(at[0].id) ?? 0) : 0;
-      const startable = at.filter(p => (vor.get(p.id) ?? 0) > 0).length;
+        .sort((a, b) => valueOf(b) - valueOf(a));
+      const best = at.length > 0 ? valueOf(at[0]) : 0;
+      const startable = at.filter(
+        p => valueOf(p) > model.replacement[position],
+      ).length;
       mapped += at.length;
       positions[position] = {
         position,
@@ -137,7 +204,7 @@ export function teamProfiles(
         depthChart: at,
       };
     }
-    return { team, positions, unmapped: (team.roster ?? []).length - mapped };
+    return { team, positions, unmapped: (team.roster ?? []).length - mapped, unit: model.unit };
   });
 
   // League-relative need/surplus: median best per position, demand per slot.
@@ -150,11 +217,11 @@ export function teamProfiles(
       prof.need = prof.best < median - 0.5;
       // Surplus means giving the second-best still leaves starter demand
       // covered: more than `demand` startable players, and the depth piece
-      // itself has positive value.
+      // itself is above the replacement line.
       prof.surplus =
         prof.startable > demand &&
         prof.depthChart.length > 1 &&
-        (vor.get(prof.depthChart[1].id) ?? 0) > 0;
+        valueOf(prof.depthChart[1]) > model.replacement[position];
     }
   }
   return perTeam;
@@ -201,8 +268,8 @@ function harmsStarter(analysis: FullTradeAnalysis): boolean {
   return false;
 }
 
-function vorOf(vor: Map<string, number>, p: PoolPlayer): number {
-  return vor.get(p.id) ?? 0;
+function valueOf(model: ValueModel, p: PoolPlayer): number {
+  return model.values.get(p.id) ?? 0;
 }
 
 // 2-for-1 packages: the buyer (need at p) gives two depth pieces for the
@@ -216,10 +283,11 @@ function vorOf(vor: Map<string, number>, p: PoolPlayer): number {
 function twoForOneAttempts(
   buyer: TeamProfile,
   seller: TeamProfile,
-  vor: Map<string, number>,
+  model: ValueModel,
   valueLeague: ValueLeague,
   pool: DraftPoolFile,
   cfg: VorConfig,
+  opts?: TradeFinderOptions,
 ): TradeCandidate[] {
   const out: TradeCandidate[] = [];
   const seenLocal = new Set<string>();
@@ -227,7 +295,7 @@ function twoForOneAttempts(
   for (const p of POSITIONS) {
     if (!buyer.positions[p].need || !seller.positions[p].surplus) continue;
     const piece = seller.positions[p].depthChart[1]; // depth, not the star
-    if (!piece || vorOf(vor, piece) <= 0) continue;
+    if (!piece || valueOf(model, piece) <= model.replacement[p]) continue;
 
     // Candidate depth pieces: second-best from each buyer surplus position
     // (the star they keep stays), skipping p itself. A second spare from a
@@ -240,7 +308,7 @@ function twoForOneAttempts(
       for (const depthIdx of [1, 2]) {
         if (prof.depthChart.length <= depthIdx) break;
         const spare = prof.depthChart[depthIdx];
-        if (vorOf(vor, spare) <= 0) break;
+        if (valueOf(model, spare) <= model.replacement[q]) break;
         spares.push({ player: spare, position: q });
       }
     }
@@ -269,6 +337,9 @@ function twoForOneAttempts(
           teamB: seller.team,
           pool,
           cfg,
+          valueMode: opts?.valueMode,
+          agesBySleeperId: opts?.agesBySleeperId,
+          valueModel: model,
         });
         if (analysis.marginShare > FAIR_MARGIN_SHARE) continue;
         if (harmsStarter(analysis)) continue;
@@ -277,9 +348,9 @@ function twoForOneAttempts(
         if (gain <= 0) continue;
 
         const reasons: string[] = [
-          `${buyer.team.name} consolidates: ${piece.name} (${round1(vorOf(vor, piece))} VOR) becomes their best ${p}, upgrading the position from ${buyer.positions[p].best} VOR — and the deal frees a bench spot.`,
-          `${seller.team.name} turns surplus ${p} depth into two startable pieces: ${g1.player.name} (${g1.position}, ${round1(vorOf(vor, g1.player))} VOR) and ${g2.player.name} (${g2.position}, ${round1(vorOf(vor, g2.player))} VOR), keeping its ${p} star.`,
-          `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} VOR (within ${Math.round(analysis.marginShare * 100)}%).`,
+          `${buyer.team.name} consolidates: ${piece.name} (${round1(valueOf(model, piece))} ${model.unit}) becomes their best ${p}, upgrading the position from ${buyer.positions[p].best} ${model.unit} — and the deal frees a bench spot.`,
+          `${seller.team.name} turns surplus ${p} depth into two startable pieces: ${g1.player.name} (${g1.position}, ${round1(valueOf(model, g1.player))} ${model.unit}) and ${g2.player.name} (${g2.position}, ${round1(valueOf(model, g2.player))} ${model.unit}), keeping its ${p} star.`,
+          `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} ${model.unit} (within ${Math.round(analysis.marginShare * 100)}%).`,
         ];
         out.push({
           teamA: buyer.team,
@@ -320,10 +391,11 @@ export function netStarterChange(
 function needVsNeedAttempts(
   A: TeamProfile,
   B: TeamProfile,
-  vor: Map<string, number>,
+  model: ValueModel,
   valueLeague: ValueLeague,
   pool: DraftPoolFile,
   cfg: VorConfig,
+  opts?: TradeFinderOptions,
 ): TradeCandidate[] {
   const out: TradeCandidate[] = [];
   const seenLocal = new Set<string>();
@@ -353,7 +425,11 @@ function needVsNeedAttempts(
     const giverStar = giver.positions[give].depthChart[0];
     const receiverStar = receiver.positions[get].depthChart[0];
     if (!giverStar || !receiverStar) continue;
-    if (vorOf(vor, giverStar) <= 0 || vorOf(vor, receiverStar) <= 0) continue;
+    if (
+      valueOf(model, giverStar) <= model.replacement[give] ||
+      valueOf(model, receiverStar) <= model.replacement[get]
+    )
+      continue;
 
     const key = [
       'star',
@@ -373,6 +449,9 @@ function needVsNeedAttempts(
       teamB: receiver.team,
       pool,
       cfg,
+      valueMode: opts?.valueMode,
+      agesBySleeperId: opts?.agesBySleeperId,
+      valueModel: model,
     });
     if (analysis.marginShare > FAIR_MARGIN_SHARE) continue;
 
@@ -389,10 +468,10 @@ function needVsNeedAttempts(
     const giverSecond = giver.positions[give].depthChart[1];
 
     const reasons: string[] = [
-      `${giver.team.name} gets the ${get} it needs: ${receiverStar.name} (${round1(vorOf(vor, receiverStar))} VOR) becomes its best ${get}, up from ${giver.positions[get].best} VOR.`,
-      `${receiver.team.name} gets the ${give} it needs: ${giverStar.name} (${round1(vorOf(vor, giverStar))} VOR) becomes its best ${give}, up from ${receiver.positions[give].best} VOR.`,
-      `Both teams net-upgrade their starters (+${round1(giverNet)} / +${round1(receiverNet)} VOR) and still cover demand — ${giver.team.name}'s ${give} falls back to ${giverSecond.name} (${giverNewBest} VOR).`,
-      `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} VOR (within ${Math.round(analysis.marginShare * 100)}%).`,
+      `${giver.team.name} gets the ${get} it needs: ${receiverStar.name} (${round1(valueOf(model, receiverStar))} ${model.unit}) becomes its best ${get}, up from ${giver.positions[get].best} ${model.unit}.`,
+      `${receiver.team.name} gets the ${give} it needs: ${giverStar.name} (${round1(valueOf(model, giverStar))} ${model.unit}) becomes its best ${give}, up from ${receiver.positions[give].best} ${model.unit}.`,
+      `Both teams net-upgrade their starters (+${round1(giverNet)} / +${round1(receiverNet)} ${model.unit}) and still cover demand — ${giver.team.name}'s ${give} falls back to ${giverSecond.name} (${giverNewBest} ${model.unit}).`,
+      `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} ${model.unit} (within ${Math.round(analysis.marginShare * 100)}%).`,
     ];
     out.push({
       teamA: giver.team,
@@ -415,9 +494,10 @@ export function findTradeCandidates(
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
   valueLeague: ValueLeague = valueLeagueFor(league),
+  opts?: TradeFinderOptions,
 ): TradeCandidate[] {
-  const vor = vorPoints(pool.players, valueLeague, cfg);
-  const profiles = teamProfiles(league, pool, cfg, valueLeague);
+  const model = finderValueModel(pool.players, valueLeague, cfg, opts);
+  const profiles = teamProfiles(league, pool, cfg, valueLeague, opts);
   const candidates: TradeCandidate[] = [];
   const seen = new Set<string>();
 
@@ -436,10 +516,11 @@ export function findTradeCandidates(
         for (const pkg of twoForOneAttempts(
           buyer,
           seller,
-          vor,
+          model,
           valueLeague,
           pool,
           cfg,
+          opts,
         )) {
           const key = [
             'pkg',
@@ -459,10 +540,11 @@ export function findTradeCandidates(
       for (const swap of needVsNeedAttempts(
         A,
         B,
-        vor,
+        model,
         valueLeague,
         pool,
         cfg,
+        opts,
       )) {
         const key = [
           'star',
@@ -500,14 +582,17 @@ export function findTradeCandidates(
             teamB: B.team,
             pool,
             cfg,
+            valueMode: opts?.valueMode,
+            agesBySleeperId: opts?.agesBySleeperId,
+            valueModel: model,
           });
           if (analysis.marginShare > FAIR_MARGIN_SHARE) continue;
           if (harmsStarter(analysis)) continue;
 
           const reasons: string[] = [
-            `${A.team.name} fills a ${p} need: ${bGive.name} (${round1(vorOf(vor, bGive))} VOR) upgrades their ${p} starter from ${A.positions[p].best} VOR, giving up ${q} depth it can spare.`,
-            `${B.team.name} fills a ${q} need: ${aGive.name} (${round1(vorOf(vor, aGive))} VOR) upgrades their ${q} starter from ${B.positions[q].best} VOR, giving up ${p} depth it can spare.`,
-            `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} VOR (within ${Math.round(analysis.marginShare * 100)}%).`,
+            `${A.team.name} fills a ${p} need: ${bGive.name} (${round1(valueOf(model, bGive))} ${model.unit}) upgrades their ${p} starter from ${A.positions[p].best} ${model.unit}, giving up ${q} depth it can spare.`,
+            `${B.team.name} fills a ${q} need: ${aGive.name} (${round1(valueOf(model, aGive))} ${model.unit}) upgrades their ${q} starter from ${B.positions[q].best} ${model.unit}, giving up ${p} depth it can spare.`,
+            `Fair on paper: ${round1(analysis.sideATotal)} vs ${round1(analysis.sideBTotal)} ${model.unit} (within ${Math.round(analysis.marginShare * 100)}%).`,
           ];
           const gain = upgradeGain(analysis);
           candidates.push({

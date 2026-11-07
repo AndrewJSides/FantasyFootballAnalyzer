@@ -605,3 +605,43 @@ describe('TradeFinderPage Sleeper values (item 130)', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('TradeFinderPage dynasty mode (backlog item 193)', () => {
+  const complementary = () =>
+    league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB5', 'RB6', 'WR5', 'WR6', 'TE5']),
+      team('d', 'Team D', ['QB4', 'RB7', 'RB8', 'WR7', 'WR8', 'TE6']),
+    ]);
+
+  it('defaults to Redraft and re-prices the finder on Dynasty', () => {
+    renderPage(complementary());
+    expect(
+      screen.getByRole('radio', { name: 'Redraft (VOR)' }),
+    ).toBeChecked();
+    expect(screen.getByRole('list', { name: 'Proposed trades' })).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('radio', { name: 'Dynasty (age-adjusted)' }),
+    );
+    // Cards re-price in dynasty units and still propose swaps.
+    expect(screen.getAllByText(/dynasty pts/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('list', { name: 'Proposed trades' })).toBeInTheDocument();
+    expect(screen.getAllByText(/dynasty model/).length).toBeGreaterThan(0);
+    // The deep link carries the mode so the analyzer lands on dynasty.
+    const link = screen.getAllByRole('link', {
+      name: /Analyze Team A and Team B trade/,
+    })[0];
+    const decoded = decodeURIComponent(link.getAttribute('href') ?? '');
+    expect(decoded).toContain('"m":"dynasty"');
+  });
+
+  it('keeps the mode out of redraft deep links', () => {
+    renderPage(complementary());
+    const link = screen.getAllByRole('link', {
+      name: /Analyze Team A and Team B trade/,
+    })[0];
+    const decoded = decodeURIComponent(link.getAttribute('href') ?? '');
+    expect(decoded).not.toContain('"m"');
+  });
+});

@@ -56,12 +56,20 @@ import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import {
   DEFAULT_VOR_CONFIG,
-  vorPoints,
   type ValueLeague,
   type VorConfig,
 } from './projectionValues';
-import { demandFor, teamProfiles } from './tradeFinder';
-import { valueLeagueFor, type PositionKey } from './tradeAnalysis';
+import {
+  demandFor,
+  finderValueModel,
+  teamProfiles,
+  type TradeFinderOptions,
+} from './tradeFinder';
+import {
+  valueLeagueFor,
+  type FinderValueUnit,
+  type PositionKey,
+} from './tradeAnalysis';
 
 const POSITIONS: PositionKey[] = ['QB', 'RB', 'WR', 'TE'];
 
@@ -81,8 +89,10 @@ export interface CycleLeg {
    * best; 'package' moves its second- AND third-best (extraPlayer).
    */
   kind: 'depth' | 'star' | 'package';
+  // The moving player's value in the cycle's unit (VOR in redraft mode,
+  // dynasty pts in dynasty mode).
   playerVor: number;
-  /** Receiver's best VOR at the position before the trade. */
+  /** Receiver's best value at the position before the trade. */
   receiverBestBefore: number;
   /** playerVor - receiverBestBefore: the receiver's starter upgrade. */
   starterGain: number;
@@ -110,6 +120,8 @@ export interface ThreeTeamCycle {
   /** Ranking score: totalGain + totalDepthGain. */
   score: number;
   reasons: string[];
+  /** The unit the leg values and gains are in. */
+  unit: FinderValueUnit;
 }
 
 interface Edge {
@@ -128,10 +140,12 @@ export function findThreeTeamCycles(
   pool: DraftPoolFile = POOL,
   cfg: VorConfig = DEFAULT_VOR_CONFIG,
   valueLeague: ValueLeague = valueLeagueFor(league),
+  opts?: TradeFinderOptions,
 ): ThreeTeamCycle[] {
-  const profiles = teamProfiles(league, pool, cfg, valueLeague);
+  const profiles = teamProfiles(league, pool, cfg, valueLeague, opts);
   if (profiles.length < 3) return [];
-  const vor = vorPoints(pool.players, valueLeague, cfg);
+  const model = finderValueModel(pool.players, valueLeague, cfg, opts);
+  const valueOf = (p: PoolPlayer) => model.values.get(p.id) ?? 0;
 
   // Directed edges: giver -> receiver at one position, priced on the
   // giver's surplus depth at a position the receiver needs, where the
@@ -153,8 +167,8 @@ export function findThreeTeamCycles(
           ['star', chart[0]],
         ] as const) {
           if (!piece) continue;
-          const playerVor = round1(vor.get(piece.id) ?? 0);
-          if (playerVor <= 0) continue;
+          const playerVor = round1(valueOf(piece));
+          if (playerVor <= model.replacement[p]) continue;
           const starterGain = round1(playerVor - receiverBestBefore);
           if (starterGain <= 0) continue;
           edges.push({
@@ -172,7 +186,7 @@ export function findThreeTeamCycles(
               ...(kind === 'star' && chart[1]
                 ? {
                     fallbackName: chart[1].name,
-                    fallbackVor: round1(vor.get(chart[1].id) ?? 0),
+                    fallbackVor: round1(valueOf(chart[1])),
                   }
                 : {}),
             },
@@ -189,13 +203,13 @@ export function findThreeTeamCycles(
         const second = chart[1];
         const third = chart[2];
         if (second && third) {
-          const secondVor = round1(vor.get(second.id) ?? 0);
-          const thirdVor = round1(vor.get(third.id) ?? 0);
+          const secondVor = round1(valueOf(second));
+          const thirdVor = round1(valueOf(third));
           const starterGain = round1(secondVor - receiverBestBefore);
           const depthGain = round1(thirdVor - receiverBestBefore);
           if (
-            secondVor > 0 &&
-            thirdVor > 0 &&
+            secondVor > model.replacement[p] &&
+            thirdVor > model.replacement[p] &&
             starterGain > 0 &&
             depthGain > 0 &&
             giver.positions[p].startable >
@@ -272,14 +286,14 @@ export function findThreeTeamCycles(
               );
               const reasons = legs.map(l =>
                 l.kind === 'star'
-                  ? `${l.giver.name} sends its ${l.position} star ${l.player.name} (${l.playerVor} VOR) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} VOR — ${l.giver.name} falls back to ${l.fallbackName} (${l.fallbackVor} VOR) at ${l.position}.`
+                  ? `${l.giver.name} sends its ${l.position} star ${l.player.name} (${l.playerVor} ${model.unit}) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} ${model.unit} — ${l.giver.name} falls back to ${l.fallbackName} (${l.fallbackVor} ${model.unit}) at ${l.position}.`
                   : l.kind === 'package'
-                    ? `${l.giver.name} sends ${l.player.name} (${l.playerVor} VOR) and ${l.extraPlayer?.name} (${l.extraPlayerVor} VOR) to ${l.receiver.name} — a 2-for-1 at ${l.position}: the starter upgrades from ${l.receiverBestBefore} to ${l.playerVor} VOR and the bench deepens by +${l.depthGain} VOR, while ${l.giver.name} frees a bench spot.`
-                    : `${l.giver.name} sends ${l.player.name} (${l.position}, ${l.playerVor} VOR) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} VOR.`,
+                    ? `${l.giver.name} sends ${l.player.name} (${l.playerVor} ${model.unit}) and ${l.extraPlayer?.name} (${l.extraPlayerVor} ${model.unit}) to ${l.receiver.name} — a 2-for-1 at ${l.position}: the starter upgrades from ${l.receiverBestBefore} to ${l.playerVor} ${model.unit} and the bench deepens by +${l.depthGain} ${model.unit}, while ${l.giver.name} frees a bench spot.`
+                    : `${l.giver.name} sends ${l.player.name} (${l.position}, ${l.playerVor} ${model.unit}) to ${l.receiver.name}, upgrading its ${l.position} starter from ${l.receiverBestBefore} to ${l.playerVor} ${model.unit}.`,
               );
               const hasPackage = legs.some(l => l.kind === 'package');
               reasons.push(
-                `Total starter gain +${totalGain} VOR${totalDepthGain > 0 ? `, plus +${totalDepthGain} VOR of bench depth` : ''} across the three teams — each side gives ${hasPackage ? 'players it can spare' : 'a player it can spare'} and gets a better starter.`,
+                `Total starter gain +${totalGain} ${model.unit}${totalDepthGain > 0 ? `, plus +${totalDepthGain} ${model.unit} of bench depth` : ''} across the three teams — each side gives ${hasPackage ? 'players it can spare' : 'a player it can spare'} and gets a better starter.`,
               );
               const cycle: ThreeTeamCycle = {
                 legs,
@@ -287,6 +301,7 @@ export function findThreeTeamCycles(
                 totalDepthGain,
                 score: round1(totalGain + totalDepthGain),
                 reasons,
+                unit: model.unit,
               };
               const prev = bestByShape.get(shape);
               if (!prev || cycle.score > prev.score) bestByShape.set(shape, cycle);

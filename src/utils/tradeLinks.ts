@@ -1,13 +1,17 @@
 import type { TradeCandidate } from './tradeFinder';
 import type { CycleTeamNet } from './threeTeamTrades';
+import type { TradeValueMode } from './tradeAnalysis';
 
 // Deep link into the Trade Analyzer with a trade pre-filled from a
 // candidate's give lists (player names), plus the team ids when the deal
-// comes from a real league so the analyzer opens in league mode.
+// comes from a real league so the analyzer opens in league mode. In
+// dynasty mode the link also carries the mode, so the analyzer lands on
+// the dynasty verdict instead of repricing the same deal on redraft VOR.
 export function tradeLink(
   candidate: TradeCandidate,
   search: string,
   includeTeamIds: boolean,
+  valueMode: TradeValueMode = 'redraft',
 ): string {
   const payload = {
     a: candidate.aGives.map(p => p.name),
@@ -15,6 +19,7 @@ export function tradeLink(
     ...(includeTeamIds
       ? { ta: candidate.teamA.id, tb: candidate.teamB.id }
       : {}),
+    ...(valueMode === 'dynasty' ? { m: 'dynasty' as const } : {}),
   };
   return `/trade-analyzer${search}#trade=${encodeURIComponent(JSON.stringify(payload))}`;
 }
@@ -26,10 +31,15 @@ export function tradeLink(
 // giving the incoming player back to the giver, which isn't what happens in
 // a circle; manual mode prices the net on VOR alone, which is exactly the
 // "is my side of this deal worth it" question.
-export function cycleNetLink(net: CycleTeamNet, search: string): string {
+export function cycleNetLink(
+  net: CycleTeamNet,
+  search: string,
+  valueMode: TradeValueMode = 'redraft',
+): string {
   const payload = {
     a: net.gives.map(p => p.name),
     b: net.gets.map(p => p.name),
+    ...(valueMode === 'dynasty' ? { m: 'dynasty' as const } : {}),
   };
   return `/trade-analyzer${search}#trade=${encodeURIComponent(JSON.stringify(payload))}`;
 }

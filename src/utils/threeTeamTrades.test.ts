@@ -322,3 +322,34 @@ describe('cycleTeamNets', () => {
     expect(aNet.gets.map(p => p.id)).toEqual(['TE1']);
   });
 });
+
+describe('findThreeTeamCycles dynasty mode (backlog item 193)', () => {
+  it('prices cycles in dynasty units when asked', () => {
+    const pool = makePool();
+    const cycles = findThreeTeamCycles(
+      cycleLeague(),
+      pool,
+      DEFAULT_VOR_CONFIG,
+      valueLeagueFor(cycleLeague()),
+      { valueMode: 'dynasty' },
+    );
+    expect(cycles.length).toBeGreaterThan(0);
+    const top = cycles[0];
+    expect(top.unit).toBe('dynasty pts');
+    expect(top.reasons[3]).toMatch(/dynasty pts/);
+    // Same all-star circle, dynasty totals: stars are worth their full
+    // projections, so the gain dwarfs the redraft 113 VOR.
+    expect(top.totalGain).toBeGreaterThan(113);
+    for (const leg of top.legs) {
+      expect(leg.kind).toBe('star');
+      expect(leg.starterGain).toBeGreaterThan(0);
+    }
+  });
+
+  it('defaults to redraft VOR units', () => {
+    const pool = makePool();
+    const cycles = findThreeTeamCycles(cycleLeague(), pool, DEFAULT_VOR_CONFIG);
+    expect(cycles.length).toBeGreaterThan(0);
+    expect(cycles[0].unit).toBe('VOR');
+  });
+});

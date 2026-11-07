@@ -276,3 +276,28 @@ describe('TradeAnalyzerPage dynasty mode (item 182)', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('TradeAnalyzerPage dynasty deep link (backlog item 193)', () => {
+  it('lands on the dynasty verdict from a shared link carrying the mode', async () => {
+    mockSleeper.mockResolvedValue({});
+    window.location.hash = `#trade=${encodeURIComponent(
+      JSON.stringify({
+        a: ['Alpha Aardvark'],
+        b: ['Charlie Cheetah'],
+        m: 'dynasty',
+      }),
+    )}`;
+    render(
+      <MemoryRouter>
+        <TradeAnalyzerPage league={null} />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('radio', { name: 'Dynasty (age-adjusted)' }),
+    ).toBeChecked();
+    expect(screen.getByText(/by 112.5 dynasty pts/)).toBeInTheDocument();
+  });
+});

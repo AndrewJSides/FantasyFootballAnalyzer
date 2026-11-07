@@ -147,6 +147,10 @@ interface TradeHashPayload {
   tb?: string;
   pa?: TradeHashPick[];
   pb?: TradeHashPick[];
+  // Dynasty mode (backlog item 193): the Trade Finder deep-links its
+  // dynasty proposals with m=dynasty so the verdict lands on the same
+  // basis the finder priced. Absent means redraft.
+  m?: 'dynasty';
 }
 
 interface TradeHashSides {
@@ -156,6 +160,7 @@ interface TradeHashSides {
   tb?: string;
   pa: TradePick[];
   pb: TradePick[];
+  mode?: TradeValueMode;
 }
 
 function encodeTradeHash(
@@ -165,6 +170,7 @@ function encodeTradeHash(
   teamBId = '',
   picksA: TradePick[] = [],
   picksB: TradePick[] = [],
+  valueMode: TradeValueMode = 'redraft',
 ): string {
   const payload: TradeHashPayload = {
     a: sideA.map(entryLabel),
@@ -177,6 +183,9 @@ function encodeTradeHash(
     // hash identical to the pre-pick format.
     ...(picksA.length > 0 ? { pa: picksA.map(p => ({ s: p.season, r: p.round })) } : {}),
     ...(picksB.length > 0 ? { pb: picksB.map(p => ({ s: p.season, r: p.round })) } : {}),
+    // Dynasty mode rides along so a copied link reopens the same verdict
+    // basis; redraft links stay byte-identical to before.
+    ...(valueMode === 'dynasty' ? { m: 'dynasty' as const } : {}),
   };
   return `${TRADE_HASH_PREFIX}${encodeURIComponent(JSON.stringify(payload))}`;
 }
@@ -226,6 +235,8 @@ function decodeTradeHash(hash: string): TradeHashSides | null {
         tb: id((parsed as TradeHashPayload).tb),
         pa: picks((parsed as TradeHashPayload).pa),
         pb: picks((parsed as TradeHashPayload).pb),
+        mode:
+          (parsed as TradeHashPayload).m === 'dynasty' ? 'dynasty' : undefined,
       };
     }
   } catch {
@@ -261,6 +272,7 @@ function syncTradeHashToUrl(
   teamBId = '',
   picksA: TradePick[] = [],
   picksB: TradePick[] = [],
+  valueMode: TradeValueMode = 'redraft',
 ): void {
   if (sideA.length === 0 && sideB.length === 0 && picksA.length === 0 && picksB.length === 0) {
     // Analyzing an empty builder (only reachable from a hand-made empty
@@ -271,7 +283,7 @@ function syncTradeHashToUrl(
   window.history.replaceState(
     null,
     '',
-    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId, picksA, picksB)}`,
+    `${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId, picksA, picksB, valueMode)}`,
   );
 }
 
@@ -770,6 +782,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     b: Entry[];
     pa: TradePick[];
     pb: TradePick[];
+    mode?: TradeValueMode;
   } | null>(null);
   // A shared #trade= link's team picks (ta/tb) live in a ref, not hashSides:
   // the auto-run effect consumes hashSides as soon as the sides analyze,
@@ -828,7 +841,9 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     if (pa.length > 0) setPicksA(pa);
     if (pb.length > 0) setPicksB(pb);
     if (a.length > 0 || b.length > 0 || pa.length > 0 || pb.length > 0) {
-      setHashSides({ a, b, pa, pb });
+      // A dynasty link lands on the dynasty verdict, not a redraft one.
+      if (shared.mode === 'dynasty') setValueMode('dynasty');
+      setHashSides({ a, b, pa, pb, mode: shared.mode });
     }
     // Seed the team-apply ref whenever the link carries team picks — even
     // when every named player failed to resolve against the pool (all names
@@ -1099,7 +1114,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
           }),
     );
     setWarnings(warns);
-    syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId, picksA, picksB);
+    syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId, picksA, picksB, mode);
   };
 
   // Dynasty mode switch (backlog item 182): re-price the current verdict
@@ -1161,7 +1176,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       setHashSides(null);
       return;
     }
-    runAnalysis(hashSides);
+    runAnalysis(hashSides, hashSides.mode);
     const teamsSettled = !leagueLoaded || teamAId !== '' || myTeamId === '';
     if (teamsSettled) setHashSides(null);
     setAutoScrollPending(true);
@@ -1201,7 +1216,7 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   const copyTradeLink = async () => {
     // Use the live location (not a hardcoded path) so the copied link keeps
     // the shared-league params (?league= / ?pin=) the trade was priced for.
-    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId, picksA, picksB)}`;
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${encodeTradeHash(sideA, sideB, teamAId, teamBId, picksA, picksB, valueMode)}`;
     let ok = false;
     try {
       await navigator.clipboard.writeText(url);

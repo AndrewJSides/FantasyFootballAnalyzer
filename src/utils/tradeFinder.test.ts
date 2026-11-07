@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { League, RosterSlots, Team } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import { DEFAULT_VOR_CONFIG } from './projectionValues';
-import { DEFAULT_MANUAL_SHAPE } from './tradeAnalysis';
-import { findTradeCandidates, teamProfiles } from './tradeFinder';
+import { DEFAULT_MANUAL_SHAPE, valueLeagueFor } from './tradeAnalysis';
+import {
+  findTradeCandidates,
+  finderValueModel,
+  teamProfiles,
+} from './tradeFinder';
 
 const SLOTS: RosterSlots = { ...DEFAULT_MANUAL_SHAPE };
 
@@ -286,5 +290,107 @@ describe('findTradeCandidates 2-for-1 balance', () => {
     ]);
     const candidates = findTradeCandidates(balanced, pool, DEFAULT_VOR_CONFIG);
     expect(candidates.filter(c => c.aGives.length === 2)).toEqual([]);
+  });
+});
+
+describe('dynasty mode (backlog item 193)', () => {
+  // RB2 is old (29 → 0.5× on the RB curve), WR2 is young (24 → 1.0×).
+  const AGES = { 's-rb2': 29, 's-wr2': 24 };
+  const DYNASTY_OPTS = {
+    valueMode: 'dynasty' as const,
+    agesBySleeperId: AGES,
+  };
+
+  function agedPool(): DraftPoolFile {
+    const pool = makePool();
+    pool.players.find(p => p.id === 'RB2')!.sleeperId = 's-rb2';
+    pool.players.find(p => p.id === 'WR2')!.sleeperId = 's-wr2';
+    return pool;
+  }
+
+  it('prices the model on raw dynasty value with a dynasty replacement line', () => {
+    const pool = agedPool();
+    const lg = asymmetricLeague(pool);
+    const model = finderValueModel(
+      pool.players,
+      valueLeagueFor(lg),
+      DEFAULT_VOR_CONFIG,
+      DYNASTY_OPTS,
+    );
+    expect(model.unit).toBe('dynasty pts');
+    // RB2's 296 projection is halved by age 29; WR2 keeps its full 276.
+    expect(model.values.get('RB2')).toBe(148);
+    expect(model.values.get('WR2')).toBe(276);
+    // The replacement line is a real dynasty value, not zero.
+    expect(model.replacement.RB).toBeGreaterThan(0);
+    expect(model.replacement.RB).toBeLessThan(276);
+    // Redraft mode is unchanged: VOR with a 0 line.
+    const redraft = finderValueModel(
+      pool.players,
+      valueLeagueFor(lg),
+      DEFAULT_VOR_CONFIG,
+    );
+    expect(redraft.unit).toBe('VOR');
+    expect(redraft.replacement.RB).toBe(0);
+  });
+
+  it('re-ranks the depth chart young-over-old on near-equal projections', () => {
+    const pool = makePool();
+    // RB1 projects 300 at age 29 (→ 150 dynasty); RB6 projects 280 at
+    // age 23 (→ 280 dynasty).
+    pool.players.find(p => p.id === 'RB1')!.sleeperId = 's-rb1';
+    pool.players.find(p => p.id === 'RB6')!.sleeperId = 's-rb6';
+    const lg = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB6', 'WR1', 'TE1']),
+    ]);
+    const redraft = teamProfiles(lg, pool, DEFAULT_VOR_CONFIG);
+    expect(redraft[0].positions.RB.depthChart[0].id).toBe('RB1');
+    const dynasty = teamProfiles(lg, pool, DEFAULT_VOR_CONFIG, valueLeagueFor(lg), {
+      valueMode: 'dynasty',
+      agesBySleeperId: { 's-rb1': 29, 's-rb6': 23 },
+    });
+    expect(dynasty[0].unit).toBe('dynasty pts');
+    expect(dynasty[0].positions.RB.depthChart[0].id).toBe('RB6');
+  });
+
+  it('prices candidates on dynasty value and drops the age-unfair swap', () => {
+    const pool = agedPool();
+    // Team A carries a fifth RB (RB5) so its RB room stays surplus in
+    // dynasty mode even after the old RB2 falls below the replacement
+    // line; without it the thin fixture has no dynasty surplus at all.
+    const lg = league([
+      team('a', 'Team A', ['QB1', 'RB1', 'RB2', 'RB3', 'RB4', 'RB5', 'WR40', 'TE20']),
+      team('b', 'Team B', ['QB2', 'RB40', 'WR1', 'WR2', 'WR3', 'WR4', 'TE25']),
+      team('c', 'Team C', ['QB3', 'RB6', 'RB7', 'WR5', 'WR6', 'TE5']),
+      team('d', 'Team D', ['QB4', 'RB8', 'RB9', 'WR7', 'WR8', 'TE6']),
+    ]);
+    const redraft = findTradeCandidates(lg, pool, DEFAULT_VOR_CONFIG);
+    // The classic depth swap: A's second RB for B's second WR, fair on VOR.
+    expect(
+      redraft.some(
+        c =>
+          c.aGives.some(p => p.id === 'RB2') &&
+          c.bGives.some(p => p.id === 'WR2'),
+      ),
+    ).toBe(true);
+    const dynasty = findTradeCandidates(
+      lg,
+      pool,
+      DEFAULT_VOR_CONFIG,
+      valueLeagueFor(lg),
+      DYNASTY_OPTS,
+    );
+    expect(dynasty.length).toBeGreaterThan(0);
+    for (const c of dynasty) {
+      expect(c.analysis.valueMode).toBe('dynasty');
+      expect(c.reasons.some(r => r.includes('dynasty pts'))).toBe(true);
+    }
+    // The old RB2 no longer surfaces anywhere: at 148 dynasty pts he is
+    // no longer Team A's second-best RB, and no dynasty proposal moves him.
+    expect(
+      dynasty.some(c =>
+        [...c.aGives, ...c.bGives].some(p => p.id === 'RB2'),
+      ),
+    ).toBe(false);
   });
 });
