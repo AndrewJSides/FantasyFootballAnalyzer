@@ -710,6 +710,14 @@ export function Header({
                   Pts/Snap
                 </Link>
                 <Link
+                  to="/expected-points"
+                  className={`${styles.navLink} ${location.pathname === '/expected-points' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/expected-points' ? 'page' : undefined}
+                >
+                  Expected Pts
+                </Link>
+                <Link
                   to="/defense-leaders"
                   className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1258,6 +1266,14 @@ export function Header({
               aria-current={location.pathname === '/pts-per-snap' ? 'page' : undefined}
             >
               Pts/Snap
+            </Link>
+            <Link
+              to="/expected-points"
+              className={`${styles.navLink} ${location.pathname === '/expected-points' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/expected-points' ? 'page' : undefined}
+            >
+              Expected Pts
             </Link>
             <Link
               to="/defense-leaders"
