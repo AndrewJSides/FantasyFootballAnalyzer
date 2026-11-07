@@ -7,6 +7,9 @@ import { useMemo, useState } from 'react';
 import {
   ALLOWED_POSITIONS,
   allowedRead,
+  allowedSubjectLabel,
+  allowedTargetLabel,
+  allowedYourLabel,
   buildPointsAllowedBoard,
   type AllowedPosition,
 } from '@/utils/pointsAllowed';
@@ -19,7 +22,8 @@ const READ_LABEL: Record<ReturnType<typeof allowedRead>, string> = {
 };
 
 function rowAriaLabel(team: string, avg: number, rank: number, pos: AllowedPosition): string {
-  return `${team}: allows ${avg.toFixed(1)} fantasy points per game to ${pos}s, ranked ${rank} of 32 — ${READ_LABEL[allowedRead(rank)].toLowerCase()} matchup for your ${pos}`;
+  const verb = pos === 'DST' ? 'gives up' : 'allows';
+  return `${team}: ${verb} ${avg.toFixed(1)} fantasy points per game to ${allowedTargetLabel(pos)}, ranked ${rank} of 32 — ${READ_LABEL[allowedRead(rank)].toLowerCase()} matchup for your ${allowedYourLabel(pos)}`;
 }
 
 export function PointsAllowedPage() {
@@ -31,7 +35,7 @@ export function PointsAllowedPage() {
     <div className={styles.page}>
       <h1 className={styles.title}>Fantasy Points Allowed</h1>
       <p className={styles.lede}>
-        Which defenses get torched by each position — and which shut it down.
+        Which teams get torched at each position — and which shut it down.
         Rank 1 allows the most points (the softest matchup for your player).
       </p>
 
@@ -53,11 +57,12 @@ export function PointsAllowedPage() {
         <div className={styles.tableWrapper}>
           <table
             className={styles.table}
-            aria-label={`Fantasy points allowed per game to ${position}s, weeks ${weekStart} through ${weekEnd}`}
+            aria-label={`Fantasy points ${position === 'DST' ? 'given' : 'allowed'} per game to ${allowedTargetLabel(position)}, weeks ${weekStart} through ${weekEnd}`}
           >
             <caption className={styles.caption}>
-              32 NFL defenses by fantasy points allowed per game to {position}s
-              (weeks {weekStart}–{weekEnd})
+              32 NFL {allowedSubjectLabel(position)} by fantasy points{' '}
+              {position === 'DST' ? 'given' : 'allowed'} per game to{' '}
+              {allowedTargetLabel(position)} (weeks {weekStart}–{weekEnd})
             </caption>
             <thead>
               <tr>
@@ -104,6 +109,10 @@ export function PointsAllowedPage() {
         free weekly stats via <code>npm run fetch:matchups</code>. Rank 1 allows
         the most — the softest matchup. A difficulty map, not a forecast: pair
         it with volume and health before a start/sit call.
+        {position === 'K' &&
+          ' Kicker figures use standard kicker scoring (field goal 3, PAT 1, missed field goal −1).'}
+        {position === 'DST' &&
+          ' The DST tab flips the board: it ranks offenses by the fantasy points opposing defenses score against them (standard D/ST scoring) — the number to check when streaming a defense.'}
       </p>
     </div>
   );
