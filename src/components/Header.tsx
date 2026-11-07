@@ -454,6 +454,14 @@ export function Header({
                   Air Yards
                 </Link>
                 <Link
+                  to="/air-share"
+                  className={`${styles.navLink} ${location.pathname === '/air-share' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/air-share' ? 'page' : undefined}
+                >
+                  Air Share
+                </Link>
+                <Link
                   to="/deep-plays"
                   className={`${styles.navLink} ${location.pathname === '/deep-plays' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -994,6 +1002,14 @@ export function Header({
               aria-current={location.pathname === '/air-yards' ? 'page' : undefined}
             >
               Air Yards
+            </Link>
+            <Link
+              to="/air-share"
+              className={`${styles.navLink} ${location.pathname === '/air-share' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/air-share' ? 'page' : undefined}
+            >
+              Air Share
             </Link>
             <Link
               to="/deep-plays"

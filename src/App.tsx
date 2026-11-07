@@ -63,6 +63,7 @@ const TargetLeadersPage = lazyPage(() => import('@/pages/TargetLeadersPage'), 'T
 const OpportunityLeadersPage = lazyPage(() => import('@/pages/OpportunityLeadersPage'), 'OpportunityLeadersPage');
 const RedZoneLeadersPage = lazyPage(() => import('@/pages/RedZoneLeadersPage'), 'RedZoneLeadersPage');
 const AirYardsLeadersPage = lazyPage(() => import('@/pages/AirYardsLeadersPage'), 'AirYardsLeadersPage');
+const AirShareLeadersPage = lazyPage(() => import('@/pages/AirShareLeadersPage'), 'AirShareLeadersPage');
 const DeepPlayLeadersPage = lazyPage(() => import('@/pages/DeepPlayLeadersPage'), 'DeepPlayLeadersPage');
 const CatchRateLeadersPage = lazyPage(() => import('@/pages/CatchRateLeadersPage'), 'CatchRateLeadersPage');
 const YacLeadersPage = lazyPage(() => import('@/pages/YacLeadersPage'), 'YacLeadersPage');
@@ -197,6 +198,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/opportunity': 'Opportunity Share Leaders',
   '/red-zone': 'Red Zone Leaders',
   '/air-yards': 'Air Yards Leaders',
+  '/air-share': 'Air Yards Share Leaders',
   '/deep-plays': 'Deep Play Leaders',
   '/catch-rate': 'Catch Rate Leaders',
   '/yac': 'YAC Leaders',
@@ -1136,6 +1138,7 @@ function App() {
           <Route path="/opportunity" element={<OpportunityLeadersPage />} />
           <Route path="/red-zone" element={<RedZoneLeadersPage />} />
           <Route path="/air-yards" element={<AirYardsLeadersPage />} />
+          <Route path="/air-share" element={<AirShareLeadersPage />} />
           <Route path="/deep-plays" element={<DeepPlayLeadersPage />} />
           <Route path="/catch-rate" element={<CatchRateLeadersPage />} />
           <Route path="/yac" element={<YacLeadersPage />} />
