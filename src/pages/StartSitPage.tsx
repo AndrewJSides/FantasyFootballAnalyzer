@@ -36,6 +36,7 @@ import {
   type LineupMode,
 } from '@/utils/lineupMode';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
+import { getPlayoffRace } from '@/utils/sharedPlayoffRace';
 import { buildWeeklyBriefing } from '@/utils/weeklyBriefing';
 import {
   normalizeLineupPos,
@@ -517,12 +518,22 @@ export function StartSitPage({ league }: StartSitPageProps) {
   // suggestion above), the lineup-alerts picture, the top waiver claim, and
   // the best Trade Finder deal involving this team. League mode only —
   // guests have no team profiles or finder, so the section hides for them.
+  // The playoff row (item 196 remainder) reads the shared Playoff Race —
+  // the same memoized sim the Teams page renders — so it adds no second
+  // 10,000-season run to the page load.
+  const myRaceEntry = useMemo(
+    () =>
+      !isGuest && team
+        ? (getPlayoffRace(league).find(e => e.teamId === team.id) ?? null)
+        : null,
+    [isGuest, league, team],
+  );
   const briefing = useMemo(
     () =>
       !isGuest && team
-        ? buildWeeklyBriefing(league, team, myPreview)
+        ? buildWeeklyBriefing(league, team, myPreview, undefined, myRaceEntry)
         : null,
-    [isGuest, league, team, myPreview],
+    [isGuest, league, team, myPreview, myRaceEntry],
   );
   const pickMode = (m: LineupMode) => {
     setModePinned(true);
@@ -1176,10 +1187,26 @@ export function StartSitPage({ league }: StartSitPageProps) {
                       <Link to="/trade-finder">Trade Finder</Link>
                     </li>
                   )}
+                  {briefing.playoff && (
+                    <li className={styles.briefingItem}>
+                      <strong>Playoffs:</strong> {briefing.playoff.playoffProb.toFixed(1)}%
+                      to make the playoffs · Proj. seed{' '}
+                      {briefing.playoff.projectedSeed.toFixed(1)} · Proj.{' '}
+                      {briefing.playoff.projectedWins.toFixed(1)}–
+                      {briefing.playoff.projectedLosses.toFixed(1)}
+                      {briefing.playoff.playoffStatus === 'clinched'
+                        ? ' · Clinched (model).'
+                        : briefing.playoff.playoffStatus === 'eliminated'
+                          ? ' · Eliminated (model).'
+                          : '.'}{' '}
+                      <Link to="/teams">Playoff Race</Link>
+                    </li>
+                  )}
                 </ul>
                 <p className={styles.note}>
                   Priced from this page&apos;s own engines — the Matchup preview, Roster Alerts,
-                  Waiver Priority Queue, and Trade Finder — so the numbers here match those pages.
+                  Waiver Priority Queue, Trade Finder, and the Playoff Race shared with the
+                  Teams page — so the numbers here match those pages.
                 </p>
               </section>
             )}

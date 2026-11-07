@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { League, Player, RosterSlots, Team, Transaction } from '@/types';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 import type { MatchupPreview } from './matchupPreview';
+import type { PlayoffRaceEntry } from './playoffOdds';
 import { buildWeeklyBriefing, describeBriefingAlert } from './weeklyBriefing';
 
 const SLOTS: RosterSlots = {
@@ -202,6 +203,66 @@ describe('buildWeeklyBriefing trade row', () => {
     } as League;
     const b = buildWeeklyBriefing(solo, league.teams[0], null, steepPool());
     expect(b.topTrade).toBeNull();
+  });
+});
+
+describe('buildWeeklyBriefing playoff row (item 196 remainder)', () => {
+  function raceEntry(over: Partial<PlayoffRaceEntry> = {}): PlayoffRaceEntry {
+    return {
+      teamId: 'mine',
+      teamName: 'Mine',
+      wins: 6,
+      losses: 2,
+      ties: 0,
+      remaining: [],
+      sos: 100,
+      sosRank: 5,
+      playoffProb: 78.4,
+      projectedWins: 9.2,
+      projectedLosses: 4.8,
+      projectedSeed: 3,
+      playoffStatus: 'alive',
+      championProb: 12.5,
+      roundProbs: [78.4, 40.1, 12.5],
+      ...over,
+    };
+  }
+
+  it('carries the race entry into the playoff row', () => {
+    const { league, mine } = testLeague();
+    const b = buildWeeklyBriefing(
+      league,
+      mine,
+      preview(),
+      testPool(),
+      raceEntry(),
+    );
+    expect(b.playoff).toEqual({
+      playoffProb: 78.4,
+      projectedSeed: 3,
+      projectedWins: 9.2,
+      projectedLosses: 4.8,
+      playoffStatus: 'alive',
+    });
+  });
+
+  it('carries a clinched status through unchanged', () => {
+    const { league, mine } = testLeague();
+    const b = buildWeeklyBriefing(
+      league,
+      mine,
+      preview(),
+      testPool(),
+      raceEntry({ playoffProb: 100, playoffStatus: 'clinched' }),
+    );
+    expect(b.playoff?.playoffStatus).toBe('clinched');
+    expect(b.playoff?.playoffProb).toBe(100);
+  });
+
+  it('reports no playoff row when no race entry is passed', () => {
+    const { league, mine } = testLeague();
+    const b = buildWeeklyBriefing(league, mine, preview(), testPool());
+    expect(b.playoff).toBeNull();
   });
 });
 

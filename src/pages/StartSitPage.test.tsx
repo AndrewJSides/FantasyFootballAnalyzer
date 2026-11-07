@@ -537,6 +537,36 @@ describe('StartSitPage "My Week" briefing (item 196)', () => {
     expect(within(section).getByText(/1 lineup hole/)).toBeInTheDocument();
   });
 
+  it('shows the playoff-odds row from the shared Playoff Race (item 196 remainder)', () => {
+    const l = league(true, [matchup(9, 'W', 'S')]);
+    // Two teams, two playoff spots: both make it in every sim, so the row
+    // reads 100.0% / seed 1.0 for the 8-0 weak team — deterministic.
+    l.playoffTeams = 2;
+    l.teams[0].wins = 8;
+    l.teams[0].losses = 0;
+    l.teams[0].pointsFor = 1200;
+    l.teams[1].wins = 0;
+    l.teams[1].losses = 8;
+    l.teams[1].pointsFor = 600;
+    renderPage(l);
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(
+      within(section).getByText(/100\.0% to make the playoffs/),
+    ).toBeInTheDocument();
+    expect(within(section).getByText(/Proj\. seed 1\.0/)).toBeInTheDocument();
+    expect(within(section).getByText(/Clinched \(model\)/)).toBeInTheDocument();
+    expect(
+      within(section).getByRole('link', { name: 'Playoff Race' }),
+    ).toHaveAttribute('href', '/teams');
+  });
+
+  it('hides the playoff row when the league has no playoff race', () => {
+    // The shared fixture sets no playoffTeams, so the race is empty.
+    renderPage(league(true, [matchup(9, 'W', 'S')]));
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(within(section).queryByText(/to make the playoffs/)).not.toBeInTheDocument();
+  });
+
   it('follows the selected team when the picker changes', () => {
     renderPage(league(true, [matchup(9, 'W', 'S')]));
     fireEvent.change(screen.getByLabelText('Team to optimize'), {

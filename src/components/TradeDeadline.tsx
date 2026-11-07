@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { League } from '@/types';
-import { playoffRace } from '@/utils/playoffOdds';
+import { getPlayoffRace } from '@/utils/sharedPlayoffRace';
 import { findTradeCandidates } from '@/utils/tradeFinder';
 import {
   deadlineStances,
@@ -36,7 +36,7 @@ const STANCE_LABEL: Record<DeadlineStanceWord, string> = {
 // future-value side named. Guidance only: nothing here moves rosters.
 export function TradeDeadline({ league }: TradeDeadlineProps) {
   const location = useLocation();
-  const race = useMemo(() => playoffRace(league), [league]);
+  const race = useMemo(() => getPlayoffRace(league), [league]);
   const stances = useMemo(() => deadlineStances(league, race), [league, race]);
   const candidates = useMemo(() => findTradeCandidates(league), [league]);
   const deals = useMemo(() => deadlineDeals(candidates, stances), [candidates, stances]);

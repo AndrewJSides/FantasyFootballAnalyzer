@@ -1,9 +1,9 @@
 // "My Week" at-a-glance briefing (backlog item 196): one section answering
 // "what do I need to do this week" for the selected team, composing the
 // engines TraderApe already has — the Matchup preview, Roster Alerts, the
-// Waiver Priority Queue, and the Trade Finder — so the briefing's numbers
-// can never disagree with the pages each row links to. Guidance only:
-// nothing here sets lineups, claims players, or proposes trades.
+// Waiver Priority Queue, the Trade Finder, and the shared Playoff Race — so
+// the briefing's numbers can never disagree with the pages each row links to.
+// Guidance only: nothing here sets lineups, claims players, or proposes trades.
 //
 // League mode only: guests have no team profiles or finder, so the page
 // hides the section for them instead of rendering a degraded copy.
@@ -13,6 +13,7 @@ import type { DraftPoolFile } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { currentWeekEstimate } from './matchupRating';
 import type { MatchupPreview } from './matchupPreview';
+import type { PlayoffRaceEntry } from './playoffOdds';
 import { teamRosterAlerts, type RosterAlert } from './rosterAlerts';
 import { buildWaiverPriority } from './waiverPriority';
 import { findTradeCandidates } from './tradeFinder';
@@ -32,6 +33,18 @@ export interface WeeklyBriefingWaiver {
   /** Strongest reason first, e.g. the gap-fill or need line. */
   reason: string;
   bid: { low: number; high: number } | null;
+}
+
+export interface WeeklyBriefingPlayoff {
+  /** 0..100, one decimal — share of the simulated seasons making the playoffs. */
+  playoffProb: number;
+  /** Mean playoff seed (1..N), one decimal. */
+  projectedSeed: number;
+  /** Projected final wins / losses, one decimal. */
+  projectedWins: number;
+  projectedLosses: number;
+  /** Model verdict from the simulated seasons, not league-official. */
+  playoffStatus: 'clinched' | 'eliminated' | 'alive';
 }
 
 export interface WeeklyBriefingTrade {
@@ -58,6 +71,8 @@ export interface WeeklyBriefing {
   topWaiver: WeeklyBriefingWaiver | null;
   /** Null when no finder deal involves this team. */
   topTrade: WeeklyBriefingTrade | null;
+  /** Null when the shared Playoff Race has no entry for this team (no future schedule). */
+  playoff: WeeklyBriefingPlayoff | null;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -87,14 +102,17 @@ export function describeBriefingAlert(alert: RosterAlert): string {
  * Build the briefing for one team. The matchup preview is passed in (the
  * Start/Sit page already computed it for the lineup-mode suggestion) so
  * the briefing and the suggestion price the same Monte Carlo run; the
- * alerts, waiver, and trade rows are priced here from the same engines
- * their pages use.
+ * race entry is passed in the same way (the page reads the shared
+ * Playoff Race, so the briefing's playoff row prices the same sim as the
+ * Teams page); the alerts, waiver, and trade rows are priced here from
+ * the same engines their pages use.
  */
 export function buildWeeklyBriefing(
   league: League,
   team: Team,
   preview: MatchupPreview | null,
   pool: DraftPoolFile = POOL,
+  raceEntry: PlayoffRaceEntry | null = null,
 ): WeeklyBriefing {
   const week = league.currentWeek ?? currentWeekEstimate();
 
@@ -158,5 +176,14 @@ export function buildWeeklyBriefing(
     topAlertLine: topAlert ? describeBriefingAlert(topAlert) : null,
     topWaiver,
     topTrade,
+    playoff: raceEntry
+      ? {
+          playoffProb: raceEntry.playoffProb,
+          projectedSeed: raceEntry.projectedSeed,
+          projectedWins: raceEntry.projectedWins,
+          projectedLosses: raceEntry.projectedLosses,
+          playoffStatus: raceEntry.playoffStatus,
+        }
+      : null,
   };
 }

@@ -9,7 +9,7 @@ import type { League } from '@/types';
 import type { DraftPoolFile } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { buildTeamComparison, type CompareCell } from '@/utils/teamCompare';
-import { playoffRace } from '@/utils/playoffOdds';
+import { getPlayoffRace } from '@/utils/sharedPlayoffRace';
 import { DataAsOf } from '@/components/DataAsOf';
 import { SITE_TITLE } from '../utils/siteTitle';
 import styles from './TeamComparePage.module.css';
@@ -38,7 +38,7 @@ export function TeamComparePage({ league, pool: poolOverride }: TeamComparePageP
   // schedule, else the first team that isn't A.
   const nextOpponent = useMemo(() => {
     if (!myTeam) return null;
-    const entry = playoffRace(league).find(e => e.teamId === myTeam.id);
+    const entry = getPlayoffRace(league).find(e => e.teamId === myTeam.id);
     return entry?.remaining[0]?.opponentId ?? null;
   }, [league, myTeam]);
   const defaultB =

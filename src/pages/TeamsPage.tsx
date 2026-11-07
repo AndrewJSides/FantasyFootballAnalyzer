@@ -9,7 +9,8 @@ import type { DraftPoolFile } from '@/types/draft';
 import { calculateLuckMetrics, type LuckMetrics, type MatchupData } from '@/utils/luck';
 import { completedMatchups } from '@/utils/completedMatchups';
 import { managerScores } from '@/utils/managerScore';
-import { playoffRace, clinchWatch } from '@/utils/playoffOdds';
+import { clinchWatch } from '@/utils/playoffOdds';
+import { getPlayoffRace } from '@/utils/sharedPlayoffRace';
 import { buildPlayoffBracket } from '@/utils/playoffBracket';
 import type { BracketSlot } from '@/utils/playoffBracket';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
@@ -181,7 +182,9 @@ export function TeamsPage({ league, pool: poolOverride }: TeamsPageProps) {
 
   // Playoff race: needs the future schedule the owner's last sync fetched.
   // Absent on old snapshots and in guest mode — the section hides itself.
-  const race = useMemo(() => playoffRace(league), [league]);
+  // Shared with the Start/Sit briefing via the memoized getPlayoffRace, so
+  // the two pages price the same sim instead of each running 10,000 seasons.
+  const race = useMemo(() => getPlayoffRace(league), [league]);
   // Clinch watch (backlog item 55): for each still-alive team, re-sim with
   // this week's game forced to a win / a loss and flag the locks. Runs on
   // fewer sims than the main race — it's a scenario check, not a forecast.

@@ -17,7 +17,8 @@ import {
   type MatchupData,
 } from '@/utils/luck';
 import { buildTeamGrades, GRADE_POSITIONS, type TeamGrade } from '@/utils/teamGrades';
-import { playoffRace, type PlayoffRaceEntry } from '@/utils/playoffOdds';
+import { type PlayoffRaceEntry } from '@/utils/playoffOdds';
+import { getPlayoffRace } from '@/utils/sharedPlayoffRace';
 import { buildHeadToHead, seriesHeadline } from '@/utils/headToHead';
 
 export type CompareEdge = 'a' | 'b' | 'tie' | 'none';
@@ -266,7 +267,7 @@ export function buildTeamComparison(
   // Playoff race.
   {
     const race = new Map<string, PlayoffRaceEntry>(
-      playoffRace(league).map(e => [e.teamId, e]),
+      getPlayoffRace(league).map(e => [e.teamId, e]),
     );
     const aE = race.get(teamAId);
     const bE = race.get(teamBId);
