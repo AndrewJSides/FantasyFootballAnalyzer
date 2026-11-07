@@ -654,6 +654,14 @@ export function Header({
                   Rush Share
                 </Link>
                 <Link
+                  to="/qb-rushing"
+                  className={`${styles.navLink} ${location.pathname === '/qb-rushing' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/qb-rushing' ? 'page' : undefined}
+                >
+                  QB Rushing
+                </Link>
+                <Link
                   to="/defense-leaders"
                   className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1146,6 +1154,14 @@ export function Header({
               aria-current={location.pathname === '/rush-share' ? 'page' : undefined}
             >
               Rush Share
+            </Link>
+            <Link
+              to="/qb-rushing"
+              className={`${styles.navLink} ${location.pathname === '/qb-rushing' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/qb-rushing' ? 'page' : undefined}
+            >
+              QB Rushing
             </Link>
             <Link
               to="/defense-leaders"
