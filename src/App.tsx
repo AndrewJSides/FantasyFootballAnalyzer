@@ -90,6 +90,7 @@ const RushingAttemptsLeadersPage = lazyPage(() => import('@/pages/RushingAttempt
 const RushShareLeadersPage = lazyPage(() => import('@/pages/RushShareLeadersPage'), 'RushShareLeadersPage');
 const QbRushingLeadersPage = lazyPage(() => import('@/pages/QbRushingLeadersPage'), 'QbRushingLeadersPage');
 const PasserRatingLeadersPage = lazyPage(() => import('@/pages/PasserRatingLeadersPage'), 'PasserRatingLeadersPage');
+const CompletionLeadersPage = lazyPage(() => import('@/pages/CompletionLeadersPage'), 'CompletionLeadersPage');
 const RookieLeadersPage = lazyPage(() => import('@/pages/RookieLeadersPage'), 'RookieLeadersPage');
 const YptLeadersPage = lazyPage(() => import('@/pages/YptLeadersPage'), 'YptLeadersPage');
 const PtsPerSnapLeadersPage = lazyPage(() => import('@/pages/PtsPerSnapLeadersPage'), 'PtsPerSnapLeadersPage');
@@ -223,6 +224,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/rush-share': 'Rush Share Leaders',
   '/qb-rushing': 'QB Rushing Leaders',
   '/passer-rating': 'Passer Rating Leaders',
+  '/completion-pct': 'Completion % Leaders',
   '/rookies': 'Rookie Leaders',
   '/ypt': 'YPT Leaders',
   '/pts-per-snap': 'Points Per Snap Leaders',
@@ -1160,6 +1162,7 @@ function App() {
           <Route path="/rush-share" element={<RushShareLeadersPage />} />
           <Route path="/qb-rushing" element={<QbRushingLeadersPage />} />
           <Route path="/passer-rating" element={<PasserRatingLeadersPage />} />
+          <Route path="/completion-pct" element={<CompletionLeadersPage />} />
           <Route path="/rookies" element={<RookieLeadersPage />} />
           <Route path="/ypt" element={<YptLeadersPage />} />
           <Route path="/pts-per-snap" element={<PtsPerSnapLeadersPage />} />

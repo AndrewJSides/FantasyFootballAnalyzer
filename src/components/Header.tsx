@@ -670,6 +670,14 @@ export function Header({
                   Passer Rating
                 </Link>
                 <Link
+                  to="/completion-pct"
+                  className={`${styles.navLink} ${location.pathname === '/completion-pct' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/completion-pct' ? 'page' : undefined}
+                >
+                  Completion %
+                </Link>
+                <Link
                   to="/rookies"
                   className={`${styles.navLink} ${location.pathname === '/rookies' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1202,6 +1210,14 @@ export function Header({
               aria-current={location.pathname === '/passer-rating' ? 'page' : undefined}
             >
               Passer Rating
+            </Link>
+            <Link
+              to="/completion-pct"
+              className={`${styles.navLink} ${location.pathname === '/completion-pct' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/completion-pct' ? 'page' : undefined}
+            >
+              Completion %
             </Link>
             <Link
               to="/rookies"
