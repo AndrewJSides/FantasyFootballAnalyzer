@@ -336,6 +336,71 @@ describe('buildWeeklyRankings', () => {
     expect(rows[0].projection).toBeGreaterThan(rows[1].projection!);
   });
 
+  it('folds the -25% weather downgrade into the ranked projection for a flagged passing game (item 138)', () => {
+    const pool = {
+      players: [
+        player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'WR', team: 'TB' }),
+        // Same-team RB in the same flagged game: wet weather favors the
+        // run, so his projection is untouched.
+        player({ id: 'r', name: 'Runner', sleeperId: 's-r', pos: 'RB', team: 'TB' }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly(
+      { 's-a': { 1: 12, 2: 12, 3: 12, 4: 12 }, 's-r': { 1: 12, 2: 12, 3: 12, 4: 12 } },
+      { 's-a': [1, 2, 3, 4], 's-r': [1, 2, 3, 4] },
+    );
+    const risk = new Map([
+      ['TB', { windy: true, wet: true, windMph: 10, gustsMph: 27, precipProb: 88, tempF: 75 }],
+    ]);
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5, weatherRisk: risk });
+    const wr = rows.find(r => r.player.id === 'a')!;
+    expect(wr.projection).toBe(9);
+    expect(wr.weatherAdjustment).toBe(-3);
+    const rb = rows.find(r => r.player.id === 'r')!;
+    expect(rb.projection).toBe(12);
+    expect(rb.weatherAdjustment).toBeNull();
+  });
+
+  it('leaves the projection unfolded without a weather risk map (item 138)', () => {
+    const pool = {
+      players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'WR', team: 'TB' })],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly(
+      { 's-a': { 1: 12, 2: 12, 3: 12, 4: 12 } },
+      { 's-a': [1, 2, 3, 4] },
+    );
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5 });
+    expect(rows[0].projection).toBe(12);
+    expect(rows[0].weatherAdjustment).toBeNull();
+  });
+
+  it('ranks on the folded projection, so a clear-weather player can outrank a higher base in a flagged game (item 138)', () => {
+    const pool = {
+      players: [
+        // Alpha scores 16/week on base form in the flagged game; Gamma
+        // scores 13/week in clear weather — Alpha leads on base, and
+        // trails once the -25% term is priced in (12.0 vs 13.0).
+        player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'WR', team: 'TB' }),
+        player({ id: 'g', name: 'Gamma', sleeperId: 's-g', pos: 'WR', team: 'KC' }),
+      ],
+      season: SEASON,
+    } as DraftPoolFile;
+    const wk = weekly(
+      { 's-a': { 1: 16, 2: 16, 3: 16, 4: 16 }, 's-g': { 1: 13, 2: 13, 3: 13, 4: 13 } },
+      { 's-a': [1, 2, 3, 4], 's-g': [1, 2, 3, 4] },
+    );
+    const risk = new Map([
+      ['TB', { windy: true, wet: true, windMph: 10, gustsMph: 27, precipProb: 88, tempF: 75 }],
+    ]);
+    const rows = buildWeeklyRankings({ pool, weekly: wk, currentWeek: 5, weatherRisk: risk });
+    expect(rows.map(r => r.player.id)).toEqual(['g', 'a']);
+    expect(rows[0].posRank).toBe(1);
+    expect(rows[1].projection).toBe(12);
+    expect(rows[1].weatherAdjustment).toBe(-4);
+  });
+
   it('excludes the in-progress week from the consistency verdict', () => {
     const pool = {
       players: [player({ id: 'a', name: 'Alpha', sleeperId: 's-a', pos: 'RB' })],

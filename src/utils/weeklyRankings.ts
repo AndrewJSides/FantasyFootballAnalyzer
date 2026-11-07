@@ -26,9 +26,22 @@ import {
 import { consistencySummary, type ConsistencySummary } from '@/utils/consistency';
 import { projectWeeklyPoints, type WeekPoints } from '@/utils/weeklyProjection';
 import { soleBackMap, type SoleBackInfo } from '@/utils/roleChange';
+import { WEATHER_RISK_POSITIONS, type WeatherRisk } from '@/utils/weatherRisk';
 import type { DraftPoolFile, PoolPlayer } from '@/types/draft';
 
 export const WEEKLY_RANKS_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
+
+/** Item-138 weather term, priced into the ranked projection: a passing-
+ * game player in an outdoor game flagged windy or wet loses 25% of his
+ * projection. Measured Nov 6, 2026 on the week-8 grade
+ * (scripts/backtestWeather.ts): the -25% variant cut the 26 affected
+ * players' MAE 5.57 -> 5.25 without raising overall MAE (5.64 -> 5.60);
+ * the -15% and -35% variants also folded, -25% had the lowest affected
+ * MAE. One graded week is thin evidence — re-measure when week 9 grades.
+ * The wet-only sensitivity pass did NOT fold, so the term stays on the
+ * both-flags rule, never wet alone. RBs are never downgraded: wet weather
+ * favors the run. */
+export const WEATHER_DOWNGRADE_PCT = 0.25;
 
 export interface WeeklyRankRow {
   player: PoolPlayer;
@@ -49,6 +62,12 @@ export interface WeeklyRankRow {
    * gated term cut the three affected RBs' MAE 14.95 -> 7.05 without
    * raising overall MAE) — the tag names the priced-in amount. */
   soleBack: SoleBackInfo | null;
+  /** Item-138 weather downgrade: the points subtracted from this row's
+   * projection for a windy/wet outdoor game, or null when the row is not
+   * downgraded. The downgrade is FOLDED into the ranked projection
+   * (backtested Nov 6, 2026 on the week-8 grade) — the tag names the
+   * priced-in amount. */
+  weatherAdjustment: number | null;
   /** 1-based rank within his position, priced on the same context. */
   posRank: number;
 }
@@ -60,6 +79,11 @@ export interface BuildWeeklyRankingsInput {
   ownerByPoolId?: Map<string, string>;
   /** Players kept per position after ranking; default 40. */
   perPosition?: number;
+  /** Item-138: per-NFL-team kickoff weather risk (the same map the board's
+   * tags render from). Absent/empty means no weather term — the
+   * rank-movement re-price of last week and the Next Week view never
+   * pass it, so neither inherits this week's weather. */
+  weatherRisk?: Map<string, WeatherRisk>;
 }
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
@@ -120,6 +144,9 @@ function rowFor(p: PoolPlayer, weekly: WeeklyPprPoints | undefined, currentWeek:
     // The vacancy map attaches the real value at push time (rowFor has
     // no view of the pool's other players).
     soleBack: null,
+    // The weather map attaches the real value at push time (rowFor has
+    // no view of the kickoff forecast).
+    weatherAdjustment: null,
     sortScore: projection ?? ppg ?? -1,
     sortGroup: projection === null ? 1 : 0,
   };
@@ -135,6 +162,7 @@ export function buildWeeklyRankings({
   currentWeek,
   ownerByPoolId,
   perPosition = 40,
+  weatherRisk,
 }: BuildWeeklyRankingsInput): WeeklyRankRow[] {
   const rows: WeeklyRankRow[] = [];
   const soleBack = soleBackMap(pool, weekly, currentWeek);
@@ -155,14 +183,30 @@ export function buildWeeklyRankings({
         // misses, and the week-8 backtest (scripts/backtestSoleBack.ts)
         // says folding it wins. The sort uses the folded number so the
         // ranking reflects the same projection the board shows.
-        const projection =
-          row.projection !== null && sole !== null
-            ? round1(row.projection + sole.upside)
-            : row.projection;
+        let projection = row.projection;
+        if (projection !== null && sole !== null) {
+          projection = round1(projection + sole.upside);
+        }
+        // Item-138: the measured weather term is priced into the ranked
+        // projection for passing-game positions in a flagged outdoor
+        // game — the week-8 backtest (scripts/backtestWeather.ts) says
+        // folding -25% wins. RBs are never downgraded (wet weather
+        // favors the run), and the term only fires when the caller passes
+        // the kickoff risk map — a failed forecast fetch leaves the
+        // board on the unfolded projection, same as the tags.
+        const risk = WEATHER_RISK_POSITIONS.has(p.pos)
+          ? weatherRisk?.get(p.team) ?? null
+          : null;
+        let weatherAdjustment: number | null = null;
+        if (projection !== null && risk !== null) {
+          weatherAdjustment = -round1(projection * WEATHER_DOWNGRADE_PCT);
+          projection = round1(projection + weatherAdjustment);
+        }
         return {
           ...row,
           projection,
           soleBack: sole,
+          weatherAdjustment,
           sortScore: projection ?? row.sortScore,
         };
       })
@@ -185,6 +229,7 @@ export function buildWeeklyRankings({
         consistency: r.consistency,
         owner: ownerByPoolId?.get(r.player.id) ?? null,
         soleBack: r.soleBack,
+        weatherAdjustment: r.weatherAdjustment,
         posRank: i + 1,
       });
     });

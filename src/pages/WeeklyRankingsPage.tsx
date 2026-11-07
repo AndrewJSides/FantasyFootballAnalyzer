@@ -328,8 +328,13 @@ export function WeeklyRankingsPage({
         weekly,
         currentWeek: displayWeek,
         ownerByPoolId: owners,
+        // Item-138: the kickoff risk map prices the measured -25%
+        // weather term into the ranked projection. The map is empty for
+        // the Next Week view (no fold there — item 180) and while the
+        // forecast is pending or failed, so the board never waits on it.
+        weatherRisk,
       }),
-    [pool, weekly, displayWeek, owners],
+    [pool, weekly, displayWeek, owners, weatherRisk],
   );
 
   // Item-181 rank movement: last week's board, re-priced from the same
@@ -528,7 +533,11 @@ export function WeeklyRankingsPage({
                         WEATHER_RISK_POSITIONS.has(r.player.pos) && weatherRisk
                           ? weatherRisk.get(r.player.team) ?? null
                           : null;
-                      const riskLabel = risk ? weatherRiskLabel(risk) : null;
+                      const riskLabel = risk
+                        ? r.weatherAdjustment !== null
+                          ? `${weatherRiskLabel(risk)} — ${Math.abs(r.weatherAdjustment).toFixed(1)} pts priced into the projection shown`
+                          : weatherRiskLabel(risk)
+                        : null;
                       return (
                         <tr key={r.player.id}>
                           <td className={styles.rank}>{pos === 'ALL' ? i + 1 : r.posRank}</td>
@@ -638,9 +647,10 @@ export function WeeklyRankingsPage({
               &ldquo;Weather risk&rdquo; tag marks a QB/WR/TE playing outdoors
               in a flagged kickoff-hour forecast (wind 15+ mph sustained or
               25+ mph gusts, 40%+ chance of precipitation — the same
-              thresholds as Start/Sit&apos;s Weather Watch): downgrade the
-              passing game a notch for that game; the ranked number does
-              not fold it in, and RBs carry no tag because wet weather
+              thresholds as Start/Sit&apos;s Weather Watch): the ranked
+              projection folds in a 25% downgrade for the flagged game —
+              backtested on the week-8 grade, where it cut the 26 affected
+              players&apos; error — and RBs carry no tag because wet weather
               favors the run. Top 40 per
               position. The Watch column stars a player onto your
               watchlist (same list as the Watchlist page, which reflects

@@ -1,0 +1,987 @@
+{
+  "season": 2026,
+  "week": 8,
+  "graded": 230,
+  "method": "Open-Meteo archive at kickoff hour; windy = wind >= 15 mph or gusts >= 25 mph; wet = observed precipitation > 0 mm in the kickoff hour (archive has no precipitation probability — stricter proxy for the live 40%+ forecast rule). Terms apply to graded QB/WR/TE who played, on flagged teams; did-not-play entries excluded.",
+  "flaggedGames": [
+    {
+      "home": "TB",
+      "away": "ATL",
+      "kickoffIso": "2026-11-01T18:00Z",
+      "venue": "Raymond James Stadium",
+      "windy": true,
+      "wet": true,
+      "windMph": 9.5,
+      "gustsMph": 27.3,
+      "precipMm": 2
+    },
+    {
+      "home": "JAC",
+      "away": "IND",
+      "kickoffIso": "2026-11-01T18:00Z",
+      "venue": "EverBank Stadium",
+      "windy": true,
+      "wet": false,
+      "windMph": 13.6,
+      "gustsMph": 31.5,
+      "precipMm": 0
+    },
+    {
+      "home": "MIA",
+      "away": "NE",
+      "kickoffIso": "2026-11-01T21:25Z",
+      "venue": "Hard Rock Stadium",
+      "windy": false,
+      "wet": true,
+      "windMph": 5.2,
+      "gustsMph": 14.8,
+      "precipMm": 3.2
+    }
+  ],
+  "variants": [
+    {
+      "label": "-15% both",
+      "cases": [
+        {
+          "playerId": "3214",
+          "term": -1.41,
+          "predicted": 9.39,
+          "actual": 6,
+          "errorBefore": 3.39,
+          "errorAfter": 1.98
+        },
+        {
+          "playerId": "5947",
+          "term": -1.57,
+          "predicted": 10.44,
+          "actual": 4.4,
+          "errorBefore": 6.04,
+          "errorAfter": 4.47
+        },
+        {
+          "playerId": "8119",
+          "term": -0.83,
+          "predicted": 5.52,
+          "actual": 11.5,
+          "errorBefore": 5.98,
+          "errorAfter": 6.81
+        },
+        {
+          "playerId": "9480",
+          "term": -1.62,
+          "predicted": 10.81,
+          "actual": 7.5,
+          "errorBefore": 3.31,
+          "errorAfter": 1.69
+        },
+        {
+          "playerId": "9501",
+          "term": -1.21,
+          "predicted": 8.07,
+          "actual": 16.6,
+          "errorBefore": 8.53,
+          "errorAfter": 9.74
+        },
+        {
+          "playerId": "13317",
+          "term": -0.77,
+          "predicted": 5.11,
+          "actual": 0,
+          "errorBefore": 5.11,
+          "errorAfter": 4.34
+        },
+        {
+          "playerId": "4892",
+          "term": -2.41,
+          "predicted": 16.05,
+          "actual": 1.4,
+          "errorBefore": 14.65,
+          "errorAfter": 12.24
+        },
+        {
+          "playerId": "8112",
+          "term": -2.5,
+          "predicted": 16.66,
+          "actual": 1.8,
+          "errorBefore": 14.86,
+          "errorAfter": 12.36
+        },
+        {
+          "playerId": "8161",
+          "term": -2.06,
+          "predicted": 13.74,
+          "actual": 15.64,
+          "errorBefore": 1.9,
+          "errorAfter": 3.96
+        },
+        {
+          "playerId": "11559",
+          "term": -2.19,
+          "predicted": 14.57,
+          "actual": 2.1,
+          "errorBefore": 12.47,
+          "errorAfter": 10.28
+        },
+        {
+          "playerId": "11610",
+          "term": -1.37,
+          "predicted": 9.1,
+          "actual": 15,
+          "errorBefore": 5.9,
+          "errorAfter": 7.27
+        },
+        {
+          "playerId": "13421",
+          "term": -0.83,
+          "predicted": 5.51,
+          "actual": 1.5,
+          "errorBefore": 4.01,
+          "errorAfter": 3.18
+        },
+        {
+          "playerId": "7553",
+          "term": -1.23,
+          "predicted": 8.2,
+          "actual": 2.6,
+          "errorBefore": 5.6,
+          "errorAfter": 4.37
+        },
+        {
+          "playerId": "9500",
+          "term": -1.52,
+          "predicted": 10.11,
+          "actual": 12.3,
+          "errorBefore": 2.19,
+          "errorAfter": 3.71
+        },
+        {
+          "playerId": "12547",
+          "term": -0.76,
+          "predicted": 5.1,
+          "actual": 11.3,
+          "errorBefore": 6.2,
+          "errorAfter": 6.96
+        },
+        {
+          "playerId": "13296",
+          "term": -1.02,
+          "predicted": 6.77,
+          "actual": 8.3,
+          "errorBefore": 1.53,
+          "errorAfter": 2.55
+        },
+        {
+          "playerId": "13311",
+          "term": -0.79,
+          "predicted": 5.26,
+          "actual": 6.9,
+          "errorBefore": 1.64,
+          "errorAfter": 2.43
+        },
+        {
+          "playerId": "5870",
+          "term": -1.79,
+          "predicted": 11.91,
+          "actual": 8.46,
+          "errorBefore": 3.45,
+          "errorAfter": 1.66
+        },
+        {
+          "playerId": "7523",
+          "term": -3.21,
+          "predicted": 21.37,
+          "actual": 19.4,
+          "errorBefore": 1.97,
+          "errorAfter": 1.24
+        },
+        {
+          "playerId": "12518",
+          "term": -1.65,
+          "predicted": 11.02,
+          "actual": 5.8,
+          "errorBefore": 5.22,
+          "errorAfter": 3.57
+        },
+        {
+          "playerId": "1479",
+          "term": -1.43,
+          "predicted": 9.54,
+          "actual": 13.7,
+          "errorBefore": 4.16,
+          "errorAfter": 5.59
+        },
+        {
+          "playerId": "8172",
+          "term": -0.94,
+          "predicted": 6.26,
+          "actual": 8.3,
+          "errorBefore": 2.04,
+          "errorAfter": 2.98
+        },
+        {
+          "playerId": "11564",
+          "term": -3.28,
+          "predicted": 21.9,
+          "actual": 22.46,
+          "errorBefore": 0.56,
+          "errorAfter": 3.84
+        },
+        {
+          "playerId": "12542",
+          "term": -0.78,
+          "predicted": 5.23,
+          "actual": 6.7,
+          "errorBefore": 1.47,
+          "errorAfter": 2.25
+        },
+        {
+          "playerId": "4037",
+          "term": -1.54,
+          "predicted": 10.27,
+          "actual": 0,
+          "errorBefore": 10.27,
+          "errorAfter": 8.73
+        },
+        {
+          "playerId": "9487",
+          "term": -2.41,
+          "predicted": 16.04,
+          "actual": 3.6,
+          "errorBefore": 12.44,
+          "errorAfter": 10.03
+        }
+      ],
+      "affectedMaeBefore": 5.57,
+      "affectedMaeAfter": 5.32,
+      "overallMaeBefore": 5.64,
+      "overallMaeAfter": 5.61,
+      "gradedCount": 230,
+      "fold": true
+    },
+    {
+      "label": "-25% both",
+      "cases": [
+        {
+          "playerId": "3214",
+          "term": -2.35,
+          "predicted": 9.39,
+          "actual": 6,
+          "errorBefore": 3.39,
+          "errorAfter": 1.04
+        },
+        {
+          "playerId": "5947",
+          "term": -2.61,
+          "predicted": 10.44,
+          "actual": 4.4,
+          "errorBefore": 6.04,
+          "errorAfter": 3.43
+        },
+        {
+          "playerId": "8119",
+          "term": -1.38,
+          "predicted": 5.52,
+          "actual": 11.5,
+          "errorBefore": 5.98,
+          "errorAfter": 7.36
+        },
+        {
+          "playerId": "9480",
+          "term": -2.7,
+          "predicted": 10.81,
+          "actual": 7.5,
+          "errorBefore": 3.31,
+          "errorAfter": 0.61
+        },
+        {
+          "playerId": "9501",
+          "term": -2.02,
+          "predicted": 8.07,
+          "actual": 16.6,
+          "errorBefore": 8.53,
+          "errorAfter": 10.55
+        },
+        {
+          "playerId": "13317",
+          "term": -1.28,
+          "predicted": 5.11,
+          "actual": 0,
+          "errorBefore": 5.11,
+          "errorAfter": 3.83
+        },
+        {
+          "playerId": "4892",
+          "term": -4.01,
+          "predicted": 16.05,
+          "actual": 1.4,
+          "errorBefore": 14.65,
+          "errorAfter": 10.64
+        },
+        {
+          "playerId": "8112",
+          "term": -4.17,
+          "predicted": 16.66,
+          "actual": 1.8,
+          "errorBefore": 14.86,
+          "errorAfter": 10.69
+        },
+        {
+          "playerId": "8161",
+          "term": -3.44,
+          "predicted": 13.74,
+          "actual": 15.64,
+          "errorBefore": 1.9,
+          "errorAfter": 5.34
+        },
+        {
+          "playerId": "11559",
+          "term": -3.64,
+          "predicted": 14.57,
+          "actual": 2.1,
+          "errorBefore": 12.47,
+          "errorAfter": 8.83
+        },
+        {
+          "playerId": "11610",
+          "term": -2.28,
+          "predicted": 9.1,
+          "actual": 15,
+          "errorBefore": 5.9,
+          "errorAfter": 8.18
+        },
+        {
+          "playerId": "13421",
+          "term": -1.38,
+          "predicted": 5.51,
+          "actual": 1.5,
+          "errorBefore": 4.01,
+          "errorAfter": 2.63
+        },
+        {
+          "playerId": "7553",
+          "term": -2.05,
+          "predicted": 8.2,
+          "actual": 2.6,
+          "errorBefore": 5.6,
+          "errorAfter": 3.55
+        },
+        {
+          "playerId": "9500",
+          "term": -2.53,
+          "predicted": 10.11,
+          "actual": 12.3,
+          "errorBefore": 2.19,
+          "errorAfter": 4.72
+        },
+        {
+          "playerId": "12547",
+          "term": -1.27,
+          "predicted": 5.1,
+          "actual": 11.3,
+          "errorBefore": 6.2,
+          "errorAfter": 7.47
+        },
+        {
+          "playerId": "13296",
+          "term": -1.69,
+          "predicted": 6.77,
+          "actual": 8.3,
+          "errorBefore": 1.53,
+          "errorAfter": 3.22
+        },
+        {
+          "playerId": "13311",
+          "term": -1.32,
+          "predicted": 5.26,
+          "actual": 6.9,
+          "errorBefore": 1.64,
+          "errorAfter": 2.96
+        },
+        {
+          "playerId": "5870",
+          "term": -2.98,
+          "predicted": 11.91,
+          "actual": 8.46,
+          "errorBefore": 3.45,
+          "errorAfter": 0.47
+        },
+        {
+          "playerId": "7523",
+          "term": -5.34,
+          "predicted": 21.37,
+          "actual": 19.4,
+          "errorBefore": 1.97,
+          "errorAfter": 3.37
+        },
+        {
+          "playerId": "12518",
+          "term": -2.76,
+          "predicted": 11.02,
+          "actual": 5.8,
+          "errorBefore": 5.22,
+          "errorAfter": 2.46
+        },
+        {
+          "playerId": "1479",
+          "term": -2.38,
+          "predicted": 9.54,
+          "actual": 13.7,
+          "errorBefore": 4.16,
+          "errorAfter": 6.54
+        },
+        {
+          "playerId": "8172",
+          "term": -1.57,
+          "predicted": 6.26,
+          "actual": 8.3,
+          "errorBefore": 2.04,
+          "errorAfter": 3.61
+        },
+        {
+          "playerId": "11564",
+          "term": -5.48,
+          "predicted": 21.9,
+          "actual": 22.46,
+          "errorBefore": 0.56,
+          "errorAfter": 6.04
+        },
+        {
+          "playerId": "12542",
+          "term": -1.31,
+          "predicted": 5.23,
+          "actual": 6.7,
+          "errorBefore": 1.47,
+          "errorAfter": 2.78
+        },
+        {
+          "playerId": "4037",
+          "term": -2.57,
+          "predicted": 10.27,
+          "actual": 0,
+          "errorBefore": 10.27,
+          "errorAfter": 7.7
+        },
+        {
+          "playerId": "9487",
+          "term": -4.01,
+          "predicted": 16.04,
+          "actual": 3.6,
+          "errorBefore": 12.44,
+          "errorAfter": 8.43
+        }
+      ],
+      "affectedMaeBefore": 5.57,
+      "affectedMaeAfter": 5.25,
+      "overallMaeBefore": 5.64,
+      "overallMaeAfter": 5.6,
+      "gradedCount": 230,
+      "fold": true
+    },
+    {
+      "label": "-35% both",
+      "cases": [
+        {
+          "playerId": "3214",
+          "term": -3.29,
+          "predicted": 9.39,
+          "actual": 6,
+          "errorBefore": 3.39,
+          "errorAfter": 0.1
+        },
+        {
+          "playerId": "5947",
+          "term": -3.65,
+          "predicted": 10.44,
+          "actual": 4.4,
+          "errorBefore": 6.04,
+          "errorAfter": 2.39
+        },
+        {
+          "playerId": "8119",
+          "term": -1.93,
+          "predicted": 5.52,
+          "actual": 11.5,
+          "errorBefore": 5.98,
+          "errorAfter": 7.91
+        },
+        {
+          "playerId": "9480",
+          "term": -3.78,
+          "predicted": 10.81,
+          "actual": 7.5,
+          "errorBefore": 3.31,
+          "errorAfter": 0.47
+        },
+        {
+          "playerId": "9501",
+          "term": -2.82,
+          "predicted": 8.07,
+          "actual": 16.6,
+          "errorBefore": 8.53,
+          "errorAfter": 11.35
+        },
+        {
+          "playerId": "13317",
+          "term": -1.79,
+          "predicted": 5.11,
+          "actual": 0,
+          "errorBefore": 5.11,
+          "errorAfter": 3.32
+        },
+        {
+          "playerId": "4892",
+          "term": -5.62,
+          "predicted": 16.05,
+          "actual": 1.4,
+          "errorBefore": 14.65,
+          "errorAfter": 9.03
+        },
+        {
+          "playerId": "8112",
+          "term": -5.83,
+          "predicted": 16.66,
+          "actual": 1.8,
+          "errorBefore": 14.86,
+          "errorAfter": 9.03
+        },
+        {
+          "playerId": "8161",
+          "term": -4.81,
+          "predicted": 13.74,
+          "actual": 15.64,
+          "errorBefore": 1.9,
+          "errorAfter": 6.71
+        },
+        {
+          "playerId": "11559",
+          "term": -5.1,
+          "predicted": 14.57,
+          "actual": 2.1,
+          "errorBefore": 12.47,
+          "errorAfter": 7.37
+        },
+        {
+          "playerId": "11610",
+          "term": -3.18,
+          "predicted": 9.1,
+          "actual": 15,
+          "errorBefore": 5.9,
+          "errorAfter": 9.08
+        },
+        {
+          "playerId": "13421",
+          "term": -1.93,
+          "predicted": 5.51,
+          "actual": 1.5,
+          "errorBefore": 4.01,
+          "errorAfter": 2.08
+        },
+        {
+          "playerId": "7553",
+          "term": -2.87,
+          "predicted": 8.2,
+          "actual": 2.6,
+          "errorBefore": 5.6,
+          "errorAfter": 2.73
+        },
+        {
+          "playerId": "9500",
+          "term": -3.54,
+          "predicted": 10.11,
+          "actual": 12.3,
+          "errorBefore": 2.19,
+          "errorAfter": 5.73
+        },
+        {
+          "playerId": "12547",
+          "term": -1.78,
+          "predicted": 5.1,
+          "actual": 11.3,
+          "errorBefore": 6.2,
+          "errorAfter": 7.98
+        },
+        {
+          "playerId": "13296",
+          "term": -2.37,
+          "predicted": 6.77,
+          "actual": 8.3,
+          "errorBefore": 1.53,
+          "errorAfter": 3.9
+        },
+        {
+          "playerId": "13311",
+          "term": -1.84,
+          "predicted": 5.26,
+          "actual": 6.9,
+          "errorBefore": 1.64,
+          "errorAfter": 3.48
+        },
+        {
+          "playerId": "5870",
+          "term": -4.17,
+          "predicted": 11.91,
+          "actual": 8.46,
+          "errorBefore": 3.45,
+          "errorAfter": 0.72
+        },
+        {
+          "playerId": "7523",
+          "term": -7.48,
+          "predicted": 21.37,
+          "actual": 19.4,
+          "errorBefore": 1.97,
+          "errorAfter": 5.51
+        },
+        {
+          "playerId": "12518",
+          "term": -3.86,
+          "predicted": 11.02,
+          "actual": 5.8,
+          "errorBefore": 5.22,
+          "errorAfter": 1.36
+        },
+        {
+          "playerId": "1479",
+          "term": -3.34,
+          "predicted": 9.54,
+          "actual": 13.7,
+          "errorBefore": 4.16,
+          "errorAfter": 7.5
+        },
+        {
+          "playerId": "8172",
+          "term": -2.19,
+          "predicted": 6.26,
+          "actual": 8.3,
+          "errorBefore": 2.04,
+          "errorAfter": 4.23
+        },
+        {
+          "playerId": "11564",
+          "term": -7.66,
+          "predicted": 21.9,
+          "actual": 22.46,
+          "errorBefore": 0.56,
+          "errorAfter": 8.22
+        },
+        {
+          "playerId": "12542",
+          "term": -1.83,
+          "predicted": 5.23,
+          "actual": 6.7,
+          "errorBefore": 1.47,
+          "errorAfter": 3.3
+        },
+        {
+          "playerId": "4037",
+          "term": -3.59,
+          "predicted": 10.27,
+          "actual": 0,
+          "errorBefore": 10.27,
+          "errorAfter": 6.68
+        },
+        {
+          "playerId": "9487",
+          "term": -5.61,
+          "predicted": 16.04,
+          "actual": 3.6,
+          "errorBefore": 12.44,
+          "errorAfter": 6.83
+        }
+      ],
+      "affectedMaeBefore": 5.57,
+      "affectedMaeAfter": 5.27,
+      "overallMaeBefore": 5.64,
+      "overallMaeAfter": 5.6,
+      "gradedCount": 230,
+      "fold": true
+    },
+    {
+      "label": "-25% wet-only",
+      "cases": [
+        {
+          "playerId": "3214",
+          "term": -2.35,
+          "predicted": 9.39,
+          "actual": 6,
+          "errorBefore": 3.39,
+          "errorAfter": 1.04
+        },
+        {
+          "playerId": "8119",
+          "term": -1.38,
+          "predicted": 5.52,
+          "actual": 11.5,
+          "errorBefore": 5.98,
+          "errorAfter": 7.36
+        },
+        {
+          "playerId": "9501",
+          "term": -2.02,
+          "predicted": 8.07,
+          "actual": 16.6,
+          "errorBefore": 8.53,
+          "errorAfter": 10.55
+        },
+        {
+          "playerId": "13317",
+          "term": -1.28,
+          "predicted": 5.11,
+          "actual": 0,
+          "errorBefore": 5.11,
+          "errorAfter": 3.83
+        },
+        {
+          "playerId": "4892",
+          "term": -4.01,
+          "predicted": 16.05,
+          "actual": 1.4,
+          "errorBefore": 14.65,
+          "errorAfter": 10.64
+        },
+        {
+          "playerId": "8112",
+          "term": -4.17,
+          "predicted": 16.66,
+          "actual": 1.8,
+          "errorBefore": 14.86,
+          "errorAfter": 10.69
+        },
+        {
+          "playerId": "8161",
+          "term": -3.44,
+          "predicted": 13.74,
+          "actual": 15.64,
+          "errorBefore": 1.9,
+          "errorAfter": 5.34
+        },
+        {
+          "playerId": "11559",
+          "term": -3.64,
+          "predicted": 14.57,
+          "actual": 2.1,
+          "errorBefore": 12.47,
+          "errorAfter": 8.83
+        },
+        {
+          "playerId": "11610",
+          "term": -2.28,
+          "predicted": 9.1,
+          "actual": 15,
+          "errorBefore": 5.9,
+          "errorAfter": 8.18
+        },
+        {
+          "playerId": "13421",
+          "term": -1.38,
+          "predicted": 5.51,
+          "actual": 1.5,
+          "errorBefore": 4.01,
+          "errorAfter": 2.63
+        },
+        {
+          "playerId": "7553",
+          "term": -2.05,
+          "predicted": 8.2,
+          "actual": 2.6,
+          "errorBefore": 5.6,
+          "errorAfter": 3.55
+        },
+        {
+          "playerId": "12547",
+          "term": -1.27,
+          "predicted": 5.1,
+          "actual": 11.3,
+          "errorBefore": 6.2,
+          "errorAfter": 7.47
+        },
+        {
+          "playerId": "13296",
+          "term": -1.69,
+          "predicted": 6.77,
+          "actual": 8.3,
+          "errorBefore": 1.53,
+          "errorAfter": 3.22
+        },
+        {
+          "playerId": "13311",
+          "term": -1.32,
+          "predicted": 5.26,
+          "actual": 6.9,
+          "errorBefore": 1.64,
+          "errorAfter": 2.96
+        },
+        {
+          "playerId": "8172",
+          "term": -1.57,
+          "predicted": 6.26,
+          "actual": 8.3,
+          "errorBefore": 2.04,
+          "errorAfter": 3.61
+        },
+        {
+          "playerId": "11564",
+          "term": -5.48,
+          "predicted": 21.9,
+          "actual": 22.46,
+          "errorBefore": 0.56,
+          "errorAfter": 6.04
+        },
+        {
+          "playerId": "12542",
+          "term": -1.31,
+          "predicted": 5.23,
+          "actual": 6.7,
+          "errorBefore": 1.47,
+          "errorAfter": 2.78
+        },
+        {
+          "playerId": "4037",
+          "term": -2.57,
+          "predicted": 10.27,
+          "actual": 0,
+          "errorBefore": 10.27,
+          "errorAfter": 7.7
+        }
+      ],
+      "affectedMaeBefore": 5.9,
+      "affectedMaeAfter": 5.91,
+      "overallMaeBefore": 5.64,
+      "overallMaeAfter": 5.64,
+      "gradedCount": 230,
+      "fold": false
+    },
+    {
+      "label": "-25% windy-only",
+      "cases": [
+        {
+          "playerId": "5947",
+          "term": -2.61,
+          "predicted": 10.44,
+          "actual": 4.4,
+          "errorBefore": 6.04,
+          "errorAfter": 3.43
+        },
+        {
+          "playerId": "8119",
+          "term": -1.38,
+          "predicted": 5.52,
+          "actual": 11.5,
+          "errorBefore": 5.98,
+          "errorAfter": 7.36
+        },
+        {
+          "playerId": "9480",
+          "term": -2.7,
+          "predicted": 10.81,
+          "actual": 7.5,
+          "errorBefore": 3.31,
+          "errorAfter": 0.61
+        },
+        {
+          "playerId": "13317",
+          "term": -1.28,
+          "predicted": 5.11,
+          "actual": 0,
+          "errorBefore": 5.11,
+          "errorAfter": 3.83
+        },
+        {
+          "playerId": "4892",
+          "term": -4.01,
+          "predicted": 16.05,
+          "actual": 1.4,
+          "errorBefore": 14.65,
+          "errorAfter": 10.64
+        },
+        {
+          "playerId": "8112",
+          "term": -4.17,
+          "predicted": 16.66,
+          "actual": 1.8,
+          "errorBefore": 14.86,
+          "errorAfter": 10.69
+        },
+        {
+          "playerId": "11559",
+          "term": -3.64,
+          "predicted": 14.57,
+          "actual": 2.1,
+          "errorBefore": 12.47,
+          "errorAfter": 8.83
+        },
+        {
+          "playerId": "7553",
+          "term": -2.05,
+          "predicted": 8.2,
+          "actual": 2.6,
+          "errorBefore": 5.6,
+          "errorAfter": 3.55
+        },
+        {
+          "playerId": "9500",
+          "term": -2.53,
+          "predicted": 10.11,
+          "actual": 12.3,
+          "errorBefore": 2.19,
+          "errorAfter": 4.72
+        },
+        {
+          "playerId": "5870",
+          "term": -2.98,
+          "predicted": 11.91,
+          "actual": 8.46,
+          "errorBefore": 3.45,
+          "errorAfter": 0.47
+        },
+        {
+          "playerId": "7523",
+          "term": -5.34,
+          "predicted": 21.37,
+          "actual": 19.4,
+          "errorBefore": 1.97,
+          "errorAfter": 3.37
+        },
+        {
+          "playerId": "12518",
+          "term": -2.76,
+          "predicted": 11.02,
+          "actual": 5.8,
+          "errorBefore": 5.22,
+          "errorAfter": 2.46
+        },
+        {
+          "playerId": "1479",
+          "term": -2.38,
+          "predicted": 9.54,
+          "actual": 13.7,
+          "errorBefore": 4.16,
+          "errorAfter": 6.54
+        },
+        {
+          "playerId": "4037",
+          "term": -2.57,
+          "predicted": 10.27,
+          "actual": 0,
+          "errorBefore": 10.27,
+          "errorAfter": 7.7
+        },
+        {
+          "playerId": "9487",
+          "term": -4.01,
+          "predicted": 16.04,
+          "actual": 3.6,
+          "errorBefore": 12.44,
+          "errorAfter": 8.43
+        }
+      ],
+      "affectedMaeBefore": 7.18,
+      "affectedMaeAfter": 5.51,
+      "overallMaeBefore": 5.64,
+      "overallMaeAfter": 5.53,
+      "gradedCount": 230,
+      "fold": true
+    }
+  ],
+  "verdict": "FOLD -25% both — it cuts affected MAE without raising overall MAE."
+}

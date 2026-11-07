@@ -137,4 +137,24 @@ describe('WeeklyRankingsPage weather-risk tag', () => {
     expect(tags[0]).toHaveAttribute('aria-label', expect.stringContaining('92% rain'));
     expect(tags[0]).toHaveAttribute('aria-label', expect.stringContaining('wind 18 mph'));
   });
+
+  it('prices the -25% weather downgrade into the tagged row projection (item 138)', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
+    });
+    const table = screen.getByRole('table', { name: /week \d+ rankings/i });
+    const tags = await within(table).findAllByLabelText(/Weather risk: /);
+    // Charlie's base projection is his one completed week (18.0); the
+    // flagged game folds it to 13.5 and the tag names the priced-in cut.
+    expect(tags[0]).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('4.5 pts priced into the projection shown'),
+    );
+    const rows = within(table).getAllByRole('row');
+    const charlie = rows.find(r =>
+      within(r).queryByRole('rowheader', { name: /Charlie Cheetah/ }),
+    );
+    expect(within(charlie!).getByText('13.5')).toBeInTheDocument();
+  });
 });

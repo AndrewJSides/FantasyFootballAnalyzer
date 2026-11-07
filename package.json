@@ -29,7 +29,8 @@
     "deploy": "gh-pages -d dist",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "backtest:weather": "tsx scripts/backtestWeather.ts"
   },
   "dependencies": {
     "@sentry/react": "^10.70.0",
