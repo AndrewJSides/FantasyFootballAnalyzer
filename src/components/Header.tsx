@@ -662,6 +662,14 @@ export function Header({
                   QB Rushing
                 </Link>
                 <Link
+                  to="/passer-rating"
+                  className={`${styles.navLink} ${location.pathname === '/passer-rating' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/passer-rating' ? 'page' : undefined}
+                >
+                  Passer Rating
+                </Link>
+                <Link
                   to="/defense-leaders"
                   className={`${styles.navLink} ${location.pathname === '/defense-leaders' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -1162,6 +1170,14 @@ export function Header({
               aria-current={location.pathname === '/qb-rushing' ? 'page' : undefined}
             >
               QB Rushing
+            </Link>
+            <Link
+              to="/passer-rating"
+              className={`${styles.navLink} ${location.pathname === '/passer-rating' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/passer-rating' ? 'page' : undefined}
+            >
+              Passer Rating
             </Link>
             <Link
               to="/defense-leaders"

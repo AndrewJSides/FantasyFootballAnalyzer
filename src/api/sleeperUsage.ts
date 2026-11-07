@@ -60,6 +60,12 @@ export interface WeeklyUsageLine {
   passAtt: number;
   /** Pass completions (pass_cmp) — the accuracy read on the same board. */
   passCmp: number;
+  /** Interceptions thrown (pass_int) — the ball-security read behind
+   *  the Passer Rating Leaders board (backlog item 186). Sleeper's
+   *  QB field, distinct from the team-defense `int` mapped as defInt
+   *  below. Optional so older test fixtures that build full usage
+   *  lines by hand keep compiling; the mapper always sets it. */
+  passInt?: number;
   /** Rushing first downs (rush_fd) — the ground half of the chain-moving
    *  read behind the First Downs Leaders board (backlog item 156). */
   rushFd: number;
@@ -156,6 +162,7 @@ export async function fetchWeeklyUsage(
         passTd: num(stats.pass_td),
         passAtt: num(stats.pass_att),
         passCmp: num(stats.pass_cmp),
+        passInt: num(stats.pass_int),
         rushFd: num(stats.rush_fd),
         recFd: num(stats.rec_fd),
         ptsPpr: num(stats.pts_ppr),
