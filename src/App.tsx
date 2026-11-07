@@ -70,6 +70,7 @@ const YprLeadersPage = lazyPage(() => import('@/pages/YprLeadersPage'), 'YprLead
 const YpcLeadersPage = lazyPage(() => import('@/pages/YpcLeadersPage'), 'YpcLeadersPage');
 const ScrimmageLeadersPage = lazyPage(() => import('@/pages/ScrimmageLeadersPage'), 'ScrimmageLeadersPage');
 const TouchdownLeadersPage = lazyPage(() => import('@/pages/TouchdownLeadersPage'), 'TouchdownLeadersPage');
+const TdRegressionPage = lazyPage(() => import('@/pages/TdRegressionPage'), 'TdRegressionPage');
 const PassingLeadersPage = lazyPage(() => import('@/pages/PassingLeadersPage'), 'PassingLeadersPage');
 const TargetVolumeLeadersPage = lazyPage(() => import('@/pages/TargetVolumeLeadersPage'), 'TargetVolumeLeadersPage');
 const FirstDownLeadersPage = lazyPage(() => import('@/pages/FirstDownLeadersPage'), 'FirstDownLeadersPage');
@@ -196,6 +197,7 @@ const PAGE_TITLES: Record<string, string> = {  '/draft': 'Draft Analysis',
   '/ypc': 'YPC Leaders',
   '/scrimmage': 'Scrimmage Yards Leaders',
   '/touchdowns': 'Touchdown Leaders',
+  '/td-regression': 'TD Regression Watch',
   '/passing': 'Passing Leaders',
   '/target-volume': 'Target Volume Leaders',
   '/first-downs': 'First Downs Leaders',
@@ -1127,6 +1129,7 @@ function App() {
           <Route path="/ypc" element={<YpcLeadersPage />} />
           <Route path="/scrimmage" element={<ScrimmageLeadersPage />} />
           <Route path="/touchdowns" element={<TouchdownLeadersPage />} />
+          <Route path="/td-regression" element={<TdRegressionPage />} />
           <Route path="/passing" element={<PassingLeadersPage />} />
           <Route path="/target-volume" element={<TargetVolumeLeadersPage />} />
           <Route path="/first-downs" element={<FirstDownLeadersPage />} />

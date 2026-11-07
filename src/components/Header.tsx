@@ -510,6 +510,14 @@ export function Header({
                   Touchdowns
                 </Link>
                 <Link
+                  to="/td-regression"
+                  className={`${styles.navLink} ${location.pathname === '/td-regression' ? styles.active : ''}`}
+                  onClick={handleNavClick}
+                  aria-current={location.pathname === '/td-regression' ? 'page' : undefined}
+                >
+                  TD Regression
+                </Link>
+                <Link
                   to="/passing"
                   className={`${styles.navLink} ${location.pathname === '/passing' ? styles.active : ''}`}
                   onClick={handleNavClick}
@@ -986,6 +994,14 @@ export function Header({
               aria-current={location.pathname === '/touchdowns' ? 'page' : undefined}
             >
               Touchdowns
+            </Link>
+            <Link
+              to="/td-regression"
+              className={`${styles.navLink} ${location.pathname === '/td-regression' ? styles.active : ''}`}
+              onClick={handleNavClick}
+              aria-current={location.pathname === '/td-regression' ? 'page' : undefined}
+            >
+              TD Regression
             </Link>
             <Link
               to="/passing"
