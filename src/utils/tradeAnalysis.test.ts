@@ -199,6 +199,75 @@ describe('analyzeTradeValue', () => {
     );
     expect(withPick.picksB[0].label).toBe('2027 Round 1 pick');
   });
+
+  it('defaults to redraft mode', () => {
+    const a = analyzeTradeValue(
+      [pool.players.find(p => p.id === 'RB1')!],
+      [pool.players.find(p => p.id === 'RB30')!],
+      vl,
+      pool,
+    );
+    expect(a.valueMode).toBe('redraft');
+  });
+
+  it('dynasty mode prices the younger player higher on equal projections', () => {
+    // Same 300-pt projection: a 23-year-old RB holds full value (factor
+    // 1.0) while a 29-year-old RB is halved (factor 0.5) on the age curve.
+    const young = player({
+      id: 'YOUNG-RB',
+      pos: 'RB',
+      sleeperId: 'young-rb',
+      projPts: 300,
+      projPtsPpr: 300,
+    });
+    const old = player({
+      id: 'OLD-RB',
+      pos: 'RB',
+      sleeperId: 'old-rb',
+      projPts: 300,
+      projPtsPpr: 300,
+    });
+    const ages = { 'young-rb': 23, 'old-rb': 29 };
+    const a = analyzeTradeValue([young], [old], vl, pool, undefined, undefined, {
+      valueMode: 'dynasty',
+      agesBySleeperId: ages,
+    });
+    expect(a.valueMode).toBe('dynasty');
+    expect(a.sideA[0].vor).toBe(300);
+    expect(a.sideB[0].vor).toBe(150);
+    expect(a.winner).toBe('A');
+    expect(a.sideATotal).toBe(300);
+    expect(a.sideBTotal).toBe(150);
+  });
+
+  it('dynasty mode prices an unknown age at the raw projection', () => {
+    const unknown = player({
+      id: 'UNKNOWN-RB',
+      pos: 'RB',
+      sleeperId: 'unknown-rb',
+      projPts: 200,
+      projPtsPpr: 200,
+    });
+    const a = analyzeTradeValue([unknown], [], vl, pool, undefined, undefined, {
+      valueMode: 'dynasty',
+      agesBySleeperId: {},
+    });
+    expect(a.sideA[0].vor).toBe(200);
+  });
+
+  it('dynasty mode excludes VOR-priced picks from the totals', () => {
+    const dated = { ...pool, season: 2026 } as DraftPoolFile;
+    const a = analyzeTradeValue([], [], vl, dated, undefined, {
+      picksA: [{ season: 2027, round: 1 }],
+    }, {
+      valueMode: 'dynasty',
+      agesBySleeperId: {},
+    });
+    expect(a.picksA).toHaveLength(1);
+    expect(a.picksA[0].vor).toBe(0);
+    expect(a.sideATotal).toBe(0);
+    expect(a.winner).toBe('even');
+  });
 });
 
 describe('analyzeTeamImpact', () => {

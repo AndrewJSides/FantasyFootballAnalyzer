@@ -4,6 +4,7 @@ import type { League, Player, Team } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { POOL } from '@/data/draftPool';
 import { POOL_SEASON } from '@/data/draftPoolMeta';
+import { PLAYER_AGES } from '@/data/playerAges';
 import { fetchSleeperWeekProjections } from '@/api/sleeperWeeklyProjections';
 import { PosBadge } from '@/components/PosBadge';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -13,6 +14,7 @@ import {
   resolveTradeSide,
   valueLeagueFor,
   type FullTradeAnalysis,
+  type TradeValueMode,
   type ValuedPick,
 } from '@/utils/tradeAnalysis';
 import { pickLabel, type TradePick } from '@/utils/pickValueCurve';
@@ -676,6 +678,11 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
   // a different trade than the sender analyzed.
   const [picksA, setPicksA] = useState<TradePick[]>([]);
   const [picksB, setPicksB] = useState<TradePick[]>([]);
+  // Dynasty mode (backlog item 182): re-price both sides on the dynasty
+  // model's age-adjusted value instead of redraft VOR. Defaults to
+  // redraft — the league is a redraft league; dynasty is the keeper
+  // question ("is the young guy worth more than the veteran?").
+  const [valueMode, setValueMode] = useState<TradeValueMode>('redraft');
   const [queryA, setQueryA] = useState('');
   const [queryB, setQueryB] = useState('');
   const [result, setResult] = useState<FullTradeAnalysis | null>(null);
@@ -1040,9 +1047,13 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     setQueryB('');
   };
 
-  const runAnalysis = (sides?: { a: Entry[]; b: Entry[] }) => {
+  const runAnalysis = (sides?: { a: Entry[]; b: Entry[] }, modeOverride?: TradeValueMode) => {
     const entriesA = sides?.a ?? sideA;
     const entriesB = sides?.b ?? sideB;
+    // The mode radio calls this before its setValueMode state lands, so
+    // the override is the source of truth on that path; the Analyze
+    // button and auto-run read the settled state.
+    const mode = modeOverride ?? valueMode;
     const valueLeague = valueLeagueFor(leagueLoaded ? league : null);
     const ra = resolveTradeSide(entriesA);
     const rb = resolveTradeSide(entriesB);
@@ -1063,6 +1074,8 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
       teamB,
       picksA,
       picksB,
+      valueMode: mode,
+      agesBySleeperId: PLAYER_AGES.ages,
     });
     setResult(analysis);
     // "Make it fair" counter-offers (backlog item 53): priced on the
@@ -1070,19 +1083,32 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
     // side's team roster in league mode, the bundled pool in manual mode.
     // The pick VOR offsets keep the fixes honest when a pick is on a side:
     // a trade that's even only because of a pick gets no spurious fix.
+    // Dynasty mode hides the fixes: they are VOR-priced, and a VOR fix
+    // under a dynasty verdict would be the wrong currency.
     setFixes(
-      suggestFairnessFixes({
-        sideA: ra.players,
-        sideB: rb.players,
-        valueLeague,
-        rosterA: teamA?.roster,
-        rosterB: teamB?.roster,
-        pickVorA: analysis.picksA.reduce((s, p) => s + p.vor, 0),
-        pickVorB: analysis.picksB.reduce((s, p) => s + p.vor, 0),
-      }),
+      mode === 'dynasty'
+        ? []
+        : suggestFairnessFixes({
+            sideA: ra.players,
+            sideB: rb.players,
+            valueLeague,
+            rosterA: teamA?.roster,
+            rosterB: teamB?.roster,
+            pickVorA: analysis.picksA.reduce((s, p) => s + p.vor, 0),
+            pickVorB: analysis.picksB.reduce((s, p) => s + p.vor, 0),
+          }),
     );
     setWarnings(warns);
     syncTradeHashToUrl(entriesA, entriesB, teamAId, teamBId, picksA, picksB);
+  };
+
+  // Dynasty mode switch (backlog item 182): re-price the current verdict
+  // in place when one exists, so the toggle answers the question without
+  // another Analyze click; with no verdict yet it just arms the mode for
+  // the next run.
+  const handleValueModeChange = (mode: TradeValueMode) => {
+    setValueMode(mode);
+    if (result) runAnalysis(undefined, mode);
   };
 
   // One-tap "make it fair": apply a counter-offer suggestion to the
@@ -1287,6 +1313,33 @@ export function TradeAnalyzerPage({ league }: TradeAnalyzerPageProps) {
         </div>
 
         <div className={styles.actions}>
+          {/* Value basis (backlog item 182): Redraft prices the deal on
+              value over replacement; Dynasty re-prices both sides on the
+              dynasty model's age-adjusted value. Switching re-runs the
+              verdict in place when one exists. */}
+          <fieldset className={styles.valueMode}>
+            <legend className={styles.valueModeLegend}>Value basis</legend>
+            <label className={styles.valueModeOption}>
+              <input
+                type="radio"
+                name="value-mode"
+                value="redraft"
+                checked={valueMode === 'redraft'}
+                onChange={() => handleValueModeChange('redraft')}
+              />
+              Redraft (VOR)
+            </label>
+            <label className={styles.valueModeOption}>
+              <input
+                type="radio"
+                name="value-mode"
+                value="dynasty"
+                checked={valueMode === 'dynasty'}
+                onChange={() => handleValueModeChange('dynasty')}
+              />
+              Dynasty (age-adjusted)
+            </label>
+          </fieldset>
           <button
             type="button"
             className={styles.analyze}
@@ -1419,7 +1472,10 @@ function verdictCopy(result: FullTradeAnalysis): { label: string; margin: string
         : result.winner === 'A'
           ? 'Side A wins'
           : 'Side B wins';
-  const margin = result.winner === 'even' ? null : `${result.margin} VOR pt${result.margin === 1 ? '' : 's'}`;
+  const margin =
+    result.winner === 'even'
+      ? null
+      : `${result.margin} ${result.valueMode === 'dynasty' ? 'dynasty pt' : 'VOR pt'}${result.margin === 1 ? '' : 's'}`;
   return { label, margin };
 }
 
@@ -1512,8 +1568,8 @@ function Results({
       )}
 
       <div className={styles.breakdowns}>
-        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} picks={result.picksA} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
-        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} picks={result.picksB} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
+        <PlayerBreakdown title={teamAName ? `Side A — ${teamAName}` : 'Side A'} players={result.sideA} picks={result.picksA} valueMode={result.valueMode} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
+        <PlayerBreakdown title={teamBName ? `Side B — ${teamBName}` : 'Side B'} players={result.sideB} picks={result.picksB} valueMode={result.valueMode} week={week} sleeperProjections={sleeperProjections} sleeperReady={sleeperReady} />
       </div>
 
       {(result.teamAImpact || result.teamBImpact) && (
@@ -1524,21 +1580,38 @@ function Results({
       )}
 
       <p className={styles.method}>
-        Values are value-over-replacement (VOR) in projected points, computed
-        {leagueLoaded ? (
+        {result.valueMode === 'dynasty' ? (
           <>
-            {' '}
-            for your league's size, scoring, and roster shape. A raw value win
-            isn't everything — check the roster takes below for how each team's
-            starting lineup actually changes.
+            Values are dynasty values — each player's projected full-PPR
+            points priced through the per-position age curve (younger
+            players hold full value, veterans fade), from the same model as
+            the Dynasty Rankings board. Draft picks are priced in redraft
+            VOR and excluded from the dynasty totals; the "Make it fair"
+            tweaks are VOR-priced too, so they only appear in Redraft mode.
           </>
         ) : (
           <>
+            Values are value-over-replacement (VOR) in projected points,
+            computed
+          </>
+        )}
+        {result.valueMode === 'redraft' && (
+          <>
             {' '}
-            for a standard 10-team full-PPR league (1 QB, 2 RB, 2 WR, TE, FLEX,
-            K, DST, 6 bench). <Link to="/">Load the league</Link> to grade the
-            trade against your league's real shape and get roster takes for
-            each team.
+            {leagueLoaded ? (
+              <>
+                for your league's size, scoring, and roster shape. A raw value win
+                isn't everything — check the roster takes below for how each team's
+                starting lineup actually changes.
+              </>
+            ) : (
+              <>
+                for a standard 10-team full-PPR league (1 QB, 2 RB, 2 WR, TE, FLEX,
+                K, DST, 6 bench). <Link to="/">Load the league</Link> to grade the
+                trade against your league's real shape and get roster takes for
+                each team.
+              </>
+            )}
           </>
         )}
         {' '}The matchup chip on each player is the week-{week} opponent's
@@ -1600,6 +1673,7 @@ function PlayerBreakdown({
   title,
   players,
   picks,
+  valueMode,
   week,
   sleeperProjections,
   sleeperReady,
@@ -1607,6 +1681,7 @@ function PlayerBreakdown({
   title: string;
   players: FullTradeAnalysis['sideA'];
   picks: ValuedPick[];
+  valueMode: FullTradeAnalysis['valueMode'];
   week: number;
   sleeperProjections: Record<string, number> | undefined;
   sleeperReady: boolean;
@@ -1642,18 +1717,30 @@ function PlayerBreakdown({
         ))}
         {/* Draft picks on this side (backlog item 175): no matchup chip and
             no Sleeper line — a pick has no week-N opponent — just the label
-            and its expected VOR, which the totals above already include. */}
-        {picks.map(({ pick, vor, label }) => (
-          <li
-            key={`${pick.season}-${pick.round}`}
-            className={styles.vorRow}
-            aria-label={`${label}, expected value ${vor.toFixed(1)} VOR`}
-            title={`${label} — expected value, priced at the mid-round slot`}
-          >
-            <span className={styles.pName}>{label}</span>
-            <span className={styles.vor}>{vor.toFixed(1)}</span>
+            and its expected VOR, which the totals above already include.
+            Dynasty mode (item 182) hides the rows: picks are VOR-priced
+            and contribute 0 to dynasty totals, so a 0.0 row would read as
+            a worthless pick instead of an excluded one. */}
+        {valueMode === 'redraft' &&
+          picks.map(({ pick, vor, label }) => (
+            <li
+              key={`${pick.season}-${pick.round}`}
+              className={styles.vorRow}
+              aria-label={`${label}, expected value ${vor.toFixed(1)} VOR`}
+              title={`${label} — expected value, priced at the mid-round slot`}
+            >
+              <span className={styles.pName}>{label}</span>
+              <span className={styles.vor}>{vor.toFixed(1)}</span>
+            </li>
+          ))}
+        {valueMode === 'dynasty' && picks.length > 0 && (
+          <li className={styles.vorRow}>
+            <span className={styles.pName}>
+              {picks.map(p => p.label).join(', ')} — excluded from dynasty
+              totals (priced in redraft VOR)
+            </span>
           </li>
-        ))}
+        )}
       </ul>
     </div>
   );

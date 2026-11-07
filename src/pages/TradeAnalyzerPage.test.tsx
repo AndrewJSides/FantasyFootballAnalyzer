@@ -36,6 +36,18 @@ vi.mock('@/data/draftPool', () => ({
   POOL: { players: h.players, season: 2026 },
 }));
 
+// Dynasty mode (item 182) reads the bundled ages file; pin ages for the
+// mocked players so the toggle's re-pricing is deterministic: Alpha (QB,
+// 23) holds full value, Charlie (RB, 29) is halved on the age curve.
+vi.mock('@/data/playerAges', () => ({
+  PLAYER_AGES: {
+    season: 2026,
+    asOf: '2026-09-01',
+    generatedAt: 'test',
+    ages: { 'sid-a1': 23, 'sid-b1': 34, 'sid-c1': 29 },
+  },
+}));
+
 vi.mock('@/api/sleeperWeeklyProjections', () => ({
   fetchSleeperWeekProjections: vi.fn(),
 }));
@@ -196,5 +208,71 @@ describe('TradeAnalyzerPage draft picks (item 175)', () => {
       ).toBeInTheDocument(),
     );
     expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument();
+  });
+});
+
+describe('TradeAnalyzerPage dynasty mode (item 182)', () => {
+  function addPick(side: 'A' | 'B') {
+    fireEvent.click(
+      screen.getByLabelText(
+        `Add 2027 Round 1 pick to Side ${side === 'A' ? 'A gives' : 'B gives'}`,
+      ),
+    );
+  }
+
+  it('defaults to Redraft and re-prices the verdict on Dynasty', async () => {
+    mockSleeper.mockResolvedValue({});
+    render(
+      <MemoryRouter>
+        <TradeAnalyzerPage league={null} />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('radio', { name: 'Redraft (VOR)' }),
+    ).toBeChecked();
+    addPlayer('A', 'Alpha', 'Alpha Aardvark');
+    addPlayer('B', 'Charlie', 'Charlie Cheetah');
+    analyze();
+    await waitFor(() =>
+      expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument(),
+    );
+    // Both mock players project 250, so the redraft verdict is a VOR
+    // call; the Dynasty toggle re-prices in place: Alpha (QB, 23) is on
+    // the QB curve's ramp to its age-25 peak (factor 0.95, 237.5) while
+    // Charlie (RB, 29) is halved to 125.
+    fireEvent.click(
+      screen.getByRole('radio', { name: 'Dynasty (age-adjusted)' }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/Side A wins/)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/by 112.5 dynasty pts/)).toBeInTheDocument();
+    expect(screen.getByText(/Values are dynasty values/)).toBeInTheDocument();
+    // The VOR-priced counter-offers never appear under a dynasty verdict.
+    expect(screen.queryByLabelText('Make it fair')).not.toBeInTheDocument();
+  });
+
+  it('excludes draft picks from dynasty totals', async () => {
+    mockSleeper.mockResolvedValue({});
+    render(
+      <MemoryRouter>
+        <TradeAnalyzerPage league={null} />
+      </MemoryRouter>,
+    );
+    addPlayer('A', 'Alpha', 'Alpha Aardvark');
+    addPick('B');
+    fireEvent.click(
+      screen.getByRole('radio', { name: 'Dynasty (age-adjusted)' }),
+    );
+    analyze();
+    await waitFor(() =>
+      expect(screen.getByLabelText('Trade verdict')).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByText(/excluded from dynasty totals/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/expected value .* VOR/),
+    ).not.toBeInTheDocument();
   });
 });

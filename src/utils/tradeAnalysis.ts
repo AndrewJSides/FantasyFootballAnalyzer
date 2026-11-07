@@ -21,6 +21,7 @@ import {
 } from './projectionValues';
 import { pickLabel, pickTradeValue, type TradePick } from './pickValueCurve';
 import { indexPool, resolvePoolPlayer } from './consensusGrade';
+import { dynastyValue } from './dynastyValue';
 
 // ---------------------------------------------------------------------------
 // League shape
@@ -111,8 +112,16 @@ export function resolveTradeSide(
 
 export interface ValuedPlayer {
   player: PoolPlayer;
+  // The mode's per-player value: VOR in redraft mode, the age-adjusted
+  // dynasty value (backlog item 182) in dynasty mode. The field keeps its
+  // name so every consumer keeps working; the mode on TradeAnalysis says
+  // which units a number is in.
   vor: number;
 }
+
+// Which value basis prices a deal: redraft value over replacement, or the
+// dynasty model's age-adjusted value (backlog item 182).
+export type TradeValueMode = 'redraft' | 'dynasty';
 
 // A future draft pick on one side of the deal, priced in the same VOR
 // points as the players (backlog item 175). A pick never touches the
@@ -138,6 +147,9 @@ export interface TradeAnalysis {
   // Margin as a share of the larger side's value (0-1). Small trades can
   // have big absolute gaps; this keeps "even" calls proportional.
   marginShare: number;
+  // Which value basis priced this analysis — the per-player numbers and
+  // the totals are in that mode's units (VOR points vs dynasty points).
+  valueMode: TradeValueMode;
 }
 
 const EVEN_THRESHOLD_SHARE = 0.15;
@@ -151,15 +163,36 @@ export function analyzeTradeValue(
   // Future draft picks per side (backlog item 175). Priced in the same VOR
   // points as the players, so the totals — and the winner — include them.
   picks?: { picksA?: TradePick[]; picksB?: TradePick[] },
+  // Dynasty mode (backlog item 182): price each player on the dynasty
+  // model's age-adjusted value instead of VOR. Picks are VOR-priced, so
+  // they contribute 0 to dynasty totals rather than mixing units.
+  opts?: {
+    valueMode?: TradeValueMode;
+    agesBySleeperId?: Record<string, number>;
+  },
 ): TradeAnalysis {
-  const vor = vorPoints(pool.players, valueLeague, cfg);
+  const valueMode = opts?.valueMode ?? 'redraft';
+  const dynasty =
+    valueMode === 'dynasty'
+      ? (player: PoolPlayer): number => {
+          const proj = player.projPtsPpr ?? player.projPts ?? 0;
+          const age = player.sleeperId
+            ? (opts?.agesBySleeperId?.[player.sleeperId] ?? null)
+            : null;
+          return dynastyValue(proj, player.pos, age);
+        }
+      : null;
+  const vor = dynasty ? null : vorPoints(pool.players, valueLeague, cfg);
   const value = (players: PoolPlayer[]): ValuedPlayer[] =>
-    players.map(player => ({ player, vor: vor.get(player.id) ?? 0 }));
+    players.map(player => ({
+      player,
+      vor: dynasty ? dynasty(player) : (vor?.get(player.id) ?? 0),
+    }));
   const sideAValued = value(sideA);
   const sideBValued = value(sideB);
   const valuePick = (pick: TradePick): ValuedPick => ({
     pick,
-    vor: pickTradeValue(pick, valueLeague, pool, cfg),
+    vor: dynasty ? 0 : pickTradeValue(pick, valueLeague, pool, cfg),
     label: pickLabel(pick),
   });
   const picksAValued = (picks?.picksA ?? []).map(valuePick);
@@ -189,6 +222,7 @@ export function analyzeTradeValue(
     winner,
     margin,
     marginShare: round1(marginShare),
+    valueMode,
   };
 }
 
@@ -333,6 +367,8 @@ export function analyzeTrade(
     cfg?: VorConfig;
     picksA?: TradePick[];
     picksB?: TradePick[];
+    valueMode?: TradeValueMode;
+    agesBySleeperId?: Record<string, number>;
   },
 ): FullTradeAnalysis {
   const pool = opts.pool ?? POOL;
@@ -340,6 +376,9 @@ export function analyzeTrade(
   const value = analyzeTradeValue(sideA, sideB, opts.valueLeague, pool, cfg, {
     picksA: opts.picksA,
     picksB: opts.picksB,
+  }, {
+    valueMode: opts.valueMode,
+    agesBySleeperId: opts.agesBySleeperId,
   });
   const teamAImpact = opts.teamA
     ? analyzeTeamImpact(opts.teamA, sideA, sideB, opts.valueLeague, pool, cfg)

@@ -295,6 +295,38 @@
 
 /* Actions */
 
+/* Value basis selector (backlog item 182): Redraft / Dynasty radios, on
+   the Start/Sit mode-group discipline — fieldset + legend carry the
+   accessible group name; radios are the native controls. */
+.valueMode {
+  border: 1px solid var(--bone-dim);
+  padding: 0.75rem 1.25rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.valueModeLegend {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--lime);
+  padding: 0 0.5rem;
+}
+
+.valueModeOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--bone);
+  cursor: pointer;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
