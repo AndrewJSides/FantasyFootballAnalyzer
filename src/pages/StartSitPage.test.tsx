@@ -491,3 +491,60 @@ describe('StartSitPage sole-back + weather-risk tags (items 137/138 remainders)'
     ).toBeInTheDocument();
   });
 });
+
+describe('StartSitPage "My Week" briefing (item 196)', () => {
+  it('shows the matchup, the injury hole, and the roster-alerts link', () => {
+    renderPage(league(true, [matchup(9, 'W', 'S')]));
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(
+      screen.getByRole('heading', { name: 'My week at a glance' }),
+    ).toBeInTheDocument();
+    // The mocked pool's only QB is Out, so the briefing's lineup row names
+    // the Week 9 QB hole with no cover.
+    expect(within(section).getByText(/vs Strongmen/)).toBeInTheDocument();
+    expect(within(section).getByText(/0% to win/)).toBeInTheDocument();
+    expect(within(section).getByText(/1 lineup hole/)).toBeInTheDocument();
+    expect(
+      within(section).getByText(/Week 9 · QB hole: W-qb1 out, no cover\./),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByRole('link', { name: 'Roster alerts' }),
+    ).toHaveAttribute('href', '/teams?team=W');
+    expect(
+      within(section).getByRole('link', { name: 'Matchup view' }),
+    ).toHaveAttribute('href', '/matchup');
+  });
+
+  it('shows no trade row when no finder deal involves the team', () => {
+    renderPage(league(true, [matchup(9, 'W', 'S')]));
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(within(section).queryByText(/Best trade:/)).not.toBeInTheDocument();
+  });
+
+  it('shows no waiver row when the pool has no claimable target', () => {
+    // The mocked pool's only unrostered players carry no projection, so
+    // the Waiver Priority Queue is empty and the row hides.
+    renderPage(league(true, [matchup(9, 'W', 'S')]));
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(within(section).queryByText(/Top waiver claim:/)).not.toBeInTheDocument();
+  });
+
+  it('hides the matchup row when there is no preview', () => {
+    renderPage(league(true, []));
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(within(section).queryByText(/Matchup:/)).not.toBeInTheDocument();
+    // The lineup row still renders: the briefing is useful without a matchup.
+    expect(within(section).getByText(/1 lineup hole/)).toBeInTheDocument();
+  });
+
+  it('follows the selected team when the picker changes', () => {
+    renderPage(league(true, [matchup(9, 'W', 'S')]));
+    fireEvent.change(screen.getByLabelText('Team to optimize'), {
+      target: { value: 'S' },
+    });
+    const section = screen.getByRole('region', { name: 'My week at a glance' });
+    expect(within(section).getByText(/vs Weaklings/)).toBeInTheDocument();
+    expect(within(section).getByText(/100% to win/)).toBeInTheDocument();
+    expect(within(section).getByText(/No lineup holes in the next three weeks\./)).toBeInTheDocument();
+  });
+});

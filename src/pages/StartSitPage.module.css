@@ -321,6 +321,26 @@
   border-left-color: var(--lime);
 }
 
+/* "My Week" at-a-glance briefing (backlog item 196): one row per question
+   the week asks — matchup, lineup, waiver claim, trade — each deep-linked
+   to the page that owns it. */
+.briefingList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.briefingItem {
+  padding: 0.75rem 1rem;
+  background: var(--ink);
+  font-family: var(--font-display);
+  border-left: 3px solid var(--lime);
+}
+.briefingItem a {
+  color: var(--lime);
+}
+
 /* Safe & risky starts (backlog item 68): two-column pick panels above the
    optimal starters table. */
 .safeRiskyGrid {

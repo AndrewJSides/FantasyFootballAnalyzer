@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import type { League, Player } from '@/types';
 import type { PoolPlayer } from '@/types/draft';
 import { DataAsOf } from '@/components/DataAsOf';
@@ -35,6 +36,7 @@ import {
   type LineupMode,
 } from '@/utils/lineupMode';
 import { previewWeeklyMatchups } from '@/utils/matchupPreview';
+import { buildWeeklyBriefing } from '@/utils/weeklyBriefing';
 import {
   normalizeLineupPos,
   optimalLineup,
@@ -508,6 +510,20 @@ export function StartSitPage({ league }: StartSitPageProps) {
           myPreview.teamAId === team.id ? myPreview.teamBId : myPreview.teamAId,
         )?.name ?? 'your opponent'
       : 'your opponent';
+
+  // --- "My Week" at a glance (backlog item 196) ---------------------------
+  // One section answering "what do I need to do this week" for the selected
+  // team: this week's matchup (the same Monte Carlo preview as the mode
+  // suggestion above), the lineup-alerts picture, the top waiver claim, and
+  // the best Trade Finder deal involving this team. League mode only —
+  // guests have no team profiles or finder, so the section hides for them.
+  const briefing = useMemo(
+    () =>
+      !isGuest && team
+        ? buildWeeklyBriefing(league, team, myPreview)
+        : null,
+    [isGuest, league, team, myPreview],
+  );
   const pickMode = (m: LineupMode) => {
     setModePinned(true);
     setMode(m);
@@ -1116,6 +1132,57 @@ export function StartSitPage({ league }: StartSitPageProps) {
           </div>
         ) : !guestDataPending && (
           <>
+            {briefing && (
+              <section aria-labelledby="briefing-heading" aria-live="polite">
+                <h2 id="briefing-heading" className={styles.sectionTitle}>
+                  My week at a glance
+                </h2>
+                <ul
+                  className={styles.briefingList}
+                  aria-label={`Week ${briefing.week} briefing for ${briefing.teamName}`}
+                >
+                  {briefing.matchup && (
+                    <li className={styles.briefingItem}>
+                      <strong>Matchup:</strong> vs {briefing.matchup.opponentName} ·{' '}
+                      {briefing.matchup.myProj.toFixed(1)}–{briefing.matchup.oppProj.toFixed(1)}{' '}
+                      projected · {briefing.matchup.myWinProb.toFixed(0)}% to win.{' '}
+                      <Link to="/matchup">Matchup view</Link>
+                    </li>
+                  )}
+                  <li className={styles.briefingItem}>
+                    <strong>Lineup:</strong>{' '}
+                    {briefing.holeCount > 0
+                      ? `${briefing.holeCount} lineup hole${briefing.holeCount === 1 ? '' : 's'}${briefing.watchCount > 0 ? `, ${briefing.watchCount} bye-watch` : ''} — ${briefing.topAlertLine}`
+                      : briefing.watchCount > 0
+                        ? `${briefing.watchCount} bye-watch slot${briefing.watchCount === 1 ? '' : 's'} — ${briefing.topAlertLine}`
+                        : 'No lineup holes in the next three weeks.'}{' '}
+                    <Link to={`/teams?team=${briefing.teamId}`}>Roster alerts</Link>
+                  </li>
+                  {briefing.topWaiver && (
+                    <li className={styles.briefingItem}>
+                      <strong>Top waiver claim:</strong> {briefing.topWaiver.playerName} (
+                      {briefing.topWaiver.position}, {briefing.topWaiver.nflTeam})
+                      {briefing.topWaiver.reason ? ` — ${briefing.topWaiver.reason}` : ''}
+                      {briefing.topWaiver.bid
+                        ? ` Suggested FAAB bid: $${briefing.topWaiver.bid.low}–$${briefing.topWaiver.bid.high}.`
+                        : ''}{' '}
+                      <Link to="/waivers">Waiver wire</Link>
+                    </li>
+                  )}
+                  {briefing.topTrade && (
+                    <li className={styles.briefingItem}>
+                      <strong>Best trade:</strong> with {briefing.topTrade.otherTeamName} —{' '}
+                      {briefing.topTrade.headline}.{' '}
+                      <Link to="/trade-finder">Trade Finder</Link>
+                    </li>
+                  )}
+                </ul>
+                <p className={styles.note}>
+                  Priced from this page&apos;s own engines — the Matchup preview, Roster Alerts,
+                  Waiver Priority Queue, and Trade Finder — so the numbers here match those pages.
+                </p>
+              </section>
+            )}
             {checklist.length > 0 && (
               <GameDayChecklist items={checklist} storageKey={checklistKey} />
             )}
