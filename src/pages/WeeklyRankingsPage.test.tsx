@@ -432,3 +432,114 @@ describe('WeeklyRankingsPage Next Week view (backlog item 180)', () => {
     expect(screen.queryByRole('group', { name: 'Week to rank' })).not.toBeInTheDocument();
   });
 });
+
+describe('WeeklyRankingsPage rank movement (backlog item 181)', () => {
+  async function rankingsTable() {
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week \d+ rankings/i })).toBeInTheDocument();
+    });
+    return screen.getByRole('table', { name: /week \d+ rankings/i });
+  }
+
+  function rowFor(table: HTMLElement, name: string) {
+    const rows = within(table).getAllByRole('row');
+    const row = rows.find(r => within(r).queryByRole('rowheader', { name }));
+    expect(row).toBeDefined();
+    return row!;
+  }
+
+  it('shows a Move column with held marks when the order is unchanged', async () => {
+    renderPage();
+    const table = await rankingsTable();
+    expect(
+      within(table).getByRole('columnheader', { name: /move/i }),
+    ).toBeInTheDocument();
+    // The default mock returns identical stats every week, so last
+    // week's board orders the same as this week's: every row held.
+    expect(
+      within(rowFor(table, 'Alpha Aardvark')).getByLabelText('Held at RB1 vs last week'),
+    ).toBeInTheDocument();
+    expect(
+      within(rowFor(table, 'Charlie Cheetah')).getByLabelText('Held at WR1 vs last week'),
+    ).toBeInTheDocument();
+    expect(
+      within(rowFor(table, 'Echo Eagle')).getByLabelText('Held at WR2 vs last week'),
+    ).toBeInTheDocument();
+  });
+
+  it('marks a climber up and a faller down when week 7 flips the WR order', async () => {
+    // Charlie and Echo have no history before week 5; Charlie is cold
+    // through week 6 (5 pts) then explodes in week 7 (40), Echo the
+    // reverse (25, then 2). Last week's board (form through week 6) has
+    // Echo WR1; this week's board (form through week 7) flips them.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/projections/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          });
+        }
+        const weekMatch = String(url).match(/\/regular\/2026\/(\d+)$/);
+        if (weekMatch) {
+          const w = Number(weekMatch[1]);
+          if (w < 5) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+          }
+          const week7 = w === 7;
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                'sid-a1': { pts_ppr: 25, gp: 1 },
+                'sid-c1': { pts_ppr: week7 ? 40 : 5, gp: 1 },
+                'sid-e1': { pts_ppr: week7 ? 2 : 25, gp: 1 },
+              }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              'sid-a1': { pts_ppr: 25, gp: 1 },
+              'sid-c1': { pts_ppr: 18, gp: 1 },
+              'sid-e1': { pts_ppr: 10, gp: 1 },
+            }),
+        });
+      }),
+    );
+    renderPage();
+    const table = await rankingsTable();
+    expect(
+      within(rowFor(table, 'Charlie Cheetah')).getByLabelText(
+        'Up 1 spot at WR vs last week (was WR2, now WR1)',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(rowFor(table, 'Echo Eagle')).getByLabelText(
+        'Down 1 spot at WR vs last week (was WR1, now WR2)',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the Move column on the Next Week view', async () => {
+    renderPage();
+    const table = await rankingsTable();
+    expect(
+      within(table).getByRole('columnheader', { name: /move/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Week to rank' })).getByRole('button', {
+        name: /next week/i,
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('table', { name: /week 9 rankings/i })).toBeInTheDocument();
+    });
+    const nextTable = screen.getByRole('table', { name: /week 9 rankings/i });
+    expect(
+      within(nextTable).queryByRole('columnheader', { name: /move/i }),
+    ).not.toBeInTheDocument();
+  });
+});

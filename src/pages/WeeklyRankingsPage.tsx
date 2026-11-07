@@ -29,6 +29,11 @@ import { leagueOwnerMap } from '@/utils/rosRankings';
 import { injuryOf } from '@/utils/seasonOutlook';
 import { buildWeeklyRankings, type WeeklyRankRow } from '@/utils/weeklyRankings';
 import {
+  movementLabel,
+  rankMovements,
+  type RankMovement,
+} from '@/utils/rankMovement';
+import {
   buildGameVenues,
   fetchKickoffWeather,
 } from '@/utils/weatherWatch';
@@ -89,6 +94,40 @@ function MatchupCell({ team, pos, week }: { team: string; pos: string; week: num
   return (
     <td className={styles.num} title={label} aria-label={label}>
       <span className={cls}>{matchupShort(rating)}</span>
+    </td>
+  );
+}
+
+// Item-181 rank movement: ▲/▼/—/● vs last week's positional rank, in the
+// same color language as the matchup chips. The glyph is decorative — the
+// full story (direction, spots, both ranks) is the accessible name.
+function MovementCell({ movement, pos }: { movement: RankMovement | undefined; pos: string }) {
+  if (!movement)
+    return (
+      <td className={`${styles.num} ${styles.dim}`} aria-label="Rank movement not available">
+        -
+      </td>
+    );
+  const label = movementLabel(movement, pos);
+  const text =
+    movement.kind === 'up'
+      ? `▲${movement.delta}`
+      : movement.kind === 'down'
+        ? `▼${-movement.delta}`
+        : movement.kind === 'new'
+          ? '●'
+          : '—';
+  const cls =
+    movement.kind === 'up'
+      ? styles.muFav
+      : movement.kind === 'down'
+        ? styles.muTough
+        : styles.muNeutral;
+  return (
+    <td className={styles.num} title={label} aria-label={label}>
+      <span className={cls} aria-hidden="true">
+        {text}
+      </span>
     </td>
   );
 }
@@ -293,6 +332,31 @@ export function WeeklyRankingsPage({
     [pool, weekly, displayWeek, owners],
   );
 
+  // Item-181 rank movement: last week's board, re-priced from the same
+  // weekly-stats fetch via the week-parameterized engine — the same call
+  // item 180 makes forward for the Next Week view, run backward. This
+  // Week view only (the Next Week view has no "last week" to compare
+  // against); hidden in week 1, where there is no prior board. The
+  // re-price uses today's injury report, so a player ruled out since last
+  // week is absent from both boards — the footnote says so.
+  const showMovement = viewWeek === 'this' && week > 1;
+  const previousRows = useMemo(
+    () =>
+      showMovement && weekly
+        ? buildWeeklyRankings({
+            pool,
+            weekly,
+            currentWeek: displayWeek - 1,
+            ownerByPoolId: owners,
+          })
+        : undefined,
+    [showMovement, weekly, pool, displayWeek, owners],
+  );
+  const movements = useMemo(
+    () => (previousRows ? rankMovements(rows, previousRows) : undefined),
+    [rows, previousRows],
+  );
+
   const filtered = useMemo(() => {
     const byPos =
       pos === 'ALL'
@@ -415,6 +479,13 @@ export function WeeklyRankingsPage({
                   <thead>
                     <tr>
                       <th scope="col">Rank</th>
+                      {showMovement && (
+                        <th scope="col">
+                          <abbr title="Positional rank change vs last week's TraderApe board: up/down spots, — held, ● new to the top 40">
+                            Move
+                          </abbr>
+                        </th>
+                      )}
                       <th scope="col">Player</th>
                       <th scope="col">Pos</th>
                       <th scope="col">NFL</th>
@@ -461,6 +532,12 @@ export function WeeklyRankingsPage({
                       return (
                         <tr key={r.player.id}>
                           <td className={styles.rank}>{pos === 'ALL' ? i + 1 : r.posRank}</td>
+                          {showMovement && (
+                            <MovementCell
+                              movement={movements?.get(r.player.id)}
+                              pos={r.player.pos}
+                            />
+                          )}
                           <th scope="row" className={styles.playerCell}>
                             {r.player.name}
                             {tag && (
@@ -570,7 +647,17 @@ export function WeeklyRankingsPage({
               the toggle immediately) — tap again to remove. The Sleeper column shows
               Sleeper&apos;s own week {displayWeek} projection for the same player —
               the market read next to TraderApe&apos;s number; a dash means
-              Sleeper published no line. The &ldquo;Free agents only&rdquo;
+              Sleeper published no line.
+              {showMovement && (
+                <>
+                  {' '}The &ldquo;Move&rdquo; column compares each player&apos;s positional
+                  rank with last week&apos;s TraderApe board, re-priced from
+                  completed weeks with today&apos;s injury report — ▲/▼ are
+                  spots climbed or fell, — held, ● new to the top 40 (often
+                  a bye-week return).
+                </>
+              )}
+              The &ldquo;Free agents only&rdquo;
               toggle (league mode) hides rostered players so the board shows
               only players you can actually add. Trade research only — nothing here
               moves a roster.
