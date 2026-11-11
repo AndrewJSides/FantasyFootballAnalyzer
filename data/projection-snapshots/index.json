@@ -14,5 +14,13 @@
     "file": "2026-week9-sleeper.json",
     "snapshot_at": "2026-11-03T05:34:58.140Z",
     "player_count": 9420
+  },
+  {
+    "source": "sleeper",
+    "season": 2026,
+    "week": 10,
+    "file": "2026-week10-sleeper.json",
+    "snapshot_at": "2026-11-11T16:44:19.965Z",
+    "player_count": 9418
   }
 ]
