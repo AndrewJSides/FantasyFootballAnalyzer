@@ -1,0 +1,2543 @@
+{
+  "source": "sleeper",
+  "season": 2026,
+  "week": 10,
+  "graded_at": "2026-11-18T16:45:38.834Z",
+  "threshold": 5,
+  "scoring": "pts_ppr",
+  "summary": {
+    "graded": 230,
+    "outperformed": 47,
+    "underperformed": 62,
+    "inLine": 121,
+    "meanDiff": -0.16,
+    "meanAbsDiff": 5.89,
+    "primaryReasonCounts": {
+      "usage-down": 13,
+      "td-variance": 14,
+      "did-not-play": 27,
+      "usage-up": 10,
+      "efficiency-down": 24,
+      "efficiency-up": 15,
+      "unexplained": 6
+    },
+    "breakoutCount": 25,
+    "byPosition": {
+      "RB": {
+        "graded": 53,
+        "outperformed": 15,
+        "underperformed": 13,
+        "inLine": 25,
+        "meanDiff": 1.24,
+        "meanAbsDiff": 7.11,
+        "primaryReasonCounts": {
+          "usage-down": 2,
+          "td-variance": 5,
+          "efficiency-down": 5,
+          "unexplained": 2,
+          "did-not-play": 4,
+          "efficiency-up": 6,
+          "usage-up": 4
+        },
+        "breakoutCount": 0
+      },
+      "QB": {
+        "graded": 28,
+        "outperformed": 7,
+        "underperformed": 7,
+        "inLine": 14,
+        "meanDiff": 0.79,
+        "meanAbsDiff": 6.28,
+        "primaryReasonCounts": {
+          "td-variance": 6,
+          "usage-up": 1,
+          "usage-down": 3,
+          "unexplained": 2,
+          "efficiency-down": 1,
+          "efficiency-up": 1
+        },
+        "breakoutCount": 0
+      },
+      "WR": {
+        "graded": 64,
+        "outperformed": 14,
+        "underperformed": 23,
+        "inLine": 27,
+        "meanDiff": -0.46,
+        "meanAbsDiff": 6.62,
+        "primaryReasonCounts": {
+          "usage-up": 5,
+          "efficiency-down": 10,
+          "td-variance": 3,
+          "did-not-play": 7,
+          "unexplained": 2,
+          "usage-down": 4,
+          "efficiency-up": 6
+        },
+        "breakoutCount": 0
+      },
+      "TE": {
+        "graded": 33,
+        "outperformed": 2,
+        "underperformed": 13,
+        "inLine": 18,
+        "meanDiff": -3.34,
+        "meanAbsDiff": 5.27,
+        "primaryReasonCounts": {
+          "efficiency-up": 2,
+          "did-not-play": 2,
+          "efficiency-down": 8,
+          "usage-down": 3
+        },
+        "breakoutCount": 0
+      }
+    }
+  },
+  "grades": [
+    {
+      "player_id": "6130",
+      "predicted": 8.39,
+      "actual": 0.3,
+      "diff": -8.09,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "11566",
+      "predicted": 18.63,
+      "actual": 22.76,
+      "diff": 4.13,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12481",
+      "predicted": 12.72,
+      "actual": 27.2,
+      "diff": 14.48,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "13833",
+      "predicted": 8.73,
+      "actual": 2,
+      "diff": -6.73,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "4663",
+      "predicted": 8.42,
+      "actual": 9.2,
+      "diff": 0.78,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8136",
+      "predicted": 10.93,
+      "actual": 6.2,
+      "diff": -4.73,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "WAS",
+      "predicted": 6.26,
+      "actual": 8,
+      "diff": 1.74,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13968",
+      "predicted": 7.85,
+      "actual": 7,
+      "diff": -0.85,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "2449",
+      "predicted": 11.35,
+      "actual": 20.3,
+      "diff": 8.95,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "efficiency-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "NYG",
+      "predicted": 7.49,
+      "actual": 5,
+      "diff": -2.49,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11565",
+      "predicted": 16.81,
+      "actual": 18.12,
+      "diff": 1.31,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11632",
+      "predicted": 16.87,
+      "actual": 7.4,
+      "diff": -9.47,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "13285",
+      "predicted": 6.58,
+      "actual": 9.2,
+      "diff": 2.62,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8131",
+      "predicted": 12.51,
+      "actual": 27.7,
+      "diff": 15.19,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "8210",
+      "predicted": 8.03,
+      "actual": 6.4,
+      "diff": -1.63,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13301",
+      "predicted": 8.03,
+      "actual": 12.2,
+      "diff": 4.17,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10229",
+      "predicted": 14.95,
+      "actual": 13.2,
+      "diff": -1.75,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10231",
+      "predicted": 6.33,
+      "actual": 0,
+      "diff": -6.33,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "11261",
+      "predicted": 7.56,
+      "actual": 9,
+      "diff": 1.44,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11533",
+      "predicted": 9.2,
+      "actual": 11,
+      "diff": 1.8,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11579",
+      "predicted": 8.22,
+      "actual": 2.1,
+      "diff": -6.12,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "11610",
+      "predicted": 9.65,
+      "actual": 13.36,
+      "diff": 3.71,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11786",
+      "predicted": 9.15,
+      "actual": 19,
+      "diff": 9.85,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "12495",
+      "predicted": 13.63,
+      "actual": 15.5,
+      "diff": 1.87,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12526",
+      "predicted": 15.85,
+      "actual": 6.5,
+      "diff": -9.35,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "1479",
+      "predicted": 6.02,
+      "actual": 11.1,
+      "diff": 5.08,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "3271",
+      "predicted": 8.63,
+      "actual": 10.7,
+      "diff": 2.07,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "3294",
+      "predicted": 18.68,
+      "actual": 35.42,
+      "diff": 16.74,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "4017",
+      "predicted": 14.14,
+      "actual": 22.38,
+      "diff": 8.24,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "4147",
+      "predicted": 6.51,
+      "actual": 13.9,
+      "diff": 7.39,
+      "category": "outperformed",
+      "reasons": [
+        "unexplained"
+      ],
+      "primaryReason": "unexplained"
+    },
+    {
+      "player_id": "4177",
+      "predicted": 6.34,
+      "actual": 9.8,
+      "diff": 3.46,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5854",
+      "predicted": 16.09,
+      "actual": 15.6,
+      "diff": -0.49,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5892",
+      "predicted": 11.1,
+      "actual": 0,
+      "diff": -11.1,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "6804",
+      "predicted": 17.28,
+      "actual": 11.8,
+      "diff": -5.48,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "7042",
+      "predicted": 8.68,
+      "actual": 7,
+      "diff": -1.68,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7523",
+      "predicted": 21.61,
+      "actual": 27.78,
+      "diff": 6.17,
+      "category": "outperformed",
+      "reasons": [
+        "unexplained"
+      ],
+      "primaryReason": "unexplained"
+    },
+    {
+      "player_id": "7547",
+      "predicted": 19.48,
+      "actual": 25.8,
+      "diff": 6.32,
+      "category": "outperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "8116",
+      "predicted": 6.61,
+      "actual": 0,
+      "diff": -6.61,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "8126",
+      "predicted": 11.01,
+      "actual": 4,
+      "diff": -7.01,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "8134",
+      "predicted": 10.17,
+      "actual": 7.5,
+      "diff": -2.67,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8138",
+      "predicted": 15.43,
+      "actual": 21.7,
+      "diff": 6.27,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "8146",
+      "predicted": 14.36,
+      "actual": 15.6,
+      "diff": 1.24,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8150",
+      "predicted": 17.14,
+      "actual": 5.2,
+      "diff": -11.94,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "8151",
+      "predicted": 22.05,
+      "actual": 0,
+      "diff": -22.05,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "9479",
+      "predicted": 7.63,
+      "actual": 1.5,
+      "diff": -6.13,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "9501",
+      "predicted": 8.68,
+      "actual": 1.4,
+      "diff": -7.28,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "9508",
+      "predicted": 6.35,
+      "actual": 3.8,
+      "diff": -2.55,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9756",
+      "predicted": 8.71,
+      "actual": 0,
+      "diff": -8.71,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "CIN",
+      "predicted": 6.49,
+      "actual": 5,
+      "diff": -1.49,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10937",
+      "predicted": 7.07,
+      "actual": 7,
+      "diff": -0.07,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10955",
+      "predicted": 6.92,
+      "actual": 8,
+      "diff": 1.08,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11593",
+      "predicted": 7.21,
+      "actual": 3.6,
+      "diff": -3.61,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11792",
+      "predicted": 8.52,
+      "actual": 12,
+      "diff": 3.48,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12494",
+      "predicted": 12.49,
+      "actual": 12.76,
+      "diff": 0.27,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12498",
+      "predicted": 7.64,
+      "actual": 6,
+      "diff": -1.64,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12529",
+      "predicted": 6.05,
+      "actual": 0,
+      "diff": -6.05,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "12961",
+      "predicted": 8.26,
+      "actual": 11,
+      "diff": 2.74,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13269",
+      "predicted": 11.6,
+      "actual": 13.92,
+      "diff": 2.32,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13276",
+      "predicted": 9.22,
+      "actual": 0,
+      "diff": -9.22,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "13296",
+      "predicted": 7.53,
+      "actual": 10.1,
+      "diff": 2.57,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13421",
+      "predicted": 5.47,
+      "actual": 1.6,
+      "diff": -3.87,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "1373",
+      "predicted": 16.49,
+      "actual": 5.92,
+      "diff": -10.57,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "2505",
+      "predicted": 8.4,
+      "actual": 4.4,
+      "diff": -4,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "3163",
+      "predicted": 18.83,
+      "actual": 22.42,
+      "diff": 3.59,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "3451",
+      "predicted": 8.29,
+      "actual": 7,
+      "diff": -1.29,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "4034",
+      "predicted": 22.12,
+      "actual": 46.3,
+      "diff": 24.18,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "421",
+      "predicted": 16.67,
+      "actual": 20.76,
+      "diff": 4.09,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5846",
+      "predicted": 11.97,
+      "actual": 15.4,
+      "diff": 3.43,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5870",
+      "predicted": 13.2,
+      "actual": 7.22,
+      "diff": -5.98,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "6427",
+      "predicted": 6.94,
+      "actual": 4,
+      "diff": -2.94,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "6794",
+      "predicted": 17.97,
+      "actual": 16.4,
+      "diff": -1.57,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "6813",
+      "predicted": 17.32,
+      "actual": 12.3,
+      "diff": -5.02,
+      "category": "underperformed",
+      "reasons": [
+        "unexplained"
+      ],
+      "primaryReason": "unexplained"
+    },
+    {
+      "player_id": "7553",
+      "predicted": 8.31,
+      "actual": 7,
+      "diff": -1.31,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8122",
+      "predicted": 8.54,
+      "actual": 1.9,
+      "diff": -6.64,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "8172",
+      "predicted": 7.07,
+      "actual": 0,
+      "diff": -7.07,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "8183",
+      "predicted": 22.89,
+      "actual": 31.66,
+      "diff": 8.77,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "9221",
+      "predicted": 24.68,
+      "actual": 44.2,
+      "diff": 19.52,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "9224",
+      "predicted": 13.01,
+      "actual": 28.3,
+      "diff": 15.29,
+      "category": "outperformed",
+      "reasons": [
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "CLE",
+      "predicted": 6.06,
+      "actual": 3,
+      "diff": -3.06,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "IND",
+      "predicted": 7.92,
+      "actual": 13,
+      "diff": 5.08,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "LV",
+      "predicted": 5.58,
+      "actual": 9,
+      "diff": 3.42,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10859",
+      "predicted": 12.85,
+      "actual": 2.6,
+      "diff": -10.25,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "11564",
+      "predicted": 23.18,
+      "actual": 3.02,
+      "diff": -20.16,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "11603",
+      "predicted": 7.7,
+      "actual": 4.9,
+      "diff": -2.8,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11646",
+      "predicted": 14.63,
+      "actual": 0.3,
+      "diff": -14.33,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "12474",
+      "predicted": 8.58,
+      "actual": 7.5,
+      "diff": -1.08,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12490",
+      "predicted": 16.31,
+      "actual": 20.3,
+      "diff": 3.99,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12518",
+      "predicted": 12.31,
+      "actual": 2.4,
+      "diff": -9.91,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "12522",
+      "predicted": 12.99,
+      "actual": 20.14,
+      "diff": 7.15,
+      "category": "outperformed",
+      "reasons": [
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "12713",
+      "predicted": 7.21,
+      "actual": 4,
+      "diff": -3.21,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13279",
+      "predicted": 12.46,
+      "actual": 0,
+      "diff": -12.46,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "13311",
+      "predicted": 5.83,
+      "actual": 0,
+      "diff": -5.83,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "13333",
+      "predicted": 7.25,
+      "actual": 0,
+      "diff": -7.25,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "13545",
+      "predicted": 7.97,
+      "actual": 4,
+      "diff": -3.97,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "1945",
+      "predicted": 8.28,
+      "actual": 5,
+      "diff": -3.28,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "4039",
+      "predicted": 6.7,
+      "actual": 10.4,
+      "diff": 3.7,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5001",
+      "predicted": 7.69,
+      "actual": 8.1,
+      "diff": 0.41,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5119",
+      "predicted": 7.3,
+      "actual": 14,
+      "diff": 6.7,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "5947",
+      "predicted": 9.75,
+      "actual": 6.4,
+      "diff": -3.35,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "6770",
+      "predicted": 22.43,
+      "actual": 33.16,
+      "diff": 10.73,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "6801",
+      "predicted": 17.15,
+      "actual": 11.6,
+      "diff": -5.55,
+      "category": "underperformed",
+      "reasons": [
+        "unexplained"
+      ],
+      "primaryReason": "unexplained"
+    },
+    {
+      "player_id": "8137",
+      "predicted": 13.67,
+      "actual": 43.5,
+      "diff": 29.83,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "8676",
+      "predicted": 5.75,
+      "actual": 1.8,
+      "diff": -3.95,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "JAX",
+      "predicted": 8.82,
+      "actual": 3,
+      "diff": -5.82,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "KC",
+      "predicted": 7.55,
+      "actual": 12,
+      "diff": 4.45,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "MIN",
+      "predicted": 6.61,
+      "actual": 21,
+      "diff": 14.39,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "PIT",
+      "predicted": 5.76,
+      "actual": -2,
+      "diff": -7.76,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "SEA",
+      "predicted": 8.51,
+      "actual": 10,
+      "diff": 1.49,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10213",
+      "predicted": 9.41,
+      "actual": 1.9,
+      "diff": -7.51,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "10236",
+      "predicted": 10.11,
+      "actual": 7.8,
+      "diff": -2.31,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11581",
+      "predicted": 5.77,
+      "actual": 6.9,
+      "diff": 1.13,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11834",
+      "predicted": 8.18,
+      "actual": 3.4,
+      "diff": -4.78,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12499",
+      "predicted": 5.96,
+      "actual": 12.9,
+      "diff": 6.94,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "12501",
+      "predicted": 15.15,
+      "actual": 12,
+      "diff": -3.15,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12504",
+      "predicted": 6.66,
+      "actual": 4.2,
+      "diff": -2.46,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12506",
+      "predicted": 11.33,
+      "actual": 16.1,
+      "diff": 4.77,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12718",
+      "predicted": 8,
+      "actual": 11.1,
+      "diff": 3.1,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13286",
+      "predicted": 8.07,
+      "actual": 11.4,
+      "diff": 3.33,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13305",
+      "predicted": 5.24,
+      "actual": 3.7,
+      "diff": -1.54,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13346",
+      "predicted": 10.21,
+      "actual": 2.6,
+      "diff": -7.61,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "13424",
+      "predicted": 6.15,
+      "actual": 13.7,
+      "diff": 7.55,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "1466",
+      "predicted": 12.78,
+      "actual": 5,
+      "diff": -7.78,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-up"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "3286",
+      "predicted": 9.43,
+      "actual": 0,
+      "diff": -9.43,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "4035",
+      "predicted": 5.55,
+      "actual": 16.4,
+      "diff": 10.85,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-down",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "4046",
+      "predicted": 18.61,
+      "actual": 35.42,
+      "diff": 16.81,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "4233",
+      "predicted": 6.41,
+      "actual": 3,
+      "diff": -3.41,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "4984",
+      "predicted": 26.48,
+      "actual": 23.34,
+      "diff": -3.14,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5967",
+      "predicted": 12.14,
+      "actual": 23.9,
+      "diff": 11.76,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "6039",
+      "predicted": 5.23,
+      "actual": 1.4,
+      "diff": -3.83,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "6083",
+      "predicted": 7.63,
+      "actual": 8,
+      "diff": 0.37,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "6786",
+      "predicted": 20.12,
+      "actual": 20.2,
+      "diff": 0.08,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7002",
+      "predicted": 9.07,
+      "actual": 4.8,
+      "diff": -4.27,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7564",
+      "predicted": 19.85,
+      "actual": 34.1,
+      "diff": 14.25,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "8130",
+      "predicted": 14.97,
+      "actual": 8.7,
+      "diff": -6.27,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "8132",
+      "predicted": 9.94,
+      "actual": 1.4,
+      "diff": -8.54,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "8155",
+      "predicted": 11.62,
+      "actual": 14.8,
+      "diff": 3.18,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8228",
+      "predicted": 17.29,
+      "actual": 9.1,
+      "diff": -8.19,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "9484",
+      "predicted": 10.97,
+      "actual": 2.9,
+      "diff": -8.07,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "9753",
+      "predicted": 12.96,
+      "actual": 9.4,
+      "diff": -3.56,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "BUF",
+      "predicted": 6.82,
+      "actual": 13,
+      "diff": 6.18,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "GB",
+      "predicted": 7.85,
+      "actual": 4,
+      "diff": -3.85,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "MIA",
+      "predicted": 6.61,
+      "actual": 14,
+      "diff": 7.39,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "11539",
+      "predicted": 8.84,
+      "actual": 5,
+      "diff": -3.84,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11559",
+      "predicted": 14.72,
+      "actual": 13.34,
+      "diff": -1.38,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11576",
+      "predicted": 8.28,
+      "actual": 5.6,
+      "diff": -2.68,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11586",
+      "predicted": 11.13,
+      "actual": 20.9,
+      "diff": 9.77,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "11625",
+      "predicted": 7.91,
+      "actual": 8.9,
+      "diff": 0.99,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11637",
+      "predicted": 8.89,
+      "actual": 2.1,
+      "diff": -6.79,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "1166",
+      "predicted": 14.52,
+      "actual": 16.38,
+      "diff": 1.86,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12502",
+      "predicted": 5.24,
+      "actual": 6.3,
+      "diff": 1.06,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12512",
+      "predicted": 10.85,
+      "actual": 16.1,
+      "diff": 5.25,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "12969",
+      "predicted": 5.49,
+      "actual": 9.7,
+      "diff": 4.21,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13274",
+      "predicted": 10.5,
+      "actual": 1,
+      "diff": -9.5,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "13281",
+      "predicted": 5.67,
+      "actual": 19,
+      "diff": 13.33,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "13297",
+      "predicted": 6.82,
+      "actual": 0,
+      "diff": -6.82,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "13337",
+      "predicted": 6.86,
+      "actual": 35.1,
+      "diff": 28.24,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "td-variance"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "13414",
+      "predicted": 5.54,
+      "actual": 14.6,
+      "diff": 9.06,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "3214",
+      "predicted": 10.13,
+      "actual": 4.2,
+      "diff": -5.93,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "4199",
+      "predicted": 9.9,
+      "actual": 12.5,
+      "diff": 2.6,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "4227",
+      "predicted": 7.31,
+      "actual": 5,
+      "diff": -2.31,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5189",
+      "predicted": 8.15,
+      "actual": 8,
+      "diff": -0.15,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5857",
+      "predicted": 5.29,
+      "actual": 0,
+      "diff": -5.29,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "5859",
+      "predicted": 13.79,
+      "actual": 4.7,
+      "diff": -9.09,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "5872",
+      "predicted": 10.71,
+      "actual": 25.9,
+      "diff": 15.19,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "6528",
+      "predicted": 6.66,
+      "actual": 18,
+      "diff": 11.34,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "7588",
+      "predicted": 17.74,
+      "actual": 7.7,
+      "diff": -10.04,
+      "category": "underperformed",
+      "reasons": [
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "7594",
+      "predicted": 17.86,
+      "actual": 34.2,
+      "diff": 16.34,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "7600",
+      "predicted": 11.15,
+      "actual": 11.5,
+      "diff": 0.35,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7839",
+      "predicted": 9.11,
+      "actual": 7,
+      "diff": -2.11,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8148",
+      "predicted": 12.52,
+      "actual": 9,
+      "diff": -3.52,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8408",
+      "predicted": 8.6,
+      "actual": 5.9,
+      "diff": -2.7,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9228",
+      "predicted": 19.47,
+      "actual": 8.1,
+      "diff": -11.37,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "td-variance"
+      ],
+      "primaryReason": "td-variance"
+    },
+    {
+      "player_id": "9482",
+      "predicted": 6.84,
+      "actual": 3.8,
+      "diff": -3.04,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9487",
+      "predicted": 15.14,
+      "actual": 28.2,
+      "diff": 13.06,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "9500",
+      "predicted": 7.09,
+      "actual": 15.3,
+      "diff": 8.21,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "96",
+      "predicted": 17.77,
+      "actual": 15.62,
+      "diff": -2.15,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "ATL",
+      "predicted": 5.28,
+      "actual": -2,
+      "diff": -7.28,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "CAR",
+      "predicted": 6.09,
+      "actual": 8,
+      "diff": 1.91,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "DET",
+      "predicted": 5.97,
+      "actual": 12,
+      "diff": 6.03,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "HOU",
+      "predicted": 8.22,
+      "actual": 7,
+      "diff": -1.22,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "NE",
+      "predicted": 5.44,
+      "actual": 2,
+      "diff": -3.44,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "SF",
+      "predicted": 5.95,
+      "actual": 4,
+      "diff": -1.95,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "10219",
+      "predicted": 6.36,
+      "actual": 0.5,
+      "diff": -5.86,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "11604",
+      "predicted": 16.21,
+      "actual": 3.8,
+      "diff": -12.41,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down",
+        "efficiency-up"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "11653",
+      "predicted": 8.05,
+      "actual": 7,
+      "diff": -1.05,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11783",
+      "predicted": 9.05,
+      "actual": 19.1,
+      "diff": 10.05,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "12185",
+      "predicted": 10.64,
+      "actual": 8,
+      "diff": -2.64,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12469",
+      "predicted": 7.37,
+      "actual": 7.7,
+      "diff": 0.33,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12491",
+      "predicted": 9.13,
+      "actual": 2.5,
+      "diff": -6.63,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "12527",
+      "predicted": 11.52,
+      "actual": 10.4,
+      "diff": -1.12,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "12545",
+      "predicted": 17.5,
+      "actual": 10.98,
+      "diff": -6.52,
+      "category": "underperformed",
+      "reasons": [
+        "unexplained"
+      ],
+      "primaryReason": "unexplained"
+    },
+    {
+      "player_id": "13272",
+      "predicted": 11.48,
+      "actual": 2.42,
+      "diff": -9.06,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "13298",
+      "predicted": 10.15,
+      "actual": 11.7,
+      "diff": 1.55,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "1433",
+      "predicted": 7.82,
+      "actual": 11,
+      "diff": 3.18,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "2747",
+      "predicted": 8.84,
+      "actual": 2,
+      "diff": -6.84,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "3155",
+      "predicted": 7.25,
+      "actual": 11.4,
+      "diff": 4.15,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "4217",
+      "predicted": 16.15,
+      "actual": 13.4,
+      "diff": -2.75,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "4983",
+      "predicted": 13.16,
+      "actual": 19.4,
+      "diff": 6.24,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "4993",
+      "predicted": 10.33,
+      "actual": 1.9,
+      "diff": -8.43,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "5844",
+      "predicted": 11.2,
+      "actual": 0,
+      "diff": -11.2,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "6865",
+      "predicted": 6.84,
+      "actual": 3.1,
+      "diff": -3.74,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7021",
+      "predicted": 9.92,
+      "actual": 5.4,
+      "diff": -4.52,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7543",
+      "predicted": 8.8,
+      "actual": 6.4,
+      "diff": -2.4,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7562",
+      "predicted": 7.57,
+      "actual": 4.1,
+      "diff": -3.47,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7569",
+      "predicted": 15.03,
+      "actual": 24.4,
+      "diff": 9.37,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "efficiency-down"
+      ],
+      "primaryReason": "usage-up"
+    },
+    {
+      "player_id": "8112",
+      "predicted": 16.4,
+      "actual": 16.9,
+      "diff": 0.5,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8119",
+      "predicted": 6.86,
+      "actual": 9.3,
+      "diff": 2.44,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8144",
+      "predicted": 16.36,
+      "actual": 6,
+      "diff": -10.36,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "8167",
+      "predicted": 16.54,
+      "actual": 6.7,
+      "diff": -9.84,
+      "category": "underperformed",
+      "reasons": [
+        "efficiency-down"
+      ],
+      "primaryReason": "efficiency-down"
+    },
+    {
+      "player_id": "9480",
+      "predicted": 10.9,
+      "actual": 8.9,
+      "diff": -2,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9488",
+      "predicted": 23.77,
+      "actual": 31.1,
+      "diff": 7.33,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "9509",
+      "predicted": 19.8,
+      "actual": 17.7,
+      "diff": -2.1,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9758",
+      "predicted": 16.89,
+      "actual": 21.44,
+      "diff": 4.55,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "LAR",
+      "predicted": 8.19,
+      "actual": 17,
+      "diff": 8.81,
+      "category": "outperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "NO",
+      "predicted": 6.31,
+      "actual": 4,
+      "diff": -2.31,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "BAL",
+      "predicted": 8.38,
+      "actual": 4,
+      "diff": -4.38,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11647",
+      "predicted": 7.27,
+      "actual": 3.4,
+      "diff": -3.87,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5012",
+      "predicted": 8.15,
+      "actual": 16.2,
+      "diff": 8.05,
+      "category": "outperformed",
+      "reasons": [
+        "efficiency-up"
+      ],
+      "primaryReason": "efficiency-up"
+    },
+    {
+      "player_id": "6797",
+      "predicted": 13.95,
+      "actual": 16.26,
+      "diff": 2.31,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "8259",
+      "predicted": 7.07,
+      "actual": 11,
+      "diff": 3.93,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9754",
+      "predicted": 6.95,
+      "actual": 1.6,
+      "diff": -5.35,
+      "category": "underperformed",
+      "reasons": [
+        "usage-down"
+      ],
+      "primaryReason": "usage-down"
+    },
+    {
+      "player_id": "LAC",
+      "predicted": 5.66,
+      "actual": 8,
+      "diff": 2.34,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "11635",
+      "predicted": 11.75,
+      "actual": 0,
+      "diff": -11.75,
+      "category": "underperformed",
+      "reasons": [
+        "did-not-play"
+      ],
+      "primaryReason": "did-not-play"
+    },
+    {
+      "player_id": "3198",
+      "predicted": 15.26,
+      "actual": 19,
+      "diff": 3.74,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "5995",
+      "predicted": 7.23,
+      "actual": 8.8,
+      "diff": 1.57,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "7571",
+      "predicted": 5.43,
+      "actual": 7.2,
+      "diff": 1.77,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "13293",
+      "predicted": 5.59,
+      "actual": 9.1,
+      "diff": 3.51,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "3257",
+      "predicted": 13.4,
+      "actual": 12.8,
+      "diff": -0.6,
+      "category": "in-line",
+      "reasons": [],
+      "primaryReason": null
+    },
+    {
+      "player_id": "9997",
+      "predicted": 16.43,
+      "actual": 11.4,
+      "diff": -5.03,
+      "category": "underperformed",
+      "reasons": [
+        "unexplained"
+      ],
+      "primaryReason": "unexplained"
+    },
+    {
+      "player_id": "12507",
+      "predicted": 8.89,
+      "actual": 17.5,
+      "diff": 8.61,
+      "category": "outperformed",
+      "reasons": [
+        "usage-up",
+        "efficiency-up"
+      ],
+      "primaryReason": "usage-up"
+    }
+  ],
+  "breakouts": [
+    {
+      "player_id": "11596",
+      "predicted": 0.97,
+      "actual": 14.2
+    },
+    {
+      "player_id": "10214",
+      "predicted": 3.27,
+      "actual": 8.9
+    },
+    {
+      "player_id": "13264",
+      "predicted": 1.95,
+      "actual": 10
+    },
+    {
+      "player_id": "6783",
+      "predicted": 3.53,
+      "actual": 9.4
+    },
+    {
+      "player_id": "8117",
+      "predicted": 0.81,
+      "actual": 12.9
+    },
+    {
+      "player_id": "8225",
+      "predicted": 1.98,
+      "actual": 8.6
+    },
+    {
+      "player_id": "11608",
+      "predicted": 0.67,
+      "actual": 6.4
+    },
+    {
+      "player_id": "12535",
+      "predicted": 4.15,
+      "actual": 9.9
+    },
+    {
+      "player_id": "12863",
+      "predicted": 1.73,
+      "actual": 11.3
+    },
+    {
+      "player_id": "10218",
+      "predicted": 3.81,
+      "actual": 15.8
+    },
+    {
+      "player_id": "11617",
+      "predicted": 0.2,
+      "actual": 6.7
+    },
+    {
+      "player_id": "12700",
+      "predicted": 1.8,
+      "actual": 12.6
+    },
+    {
+      "player_id": "6001",
+      "predicted": 2.88,
+      "actual": 10.5
+    },
+    {
+      "player_id": "9510",
+      "predicted": 0.11,
+      "actual": 5.5
+    },
+    {
+      "player_id": "11168",
+      "predicted": 0.6,
+      "actual": 12
+    },
+    {
+      "player_id": "13413",
+      "predicted": 2.58,
+      "actual": 12.4
+    },
+    {
+      "player_id": "13394",
+      "predicted": 4.07,
+      "actual": 15.7
+    },
+    {
+      "player_id": "13075",
+      "predicted": 0.1,
+      "actual": 16.1
+    },
+    {
+      "player_id": "8195",
+      "predicted": 0.18,
+      "actual": 8.1
+    },
+    {
+      "player_id": "12509",
+      "predicted": 4.88,
+      "actual": 13.6
+    },
+    {
+      "player_id": "11292",
+      "predicted": 0,
+      "actual": 8.14
+    },
+    {
+      "player_id": "13303",
+      "predicted": 0,
+      "actual": 7.08
+    },
+    {
+      "player_id": "12520",
+      "predicted": 0,
+      "actual": 6.1
+    },
+    {
+      "player_id": "13770",
+      "predicted": 0,
+      "actual": 9.7
+    },
+    {
+      "player_id": "7922",
+      "predicted": 0,
+      "actual": 8
+    }
+  ]
+}
