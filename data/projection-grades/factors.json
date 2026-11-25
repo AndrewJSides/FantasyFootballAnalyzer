@@ -1,53 +1,53 @@
 {
-  "generated_at": "2026-11-18T16:45:38.846Z",
-  "weeksGraded": 3,
-  "playersGraded": 694,
-  "meanDiff": -0.59,
-  "meanAbsDiff": 5.68,
-  "missShare": 0.477,
-  "usageDrivenMissShare": 0.199,
-  "tdVarianceMissShare": 0.118,
-  "didNotPlayMissShare": 0.311,
+  "generated_at": "2026-11-25T16:44:42.444Z",
+  "weeksGraded": 4,
+  "playersGraded": 910,
+  "meanDiff": -0.63,
+  "meanAbsDiff": 5.51,
+  "missShare": 0.468,
+  "usageDrivenMissShare": 0.221,
+  "tdVarianceMissShare": 0.12,
+  "didNotPlayMissShare": 0.308,
   "byPosition": {
     "QB": {
-      "weeksGraded": 3,
-      "playersGraded": 86,
-      "meanDiff": -1.26,
-      "meanAbsDiff": 6.88,
-      "missShare": 0.523,
-      "usageDrivenMissShare": 0.267,
-      "tdVarianceMissShare": 0.444,
-      "didNotPlayMissShare": 0.089
+      "weeksGraded": 4,
+      "playersGraded": 112,
+      "meanDiff": -1.29,
+      "meanAbsDiff": 6.59,
+      "missShare": 0.536,
+      "usageDrivenMissShare": 0.233,
+      "tdVarianceMissShare": 0.45,
+      "didNotPlayMissShare": 0.1
     },
     "RB": {
-      "weeksGraded": 3,
-      "playersGraded": 158,
+      "weeksGraded": 4,
+      "playersGraded": 202,
       "meanDiff": -0.33,
-      "meanAbsDiff": 6.4,
-      "missShare": 0.544,
-      "usageDrivenMissShare": 0.221,
-      "tdVarianceMissShare": 0.14,
-      "didNotPlayMissShare": 0.198
+      "meanAbsDiff": 6.27,
+      "missShare": 0.535,
+      "usageDrivenMissShare": 0.259,
+      "tdVarianceMissShare": 0.13,
+      "didNotPlayMissShare": 0.185
     },
     "WR": {
-      "weeksGraded": 3,
-      "playersGraded": 196,
-      "meanDiff": -1,
-      "meanAbsDiff": 6.16,
-      "missShare": 0.541,
-      "usageDrivenMissShare": 0.274,
-      "tdVarianceMissShare": 0.047,
-      "didNotPlayMissShare": 0.226
+      "weeksGraded": 4,
+      "playersGraded": 263,
+      "meanDiff": -1.01,
+      "meanAbsDiff": 5.86,
+      "missShare": 0.513,
+      "usageDrivenMissShare": 0.304,
+      "tdVarianceMissShare": 0.044,
+      "didNotPlayMissShare": 0.207
     },
     "TE": {
-      "weeksGraded": 3,
-      "playersGraded": 96,
-      "meanDiff": -1.59,
-      "meanAbsDiff": 4.83,
-      "missShare": 0.406,
-      "usageDrivenMissShare": 0.128,
-      "tdVarianceMissShare": 0.051,
-      "didNotPlayMissShare": 0.128
+      "weeksGraded": 4,
+      "playersGraded": 127,
+      "meanDiff": -1.77,
+      "meanAbsDiff": 4.81,
+      "missShare": 0.409,
+      "usageDrivenMissShare": 0.192,
+      "tdVarianceMissShare": 0.077,
+      "didNotPlayMissShare": 0.154
     }
   }
 }
